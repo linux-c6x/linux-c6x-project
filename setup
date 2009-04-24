@@ -1,0 +1,40 @@
+#!/bin/bash 
+# Setup development structure
+# should be run once when installed or when env vars change
+
+MYDIR=.
+
+if [ ! -e $MYDIR/setenv.example ] ; then
+	echo setup must be run from its own directory
+	exit 1
+fi
+
+if [ ! -e $MYDIR/setenv ] ; then
+	cp $MYDIR/setenv.example $MYDIR/setenv
+	echo Edit setenv for your configuration and rerun setup
+	exit 1
+fi
+
+source setenv
+
+if [ -z "$C6X_DIR" -o ! -x $C6X_DIR/bin/cg6x ] ; then
+	echo C6X_DIR is "$C6X_DIR" and does not seem to be the TI c6x tools
+	exit 1
+fi
+
+if [ -z "$GCC_WRAP_DIR" -o ! -x $GCC_WRAP_DIR/bin/c6x-linux-gcc ] ; then
+	echo GCC_WRAP_DIR is "$GCC_WRAP_DIR" and does not seem to be the GCC wrapper tools
+	exit 1
+fi
+
+if [ -e $GCC_WRAP_DIR/cgtools ] ; then
+	if [ -z "$GCC_WRAP_DIR" -o ! -L $GCC_WRAP_DIR/cgtools ] ; then
+		echo cgtools in $GCC_WRAP_DIR already exists and is not a symbolic link, aborting
+		exit 1
+	fi
+	rm $GCC_WRAP_DIR/cgtools
+fi
+ln -s $C6X_DIR $GCC_WRAP_DIR/cgtools
+
+echo setup is complete, will now verify
+$MYDIR/checkup

@@ -1,0 +1,11 @@
+#!/bin/bash
+
+source setenv
+
+xxx_sym_link=$(readlink $GCC_WRAP_DIR/cgtools)
+if [ ! -L $GCC_WRAP_DIR/cgtools ] || [ "$xxx_sym_link" != "$C6X_DIR" ] ; then
+	echo cgtools in $GCC_WRAP_DIR must be a symbolic link to $C6X_DIR
+	exit 1
+fi
+
+echo Looks OK to me
