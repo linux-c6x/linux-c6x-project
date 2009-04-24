@@ -1,0 +1,5 @@
+#!/bin/sh
+./mkcpio $1
+./bin2tidat.plx $1.cpio.gz
+
+

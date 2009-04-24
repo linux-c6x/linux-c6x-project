@@ -1,0 +1,14 @@
+#!/bin/sh
+# Make an initial ramdisk from the linux-root directory
+echo This will need sudo privaliges, enter your password now
+sudo echo sudo worked
+rm -rf initrd
+rm -rf initrd.gz
+sudo umount mnt
+dd if=/dev/zero of=initrd bs=1024 count=16000
+mkfs -t ext2 -F initrd
+sudo mount initrd mnt -o loop
+cp -pr $1/* mnt
+sudo umount mnt
+gzip initrd
+
