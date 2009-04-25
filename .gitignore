@@ -1,2 +1,8 @@
 # These files should not be recorded in version control
 setenv
+*.out
+*.dump
+*.dat
+*.cpio.gz
+*.cpio
+rootfs/hello-root/

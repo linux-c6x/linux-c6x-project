@@ -1,0 +1,13 @@
+#!/bin/bash
+
+source setenv
+
+(cd rootfs; ./uncpio hello-root)
+(cd hello; ./mk)
+(cp hello/hello rootfs/hello-root/bin/)
+(cd rootfs; ./mkramfs $ROOTFS)
+(mkdir -p $PRODUCT_DIR)
+(cp rootfs/$ROOTFS.cpio.gz.dat $PRODUCT_DIR/)
+(cd ../linux-c6x; make $DEFCONFIG)
+(cd ../linux-c6x; make )
+(cp ../linux-c6x/vmlinux $PRODUCT_DIR/vmlinux.out)
