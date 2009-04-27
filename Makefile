@@ -36,8 +36,9 @@ busybox:
 rootfs: $(ROOTFS)
 
 hello-root: hello
-	(cd rootfs; sudo ./uncpio hello-root)
+	(cd rootfs; ./uncpio hello-root)
 	(cp hello/hello.out rootfs/hello-root/bin/hello)
+	(cd rootfs; ./mkcpio hello-root; mv hello-root.cpio hello-root.cpio.1; cat hello-root.cpio.1 hello-devs.cpio.skel >hello-root.cpio)
 	(cd rootfs; ./mkramfs hello-root)
 
 #not ready for this one
@@ -48,7 +49,6 @@ xxx-min-root: busybox
 
 # this rule good for full-root or any others that are just used from cpio.gz file
 full-root min-root:
-	(cd rootfs; sudo ./uncpio $@)
 	(cd rootfs; ./mkramfs $@)
 
 kernel: 

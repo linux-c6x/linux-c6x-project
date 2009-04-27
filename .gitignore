@@ -8,3 +8,5 @@ setenv
 rootfs/hello-root/
 rootfs/min-root/
 rootfs/full-root/
+rootfs/*.cpio.1
+

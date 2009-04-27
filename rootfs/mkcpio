@@ -6,7 +6,6 @@ if [ -z "$1" ] || [ ! -d $1 ]; then
 fi
 rm -rf $1.cpio.gz
 (cd $1; find . | cpio -H newc -o > ../$1.cpio)
-gzip <$1.cpio >$1.cpio.gz
 
 
 

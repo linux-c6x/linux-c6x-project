@@ -1,5 +1,5 @@
 #!/bin/sh
-./mkcpio $1
+gzip <$1.cpio >$1.cpio.gz
 ./bin2tidat.plx $1.cpio.gz
 
 
