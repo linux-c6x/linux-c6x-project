@@ -1,8 +1,11 @@
 This is the linux-c6x project
 
 Top level plan:
-- Make a very simple system (timer, connsole, maybe enet) 
-- Merge my changes and ni-3.0
+X Make a very simple system (timer, console, maybe enet) 
+X Test on CCS 3.2 windows simulator
+- Test on Linux simulator
+- Test on real HW
+- Merge my changes and ni-3.0 &| VLX SOW Delivery 1
 - Verify w/ TI V7 compiler w/ COFF
 - Backout V6 specific changes in common code
 - Do TI V7 ELF for kernel (still COFF for app.  No modules)

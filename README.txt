@@ -3,7 +3,7 @@ This is the linux-c6x project
 SCOPE:
 This project is intentional simplistic so we can focus on the basics.
 Right now it is just a kernel and one of a couple of root filesystems.
-The simplist rootfs if hello-root.  
+The simplist rootfs is hello-root.  
 hello-root contains one static app that says hello once per second, and the minimum support to boot that app.
 The hello app is built here as well.  It is very simple and links with a [for now] pre-existing uClibc.
 [It is TODO to rebuild uClibc]
@@ -15,28 +15,36 @@ linux-root is the linux rootfs from VLX.  It contains a decent mix of stuff for 
 [It is out of scope to build something like this here.  We will use OpenEmbedded for that.]
 
 STATUS
-	Right now this builds on at least Ubuntu 8.10
-	Right now this requires sudo access for building the rootfs
+	Right now this builds on at least Ubuntu 8.10 and TI RHEL4 
+		RHEL4 tested on GT linux farm but should work dal, hou, etc
+	Sudo access is no longer required
+	Tested on CCS 6446 simulator in windows
+		no HW tests yet
+		no linux sim yet
+	Tested with TI CGTOOLs 6.0.13  (Thats what VLX was using)
 
 GETTING STARTED:
 make sure you have git in your system.
+	For TI IT managed boxes you should have it in /apps/free/git/*
+	export PATH=/apps/free/git/1.6.0.4/bin
+
 clone the linux-c6x git trees
 	mkdir my-linux-c6x; cd my-linux-c6x
-	git clone git://git.dal.design.ti.com/linux-c6x/linux-c6x
-	git clone git://git.dal.design.ti.com/linux-c6x/linux-c6x-project
-	git clone git://git.dal.design.ti.com/linux-c6x/tool-wrap
+	git clone git://gitweb.dal.design.ti.com/linux-c6x/internal-only/linux-c6x
+	git clone git://gitweb.dal.design.ti.com/linux-c6x/internal-only/linux-c6x-project
+	git clone git://gitweb.dal.design.ti.com/linux-c6x/internal-only/tool-wrap
 	[TODO script for this? use repo?]
 
 setup your instalation
 	cd linux-c6x-project
 	./setup
-	[edit setenv]
+	[edit setenv; point to CGTOOLS]
 	./setup
 
 build it
-	./buildall
+	source setenv
+	make product
 	[check my-linux-c6x/product for vmlinux.out and hello-root.cpio.gz.dat]
-	[TODO convert to simple makefile]
 
 run it
 	I have only run this on a Windows CCS 3.3 6446 simulator
