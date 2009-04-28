@@ -26,7 +26,7 @@ STATUS
 GETTING STARTED:
 make sure you have git in your system.
 	For TI IT managed boxes you should have it in /apps/free/git/*
-	export PATH=/apps/free/git/1.6.0.4/bin
+	export PATH=/apps/free/git/1.6.0.4/bin:$PATH
 
 clone the linux-c6x git trees
 	mkdir my-linux-c6x; cd my-linux-c6x

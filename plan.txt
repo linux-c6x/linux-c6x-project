@@ -2,7 +2,7 @@ This is the linux-c6x project
 
 Top level plan:
 X Make a very simple system (timer, console, maybe enet) 
-X Test on CCS 3.2 windows simulator
+X Test on CCS 3.3 windows simulator
 - Test on Linux simulator
 - Test on real HW
 - Merge my changes and ni-3.0 &| VLX SOW Delivery 1
