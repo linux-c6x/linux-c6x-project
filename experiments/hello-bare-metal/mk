@@ -1,0 +1,6 @@
+#!/bin/bash
+DIR=$TI_CG6X_V7_DIR
+CC=$DIR/bin/cl6x
+export C6X_C_DIR="$DIR/include;$DIR/lib"
+$CC hello.c -mv6400 -z hello.cmd -o hello.out 
+$DIR/bin/ofd6x hello.out >hello.dump
