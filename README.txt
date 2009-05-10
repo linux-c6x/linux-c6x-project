@@ -21,7 +21,7 @@ STATUS
 	Tested on CCS 6446 simulator in windows
 		no HW tests yet
 		no linux sim yet
-	Tested with TI CGTOOLs 6.0.13  (Thats what VLX was using)
+	Tested with TI CGTOOLs 6.0.13 (thats what VLX was using) & 7.0 Alpha
 
 GETTING STARTED:
 make sure you have git in your system.

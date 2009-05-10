@@ -4,9 +4,12 @@ Top level plan:
 X Make a very simple system (timer, console, maybe enet) 
 X Test on CCS 3.3 windows simulator
 X Verify w/ TI V7 compiler w/ COFF
+X Merge my changes and ni-3.0 
+X Bare metal test on Linux simulator
 - Test on Linux simulator
+- Bare metal test on real HW
 - Test on real HW
-- Merge my changes and ni-3.0 &| VLX SOW Delivery 1
+- Merge my changes VLX SOW Delivery 1
 - Backout V6 specific changes in common code
 - Do TI V7 ELF for kernel (still COFF for app.  No modules)
 - Do TI V7 ELF for static app
