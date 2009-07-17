@@ -1,0 +1,3 @@
+#!/bin/bash
+DIR=$TI_CG6X_V7_DIR
+$DIR/bin/kelvin -mv6400 -alloc 0x80000000 0x10000000 zapmem.out

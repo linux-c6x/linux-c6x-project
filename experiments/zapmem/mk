@@ -1,0 +1,6 @@
+#!/bin/bash
+DIR=$TI_CG6X_V7_DIR
+CC=$DIR/bin/cl6x
+export C6X_C_DIR="$DIR/include;$DIR/lib"
+rm zapmem.out
+$CC zapmem.c vectors.asm -mv6400 -z zapmem.cmd -o zapmem.out 
