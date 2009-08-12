@@ -1,6 +1,10 @@
 ; 
 ;  vector.asm
 ;
+	   .if __TI_ELFABI__
+	   .asg	c_int00, _cint00
+	   .endif
+	   
            .sect ".vectors"
            .ref  _c_int00			; Reset handler
 
