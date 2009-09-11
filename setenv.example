@@ -20,4 +20,5 @@ export LINUX_C6X_PROJECT_DIR=$LINUX_C6X_TOP_DIR/linux-c6x-project
 export SHELL=/bin/bash 
 export ARCH=c6x 
 export CROSS_COMPILE=$GCC_WRAP_DIR/bin/c6x-linux- 
+export CROSS=$CROSS_COMPILE
 export HOSTCC=gcc

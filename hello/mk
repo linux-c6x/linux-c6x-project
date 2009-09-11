@@ -4,3 +4,4 @@ if [ ! -z "$V" ] ; then VOPT=-v; fi
 CC=$GCC_WRAP_DIR/../sdk/bin/c6x-linux-gcc
 $CC $VOPT -Wl,-ar hello.c -o hello.out 
 $TI_CG6X_DIR/bin/ofd6x hello.out >hello.dump
+true
