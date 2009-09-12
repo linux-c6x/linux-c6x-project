@@ -1,11 +1,15 @@
 #!/bin/sh
 # Make a cpio archive from the specified directory
-if [ -z "$1" ] || [ ! -d $1 ]; then 
+DIR=$1
+FILE=$2
+if [ -z "$DIR" ] || [ ! -d $DIR ]; then 
     echo "need dir as arg1"; 
     exit 1
 fi
-rm -rf $1.cpio.gz
-(cd $1; find . | cpio -H newc -o > ../$1.cpio)
+if [ -z "$FILE" ] ; then FILE=$1; fi
+
+rm -rf $FILE.cpio
+(cd $DIR; find . | cpio -H newc -o > ../$FILE.cpio)
 
 
 

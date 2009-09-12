@@ -36,21 +36,18 @@ busybox:
 rootfs: $(ROOTFS)
 
 hello-root: hello
-	(cd rootfs; ./uncpio hello-root)
+	(cd rootfs; ./uncpio hello-root-skel hello-root)
 	(cp hello/hello.out rootfs/hello-root/bin/hello)
-	(cd rootfs; ./mkcpio hello-root; mv hello-root.cpio hello-root.cpio.1; cat hello-root.cpio.1 hello-devs.cpio.skel >hello-root.cpio)
+	(cd rootfs; ./mkcpio hello-root hello-root-1; cat hello-root-1.cpio hello-root-devs.cpio >hello-root.cpio)
 	(cd rootfs; ./mkramfs hello-root)
 
-#not ready for this one
-xxx-min-root: busybox
-	(cd rootfs; sudo ./uncpio min-root)
-	(cp somewhere/busybox rootfs/min-root/bin/busybox)
-	(cd rootfs; ./mkramfs hello-root)
-
-# this rule good for full-root or any others that are just used from cpio.gz file
-full-root min-root:
+min-root: busybox
+	(cd rootfs; ./uncpio $@-skel $@)
+	(cp rootfs/min-root-pgms/busybox.full rootfs/$@/bin/)
+	(cp -rp rootfs/min-root-extra/* rootfs/$@)
+	(cd rootfs; ./mkcpio $@ $@-1; cat $@-1.cpio $@-devs.cpio >$@.cpio)
 	(cd rootfs; ./mkramfs $@)
-	
+
 zapmem:
 	(cd experiments/zapmem; ./mk-elf)
 
