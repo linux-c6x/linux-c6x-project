@@ -50,12 +50,17 @@ xxx-min-root: busybox
 # this rule good for full-root or any others that are just used from cpio.gz file
 full-root min-root:
 	(cd rootfs; ./mkramfs $@)
+	
+zapmem:
+	(cd experiments/zapmem; ./mk-elf)
 
 kernel: 
 	(cd ../linux-c6x; make $(DEFCONFIG))
 	(cd ../linux-c6x; make )
 
-product: kernel $(ROOTFS)
+product: kernel $(ROOTFS) zapmem
 	(mkdir -p $(PRODUCT_DIR))
-	(cp rootfs/$(ROOTFS).cpio.gz.dat $(PRODUCT_DIR)/)
+	(cp rootfs/$(ROOTFS).cpio.gz $(PRODUCT_DIR)/)
 	(cp ../linux-c6x/vmlinux $(PRODUCT_DIR)/vmlinux.out)
+	(cp experiments/zapmem/zapmem.elf $(PRODUCT_DIR)/)
+
