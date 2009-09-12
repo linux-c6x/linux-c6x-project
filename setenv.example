@@ -8,7 +8,7 @@ export TI_CG6X_V7_DIR=~/opt/cg6x_7_0_0A
 # Choices for config
 export TI_CG6X_DIR=$TI_CG6X_V7_DIR
 export EXTRAVERSION=
-export ROOTFS=hello-root
+export ROOTFS=min-root
 export DEFCONFIG=wam_dsk6455_defconfig
 
 # This section should not normaly have to be modified

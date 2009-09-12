@@ -45,8 +45,9 @@ min-root: busybox
 	(cd rootfs; ./uncpio $@-skel $@)
 	(cp rootfs/min-root-pgms/busybox.full rootfs/$@/bin/)
 	(cp -rp rootfs/min-root-extra/* rootfs/$@)
-	(cd rootfs; ./mkcpio $@ $@-1; cat $@-1.cpio $@-devs.cpio >$@.cpio)
-	(cd rootfs; ./mkramfs $@)
+	(cd rootfs; ./mkcpio $@ $@-1; gzip -c $@-1.cpio $@-devs.cpio >$@.cpio.gz)
+	(cd rootfs; dd if=/dev/zero of=$@.pad.bin bs=1024 count=4096; dd conv=notrunc seek=0 if=$@.cpio.gz of=$@.pad.bin)
+
 
 zapmem:
 	(cd experiments/zapmem; ./mk-elf)
@@ -57,7 +58,7 @@ kernel:
 
 product: kernel $(ROOTFS) zapmem
 	(mkdir -p $(PRODUCT_DIR))
-	(cp rootfs/$(ROOTFS).cpio.gz $(PRODUCT_DIR)/)
+	(cp rootfs/$(ROOTFS).cpio.gz rootfs/$(ROOTFS).pad.bin $(PRODUCT_DIR)/)
 	(cp ../linux-c6x/vmlinux $(PRODUCT_DIR)/vmlinux.out)
 	(cp experiments/zapmem/zapmem.elf $(PRODUCT_DIR)/)
 
