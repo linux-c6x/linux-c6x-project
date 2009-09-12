@@ -1,0 +1,14 @@
+# Busybox init does not support runlevels, this field is ignored:
+#   <id>:<runlevels>:<action>:<process>
+#
+# The <id> field is used to specify the controlling TTY for the process.  
+#	This is different then sysvinit behavior!
+#
+# System startup
+::sysinit:/etc/rc.sysinit
+
+# Console
+console::respawn:/bin/sh
+
+# Go into runlevel 0 (Halt)
+# ::shutdown:/etc/rc.syshalt

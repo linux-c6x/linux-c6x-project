@@ -1,0 +1,42 @@
+#!/bin/sh
+
+echo
+echo Starting system...
+echo
+
+# Default configuration.
+PATH=/bin:/sbin:/usr/bin:/usr/sbin
+export PATH
+
+HOSTNAME="localhost"
+
+# Read the configuration.
+if [ -f /etc/rc.conf ]; then
+    . /etc/rc.conf
+fi
+
+# Mount /proc.
+echo -n "Mounting proc filesystem: "
+mount -n /proc /proc -t proc
+echo "done."
+
+# Remount cramfs rootfs as read-only when used with initrd.
+if grep -sq "/dev/root[^ ]* [^ ]* cramfs rw[, ]" /proc/mounts; then
+    mount -n -o remount,ro /dev/root* /
+fi
+
+# Set the host name.
+echo -n "Setting hostname ${HOSTNAME}: "
+hostname ${HOSTNAME}
+echo "done."
+
+# Bring up loopback.
+if [ -f /proc/net/tcp ]; then
+  echo -n "Bringing up loopback interface: "
+  ifconfig lo 127.0.0.1 up
+  echo "done."
+fi
+
+echo
+echo "System started."
+echo

@@ -1,0 +1,127 @@
+#!/bin/sh
+
+echo
+echo Starting system...
+echo
+
+# If we're using devfs, start devfsd now - we need the old device names.
+if [ -e /dev/.devfsd -a -x /sbin/devfsd ]; then
+    /sbin/devfsd /dev
+fi
+
+# Default configuration.
+PATH=/bin:/sbin:/usr/bin:/usr/sbin
+export PATH
+LOGLEVEL=3
+NETWORKING=no
+HOSTNAME=`hostname`
+
+# Read the configuration.
+if [ -f /etc/rc.conf ]; then
+    . /etc/rc.conf
+fi
+
+# Fix the host name.
+if [ -z "$HOSTNAME" -o "$HOSTNAME" = "(none)" ]; then
+    HOSTNAME="localhost"
+fi
+
+# Fix console loglevel.
+dmesg -n $LOGLEVEL
+
+# Mount /proc.
+echo -n "Mounting proc filesystem: "
+mount -n /proc /proc -t proc
+echo "done."
+
+# Remount cramfs rootfs as read-only when used with initrd.
+if grep -sq "/dev/root[^ ]* [^ ]* cramfs rw[, ]" /proc/mounts; then
+    mount -n -o remount,ro /dev/root* /
+fi
+
+# If rootfs is mounted with the read-only attribute, use tmpfs or ramfs
+# for /tmp and /var.
+if grep -sq "/dev/root[^ ]* [^ ]* [^ ]* ro[, ]" /proc/mounts; then
+
+    if grep -sq "nodev.*ramfs" /proc/filesystems; then
+	TMPFS=ramfs
+    else
+	TMPFS=tmpfs
+    fi
+
+    echo -n "Mounting /tmp: "
+    mount -n none /tmp -t $TMPFS
+    echo "done."
+
+    echo -n "Mounting /var: "
+    D=`find /var -type d`
+    mount -n none /var -t $TMPFS
+    mkdir -p $D
+    echo "done."
+fi
+
+# Mount other filesystems if requested.
+if [ -f /etc/fstab ]; then
+    echo -n "Mounting other filesystems: "
+    mount -n -a
+    echo "done."
+fi
+
+# Clean up /var.
+for afile in /var/lock/* /var/run/*; do
+    if [ -d "$afile" ]; then
+        bname=`basename $afile`
+	[ "$bname" != "news" -a "$bname" != "sudo" -a \
+	  "$bname" != "mon" ] && rm -f $afile/*
+    else
+	rm -f $afile
+    fi
+done
+rm -f /var/lib/rpm/__db*
+
+# Clean up utmp/wtmp.
+>/var/run/utmp
+touch /var/log/wtmp
+chmod 0664 /var/run/utmp /var/log/wtmp
+
+# Set the host name.
+echo -n "Setting hostname ${HOSTNAME}: "
+hostname ${HOSTNAME}
+echo "done."
+
+# Bring up loopback.
+if [ -f /proc/net/tcp ]; then
+  echo -n "Bringing up loopback interface: "
+  ifconfig lo 127.0.0.1 up
+  echo "done."
+fi
+
+# Start syslogd/klogd if possible.
+if [ -x /sbin/syslogd ]; then
+    echo -n "Starting syslogd: "
+    syslogd
+    echo "done."
+fi
+if [ -x /sbin/klogd ]; then
+    echo -n "Starting klogd: "
+    klogd
+    echo "done."
+fi
+
+# Start inetd if requested.
+if [ "$NETWORKING" = "yes" -a -x /usr/sbin/inetd ]; then
+    echo -n "Starting inetd: "
+    inetd
+    echo "done."
+fi
+
+# Start custom services if requested.
+if [ -d /etc/rc.bb ]; then
+    for service in `ls /etc/rc.bb/??_* 2>/dev/null`; do
+	. $service
+    done
+fi
+
+echo
+echo "System started."
+echo

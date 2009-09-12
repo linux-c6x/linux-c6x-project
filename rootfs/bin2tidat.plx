@@ -5,7 +5,7 @@ use File::stat;
 use bytes;
 use strict;
 
-my $start_addr = 0x81000000;
+my $start_addr = 0xE1000000;
 my $length     = 0;
 
 my @file_list = ();
