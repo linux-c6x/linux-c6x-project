@@ -34,7 +34,19 @@ echo "done."
 if [ -f /proc/net/tcp ]; then
   echo -n "Bringing up loopback interface: "
   ifconfig lo 127.0.0.1 up
-  echo "done."
+  echo -n "Bring up eth0: "
+  ifconfig eth0 hw ether 00:01:22:99:33:44
+  ifconfig eth0 10.0.0.200
+  ifconfig eth0 up
+  ifconfig -s
+  echo -n "done."
+fi
+
+# Start inetd if requested.
+if [ "$NETWORKING" = "yes" -a -x /usr/sbin/inetd ]; then
+    echo -n "Starting inetd: "
+    inetd
+    echo "done."
 fi
 
 echo
