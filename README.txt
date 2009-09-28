@@ -55,7 +55,7 @@ get TI Code Generation 7.0:
 	    http://syntaxerror.dal.design.ti.com/release/releases/c60/rel7_0_0_beta2/build/install/
 	I install this in ~/opt/cg6x_7_0_0A  (or B2 for beta)
 
-clone the linux-c6x git trees
+clone the linux-c6x git trees  (will need about 2GB disk space)
 	mkdir my-linux-c6x; cd my-linux-c6x
 	git clone git://gitweb.dal.design.ti.com/linux-c6x/internal-only/linux-c6x
 	git clone git://gitweb.dal.design.ti.com/linux-c6x/internal-only/linux-c6x-project
@@ -73,9 +73,15 @@ build it
 	make product
 	[check my-linux-c6x/product for vmlinux.out and min-root.pad.bin]
 
+<extra steps for CCSV3>
+        cd experiments/zapmem
+        ./mk    #to build .out version of zapmem.
+        cd ../../rootfs
+        ./bin2tidat2.plx min-root.pad.bin  #to build a .dat file that CCSV3
+can read in.
 on Windows host...
 
-get CCSv4 & test:
+get CCSv4 & test:  (see below for what to do with CCSv3)
     [document where]
     [install]
     [create C make project]
@@ -89,9 +95,31 @@ get CCSv4 & test:
     [run, see counsole output]
 
 boot (or debug) linux:
-    [start debugger as above]
+    [continue in  debugger as above]
     [Target -> load program -> vmlinux.out]
     [Takes about a min (unless high latency file share, see above)]
+    [Edit default command line (see below) if desired]
     [Open a Memory window, right click, select load memory, browse for min-root.pad.bin, set address to 0xE1000000, set size to 32, OK]
     [Takes about a min]
     [run, debug on CCS console, no input allowed]
+
+
+< if using CCSv3 (un-offical..) >
+    same as above but load and run zapmem.out instead of .elf
+    instead of loading memory window with min-root,  use ccsv3 data command to
+load min-root.pad.bin.dat into 0xe1000000
+
+<changing linux default_command_line>
+   before running linux.out,open a memory window and enter
+"default_command_line" as address.  
+   switch display format to "char".  This should show you the default command
+line string.
+   use memory window to:
+    - change mac address by altering default mac address after  "emac_addr=" 
+    - [static ip] change ip address by altering  address after "ip="
+    - [DHCP] enable dhcp by removing ip address after "ip=" 
+    - Other IP stuff: see net/ipv4/ipconfig.c for format of ip= substring
+
+
+
+

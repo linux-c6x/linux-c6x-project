@@ -97,15 +97,15 @@ if [ -f /proc/net/tcp ]; then
 fi
 
 #bring up eth0
-if [ -f /proc/net/tcp ]; then
-	echo -n "Bring up eth0: "
-  	ifconfig eth0 hw ether 00:01:22:99:33:44
-  	ifconfig eth0 10.0.0.200
-  	ifconfig eth0 up
-  	ifconfig -s eth0
-  	echo -n "eth0 bring w/ static mac & ip up done."
-fi
-  echo -n "about to start logger"
+#if [ -f /proc/net/tcp ]; then
+#	echo -n "Bring up eth0: "
+#  	ifconfig eth0 hw ether 00:01:22:99:33:44
+#  	ifconfig eth0 10.0.0.200
+#  	ifconfig eth0 up
+#  	ifconfig -s eth0
+#  	echo -n "eth0 bring w/ static mac & ip up done."
+#fi
+#  echo -n "about to start logger"
 
 # Start syslogd/klogd if possible.
 if [ -x /sbin/syslogd ]; then
