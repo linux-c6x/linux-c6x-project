@@ -22,6 +22,7 @@ sdk:	clib
 	mkdir -p $(SDK_DIR)
 	touch $(SDK_DIR)/linux-c6x-sdk-marker
 	(cd $(SDK_DIR); rpm2cpio $(PRJ)/uclibc/uClibc-devel-0.9.28-5jl_nommu.c64xplus.rpm | cpio -i --make-directories)
+	(cd $(SDK_DIR); rpm2cpio $(PRJ)/uclibc/uClibc-kernheaders-1.0-3jl_nommu.c64xplus.rpm | cpio -i --make-directories)
 	@echo the specs for the stock vlx gcc are kind of funny, mush everything together
 	cp -pr $(GCC_WRAP_DIR)/* $(SDK_DIR)
 	cp -pr $(SDK_DIR)/usr/include/* $(SDK_DIR)/lib/gcc-lib/c6x/3.2.2/include
