@@ -5,22 +5,26 @@ This project is intentional simplistic so we can focus on the basics.
 Right now it is just a kernel and one of a couple of root filesystems.
 The simplist rootfs is hello-root.  
 hello-root contains one static app that says hello once per second, and the minimum support to boot that app.
-The hello app is built here as well.  It is very simple and links with a [for now] pre-existing uClibc.
-[It is TODO to rebuild uClibc]
+The hello app is built here as well.  It is very simple and links with a static uClibc that is built as part of the sdk target
 min-root is another rootfs choice.  It uses a full busybox.
 min-root does a real boot typical of a small system.
-[It is TODO to rebuild busybox]
+busybox is built for use in min-root
 [It is out of scope to build a full system w/ lots of packages.  We will use OpenEmbedded for that.]
 
 STATUS
-	Build 2.6.13 kernel based on ni-3.0 + my mods
-	Use prebuilt uClibc & busybox from VLX
+	Build 2.6.13 kernel based on vlx contract deliver 2 2nd try (vlx-D2.1) + my mods
+	    my mods:
+		add initramfs support
+		add cio debug outut console
+		option for more debug
+		make system fixup
+	Builds uClibc and busybox
 	Build is only Linux hosted
 	Tested on Ubuntu 9.04 and TI code gen 7.0 alpha
 	Debug is only Windows hosted
 	Using CCS4 on Win XP connected to on board jtag of DSK6455 evm
-	Boots OK
-	TODO: configure enet and telnet
+	[need to re-verify] Boots OK
+	[need to re-verify] configures enet and allows telnet login
 
 PREVIOUS STATUS (these were tru in the past; some may need to be reverified)
 	Builds have bene done on Ubuntu 8.04 and TI RHEL 4 but not recently 
@@ -60,6 +64,8 @@ clone the linux-c6x git trees  (will need about 2GB disk space)
 	git clone git://gitweb.dal.design.ti.com/linux-c6x/internal-only/linux-c6x
 	git clone git://gitweb.dal.design.ti.com/linux-c6x/internal-only/linux-c6x-project
 	git clone git://gitweb.dal.design.ti.com/linux-c6x/internal-only/tool-wrap
+	git clone git://gitweb.dal.design.ti.com/linux-c6x/internal-only/busybox
+	git clone git://gitweb.dal.design.ti.com/linux-c6x/internal-only/uclibc
 	[TODO script for this? use repo?]
 
 setup your instalation

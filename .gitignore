@@ -12,5 +12,7 @@ setenv
 rootfs/hello-root/
 rootfs/min-root/
 rootfs/full-root/
+rootfs/busybox-image
+
 
 
