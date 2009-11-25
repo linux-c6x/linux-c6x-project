@@ -63,7 +63,7 @@ busybox-sub:
 	    "$(CONF)" > .config
 	make oldconfig
 	make dep
-	make
+	make EXTRA_LDFLAGS="-Wl,-ar" STRIP=true
 	make PREFIX=$(PRJ)/rootfs/busybox-image install
 
 sdk0:
