@@ -33,7 +33,7 @@ endif
 
 sanity:
 	@if [ -z "$$LINUX_C6X_TOP_DIR" ] ; then echo Does not look like setenv has been setup; exit 1; fi
-	echo $(if $(ONLY),skipping conditional dependencies,using full dependencies)
+	@echo $(if $(ONLY),skipping conditional dependencies,using full dependencies)
 
 kernel: $(call COND_DEP, sdk0)
 	$(SUB_MAKE) -C $(TOP)/linux-c6x CROSS=should_not_be_used- CROSS_COMPILE=$(CC_SDK0) kernel-sub
@@ -67,11 +67,20 @@ busybox-sub:
 	make PREFIX=$(PRJ)/rootfs/busybox-image install
 
 sdk0:
-	if [ -e $(SDK0_DIR)/linux-c6x-sdk0-marker ] ; then rm -rf $(SDK0_DIR); fi
-	mkdir -p $(SDK0_DIR)
-	touch $(SDK0_DIR)/linux-c6x-sdk0-marker
-	@echo not really building up SDK0 yet
-	cp -pr $(GCC_WRAP_DIR)/* $(SDK0_DIR)
+	@if [ -e $(SDK0_DIR)/linux-c6x-sdk0-prebuilt ] ; then 	\
+	    echo using pre-built sdk0;				\
+	else	    						\
+	    if [ -e $(SDK0_DIR)/linux-c6x-sdk0-marker ] ; then 	\
+		rm -rf $(SDK0_DIR); 				\
+	    fi;							\
+	    mkdir -p $(SDK0_DIR);				\
+	    touch $(SDK0_DIR)/linux-c6x-sdk0-marker;		\
+	    $(SUB_MAKE) sdk0_sub;				\
+	fi							\
+
+sdk0_sub:
+	$(MAKE) -C $(TOP)/tool-wrap SDK0_DIR=$(SDK0_DIR)
+
 
 sdk:	sdk0 sdk-fresh clib sdk-clib sdk-kernel-headers sdk-mashup
 
