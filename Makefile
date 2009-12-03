@@ -79,8 +79,8 @@ sdk0:
 	fi							\
 
 sdk0_sub:
-	$(MAKE) -C $(TOP)/tool-wrap SDK0_DIR=$(SDK0_DIR)
-
+	@echo not really building up SDK0 yet
+	cp -pr $(GCC_WRAP_DIR)/* $(SDK0_DIR)
 
 sdk:	sdk0 sdk-fresh clib sdk-clib sdk-kernel-headers sdk-mashup
 
