@@ -17,8 +17,8 @@ fi
 
 source setenv
 
-if [ -z "$C6X_DIR" -o ! -x $C6X_DIR/bin/cg6x ] ; then
-	echo C6X_DIR is "$C6X_DIR" and does not seem to be the TI c6x tools
+if [ -z "$TI_CG6X_DIR" -o ! -x $TI_CG6X_DIR/bin/cg6x ] ; then
+	echo TI_CG6X_DIR is "$TI_CG6X_DIR" and does not seem to be the TI c6x tools
 	exit 1
 fi
 
@@ -34,7 +34,7 @@ if [ -e $GCC_WRAP_DIR/cgtools ] ; then
 	fi
 	rm $GCC_WRAP_DIR/cgtools
 fi
-ln -s $C6X_DIR $GCC_WRAP_DIR/cgtools
+ln -s $TI_CG6X_DIR $GCC_WRAP_DIR/cgtools
 
 echo setup is complete, will now verify
 $MYDIR/checkup

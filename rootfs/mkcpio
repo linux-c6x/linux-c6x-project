@@ -1,5 +1,5 @@
 #!/bin/sh
-# Make an initial ramdisk from the linux-root directory
+# Make a cpio archive from the specified directory
 if [ -z "$1" ] || [ ! -d $1 ]; then 
     echo "need dir as arg1"; 
     exit 1

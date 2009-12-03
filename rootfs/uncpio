@@ -1,10 +1,25 @@
-#!/bin/sh
-# Make an initial ramdisk from the $1 directory
-if [ -z "$1" ] || [ ! -e $1.cpio.gz ] ; then 
-    echo "need <arg1>.cpio.gz"; 
-    exit 1
+#!/bin/bash
+# Make a directory from a cpio archive
+if [ -z "$1" ] ; then 
+	echo "need <arg1>.ext where ext = cpo, cpio.gz, or cpio.skel"; 
+	exit 1
 fi
-if [ -e $1 -a -d $1 ] ; then
+
+if [ -e $1.cpio.skel ] ; then 
+	FILE=$1.cpio.skel
+	CAT=cat
+elif [ -e $1.cpio.gz ] ; then 
+	FILE=$1.cpio.gz
+	CAT=zcat
+elif [ -e $1.cpio ] ; then 
+	FILE=$1.cpio
+	CAT=cat
+else
+	echo "need <arg1>.ext where ext = cpo, cpio.gz, or cpio.skel"
+	exit 1
+fi
+
+if [ -d $1 ] ; then
     rm -rf $1
 fi
 mkdir -p $1
@@ -12,8 +27,6 @@ if [ ! -d $1 ] ; then
     echo could not create dir $1
     exit 1
 fi
-echo This will require sudo access
-sudo echo sudo worked
-(cd $1; zcat ../$1.cpio.gz | sudo cpio -i)
+(cd $1; $CAT ../$FILE | cpio -i)
 
 

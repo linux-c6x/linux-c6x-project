@@ -6,3 +6,5 @@ setenv
 *.cpio.gz
 *.cpio
 rootfs/hello-root/
+rootfs/min-root/
+rootfs/full-root/

@@ -1,20 +1,22 @@
 # This file should be sourced (not run) into your shell to put the linux-c6x project in context
 
 # Stuff that will often change from machine to machine
-export LINUX_C6X_PROJECT_DIR=~/w/proj/linux-c6x
-export C6X_V6_DIR=~/opt/cg6x_6_0_13
-export C6X_V7_DIR=~/opt/cg6x_7_0_0-alpha1
+export LINUX_C6X_TOP_DIR=~/w/proj/linux-c6x
+export TI_CG6X_V6_DIR=~/opt/cg6x_6_0_13
+export TI_CG6X_V7_DIR=~/opt/cg6x_7_0_0-alpha1
 
 # Choices for config
-export C6X_DIR=$C6X_V6_DIR
+export TI_CG6X_DIR=$TI_CG6X_V6_DIR
 export EXTRAVERSION=
 export ROOTFS=hello-root
 export DEFCONFIG=wam_sim6446-nommu_defconfig
 
 # This section should not normaly have to be modified
 # Values are calculated from above or constant
-export PRODUCT_DIR=$LINUX_C6X_PROJECT_DIR/product
-export GCC_WRAP_DIR=$LINUX_C6X_PROJECT_DIR/tool-wrap
+export PRODUCT_DIR=$LINUX_C6X_TOP_DIR/product
+export SDK_DIR=$LINUX_C6X_TOP_DIR/sdk
+export GCC_WRAP_DIR=$LINUX_C6X_TOP_DIR/tool-wrap
+export LINUX_C6X_PROJECT_DIR=$LINUX_C6X_TOP_DIR/linux-c6x-project
 export SHELL=/bin/bash 
 export ARCH=c6x 
 export CROSS_COMPILE=$GCC_WRAP_DIR/bin/c6x-linux- 

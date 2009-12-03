@@ -1,5 +1,6 @@
-GCC_C6X=/home/bill/opt/VirtualLogix/vlx-dm-2.0-c6x/tools-linux-sdk
-TI_C6X=/home/bill/opt/cg6x_6_0_13/bin
-CC=$GCC_C6X/bin/c6x-linux-gcc
-$CC -v -Wl,-ar hello.c -o hello.out 
-$TI_C6X/ofd6x hello.out >hello.dump
+#!/bin/bash
+# V=1 ./mk to see gcc passes
+if [ ! -z "$V" ] ; then VOPT=-v; fi
+CC=$GCC_WRAP_DIR/../sdk/bin/c6x-linux-gcc
+$CC $VOPT hello.c -o hello.out 
+$TI_CG6X_DIR/bin/ofd6x hello.out >hello.dump
