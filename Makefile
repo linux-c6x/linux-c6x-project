@@ -78,6 +78,15 @@ sdk0:
 	    $(SUB_MAKE) sdk0_sub;				\
 	fi							\
 
+sdk0_clean:
+	@if [ -e $(SDK0_DIR)/linux-c6x-sdk0-prebuilt ] ; then 	\
+	    echo "using pre-built sdk0 (skip clean)";		\
+	else	    						\
+	    if [ -e $(SDK0_DIR)/linux-c6x-sdk0-marker ] ; then 	\
+		rm -rf $(SDK0_DIR); 				\
+	    fi;							\
+	fi							\
+
 sdk0_sub:
 	@echo not really building up SDK0 yet
 	cp -pr $(GCC_WRAP_DIR)/* $(SDK0_DIR)
@@ -162,7 +171,7 @@ clean:
 	make -C ../uClibc    clean
 	make -C ../busybox   clean
 	make -C ../linux-c6x clean
-	if [ -e $(SDK0_DIR)/linux-c6x-sdk0-marker ] ; then rm -rf $(SDK0_DIR); fi
+	$(SUB_MAKE) sdk0_clean
 	if [ -e $(SDK_DIR)/linux-c6x-sdk-marker ] ; then rm -rf $(SDK_DIR); fi
 	rm $(PRODUCT_DIR)/*.cpio.gz $(PRODUCT_DIR)/*.pad.bin $(PRODUCT_DIR)/vmlinux.out*
     

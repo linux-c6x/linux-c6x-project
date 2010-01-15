@@ -1,20 +1,15 @@
 # This file should be sourced (not run) into your shell to put the linux-c6x project in context
 
 # Stuff that will often change from machine to machine
-export LINUX_C6X_TOP_DIR=~/w/proj/linux-c6x
-export TI_CG6X_V6_DIR=~/opt/cg6x_6_0_13
-export TI_CG6X_V7_DIR=~/opt/cg6x_7_0_0A
+export LINUX_C6X_TOP_DIR=@TOP_DIR@
+export TI_CG6X_DIR=$LINUX_C6X_TOP_DIR/cg6x
 
 # Choices for config
-export TI_CG6X_DIR=$TI_CG6X_V7_DIR
 export EXTRAVERSION=
 export ROOTFS=min-root
-export DEFCONFIG=wam_dsk6455_defconfig
+export DEFCONFIG=ti_evmc6474_defconfig
 export ENDIAN=little
-
-# Choices to skip parts of build from scratch process
-#export PREBUILT_CLIB=1
-#export PREBUILT_BUSYBOX=1
+#export DEBUG=1 # uncomment to enable debug
 
 # These should not normaly have to be modified
 # Values are calculated from setenv values or constant
