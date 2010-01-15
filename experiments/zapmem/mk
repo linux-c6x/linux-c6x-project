@@ -1,5 +1,5 @@
 #!/bin/bash
-DIR=$TI_CG6X_V7_DIR
+DIR=$TI_CG6X_DIR
 CC=$DIR/bin/cl6x
 export C6X_C_DIR="$DIR/include;$DIR/lib"
 rm zapmem.out
