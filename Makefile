@@ -137,6 +137,7 @@ min-root: $(call COND_DEP, busybox)
 	(cd rootfs; ./uncpio $@-skel $@)
 	(cp -rp rootfs/busybox-image/* rootfs/$@/)
 	(cp -rp rootfs/$@-extra/* rootfs/$@)
+	(cp rootfs/min-root-pgms/gdbserver rootfs/$@/bin/)
 	(cd rootfs; ./mkcpio $@ $@-1; gzip -c $@-1.cpio $@-devs.cpio >$@.cpio.gz)
 	(cd rootfs; dd if=/dev/zero of=$@.pad.bin bs=1024 count=4096; dd conv=notrunc seek=0 if=$@.cpio.gz of=$@.pad.bin)
 
