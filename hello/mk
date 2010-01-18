@@ -2,6 +2,6 @@
 # V=1 ./mk to see gcc passes
 if [ ! -z "$V" ] ; then VOPT=-v; fi
 CC=$GCC_WRAP_DIR/../sdk/bin/c6x-linux-gcc
-$CC $VOPT -Wl,-ar hello.c -o hello.out 
+$CC -g $VOPT -Wl,-ar hello.c -o hello.out 
 $TI_CG6X_DIR/bin/ofd6x hello.out >hello.dump
 true
