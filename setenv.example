@@ -1,14 +1,21 @@
 # This file should be sourced (not run) into your shell to put the linux-c6x project in context
+# example:
+# /home/user/my-prj/linux-c6x-project$ source setenv
 
 # Stuff that will often change from machine to machine
 export LINUX_C6X_TOP_DIR=@TOP_DIR@
 export TI_CG6X_DIR=$LINUX_C6X_TOP_DIR/cg6x
 
+# Choose a board
+#export DEFCONFIG=ti_dsk6455_defconfig
+#export DEFCONFIG=ti_evmc6472_defconfig
+#export DEFCONFIG=ti_evmc6474_defconfig
+
 # Choices for config
 export EXTRAVERSION=
 export ROOTFS=min-root
-export DEFCONFIG=ti_evmc6474_defconfig
 export ENDIAN=little
+export ABI=coff
 #export DEBUG=1 # uncomment to enable debug
 
 # These should not normaly have to be modified
@@ -16,14 +23,19 @@ export ENDIAN=little
 export PRODUCT_DIR=$LINUX_C6X_TOP_DIR/product
 export SDK0_DIR=$LINUX_C6X_TOP_DIR/sdk0
 export SDK_DIR=$LINUX_C6X_TOP_DIR/sdk
-export GCC_WRAP_DIR=$LINUX_C6X_TOP_DIR/tool-wrap
 export LINUX_C6X_PROJECT_DIR=$LINUX_C6X_TOP_DIR/linux-c6x-project
 export SHELL=/bin/bash 
-export ARCH=c6x 
+
+# If you are building sdk0 you must use a 3.x gcc version
+# Otherwise 3.x and 4.x should work
+#export HOSTCC=gcc-3.4
 export HOSTCC=gcc
-export ENDIAN_SUFFIX=
 
 # project make file will manage the correct SDK choice for the right component.  
 # Here we must set a default to use for makes outside of the top level make
 export CROSS_COMPILE=$SDK_DIR/bin/c6x-linux-
 export CROSS=$CROSS_COMPILE
+
+# project make file will manage the correct setting for ARCH
+# Here we set it for direct builds of the kernel
+export ARCH=c6x 

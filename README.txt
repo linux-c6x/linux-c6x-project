@@ -23,7 +23,7 @@ STATUS
 	Tested on:
 	    Ubuntu 9.04, 32 bit 
 	    Red Hat Enterprise Linux 4.x, 32 bit
-	Requires TI code gen 7.x, tested with alpha release A09114
+	Requires TI code gen 7.0, tested with GA release
 	JTAG Debug is only Windows hosted
 	Using CCS4 on Win XP connected to on-board jtag
 	Supports following boards:
