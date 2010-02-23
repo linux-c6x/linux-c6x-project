@@ -136,7 +136,7 @@ sdk0-clean:
 		rm -rf $(SDK0_DIR); 				\
 	    fi;							\
 	    if [ -e $(TOOL_WRAP_DIR)/Makefile ] ; then 		\
-		cd $(TOOL_WRAP_DIR); $(MAKE) clean;		\
+		cd $(TOOL_WRAP_DIR); $(MAKE) ENDIAN=$(ENDIAN) ABI=$(ABI) GCC_C6X_DEST=$(SDK0_DIR) ALIAS=$(ALIAS) clean;	\
 	    fi;							\
 	fi							\
 
@@ -204,7 +204,7 @@ product: kernel $(ROOTFS)
 	(cp ../linux-c6x/vmlinux $(PRODUCT_DIR)/vmlinux.out)
 
 clean:
-	make -C ../linux-c6x clean
+	ARCH=c6x make -C ../linux-c6x clean
 	make -C ../uClibc    clean
 	make -C ../busybox   clean
 	$(SUB_MAKE) sdk0-clean
