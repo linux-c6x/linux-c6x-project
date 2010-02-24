@@ -19,8 +19,14 @@ clone)
 	(cd $prj; git checkout $BRANCH)
     done
 ;;
+fetch)
+    for prj in $BASE_PRJ $WRAP_PRJ ; do
+	(cd $prj; git fetch $REMOTE)
+    done
+;;
 pull)
     for prj in $BASE_PRJ $WRAP_PRJ ; do
+	(cd $prj; git fetch $REMOTE)
 	(cd $prj; git pull $REMOTE $BRANCH)
     done
 ;;
