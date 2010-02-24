@@ -14,6 +14,7 @@ cd $TOP
 case $1 in
 clone)
     for prj in $BASE_PRJ $WRAP_PRJ ; do
+	echo "****** $prj"
 	mkdir -p $(dirname $prj)
 	(cd $(dirname $prj); git clone $URL/$prj.git)
 	(cd $prj; git checkout $BRANCH)
@@ -21,22 +22,26 @@ clone)
 ;;
 fetch)
     for prj in $BASE_PRJ $WRAP_PRJ ; do
+	echo "****** $prj"
 	(cd $prj; git fetch $REMOTE)
     done
 ;;
 pull)
     for prj in $BASE_PRJ $WRAP_PRJ ; do
+	echo "****** $prj"
 	(cd $prj; git fetch $REMOTE)
 	(cd $prj; git pull $REMOTE $BRANCH)
     done
 ;;
 push)
     for prj in $BASE_PRJ $WRAP_PRJ ; do
+	echo "****** $prj"
 	(cd $prj; git push $REMOTE $BRANCH:$BRANCH)
     done
 ;;
 tag)
     for prj in $BASE_PRJ $WRAP_PRJ ; do
+	echo "****** $prj"
 	(cd $prj; git tag $2)
     done
 ;;
@@ -48,6 +53,7 @@ status)
 ;;
 push-tag)
     for prj in $BASE_PRJ $WRAP_PRJ ; do
+	echo "****** $prj"
 	(cd $prj; git push tag $2)
     done
 ;;
