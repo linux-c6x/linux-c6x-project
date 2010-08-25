@@ -1,57 +1,87 @@
 This is the linux-c6x project
 
 SCOPE:
-    This project is intentional simplistic so we can focus on the basics.
-    Right now it is just a kernel and one of a couple of root filesystems.
-    The simplist rootfs is hello-root.  
-    hello-root contains one static app that says hello once per second, and the minimum support to boot that app.
-    The hello app is built here as well.  It is very simple and links with a static uClibc that is built as part of the sdk target
-    min-root is another rootfs choice.  It uses a full busybox.
+    This project is intentionally simplistic so we can focus on the basics.
+    Right now it is just a set of kernel variants and a root filesystem called
+    min-root. It uses a full busybox.
     min-root does a real boot typical of a small system.
     busybox is built for use in min-root
-    [It is out of scope to build a full system w/ lots of packages.  We will use OpenEmbedded for that.]
 
-STATUS
-	Build 2.6.13 kernel based on vlx contract deliver 2 2nd try (vlx-D2.1) + ti mods
-	    ti mods:
-		add initramfs support
-		add cio debug outut console
-		option for more debug
-		make system fixup
-	Builds uClibc and busybox
-	Build is only Linux hosted
-	Tested on:
-	    Ubuntu 9.04, 32 bit 
-	    Red Hat Enterprise Linux 4.x, 32 bit
-	Requires TI code gen 7.0, tested with GA release
-	JTAG Debug is only Windows hosted
-	Using CCS4 on Win XP connected to on-board jtag
-	Supports following boards:
-	    DSK6455
-	    EVMC6472
-	    EVMC6474
-	Boots OK
-	configures enet and allows telnet login
-	debug via gdbserver works OK, some quirks are expected
+ISSUES
+    Builds of SDK0 are problematic due to the version of gcc used in the too wrappers.
+    For the purpose of the move to 2.6.34 and ELF DSBT support, the SDK0 was built on
+    a RHEL5 system but using a gcc 3.4 based gnupro-04r2-4 toolchain. This SDK0 was
+    used as the basis for building the rest of the system components.
 
-PREVIOUS STATUS (these were tru in the past; some may need to be reverified)
-	Builds have bene done on Ubuntu 8.04 but not recently 
-	Sudo access use to be required but no longer is
-	Tested on CCS 6446 simulator in windows, hello-root OK
-	Tested a bare metal app w/ timers & interrupts on "kelvin" linux command line sim
-	Tried linux on kelvin sim for about an hour or two; could not get it to work
-	Tried 6455 config on windows device sim, hangs on enet init, would have to work around
-	Tested with TI CGTOOLs 6.0.13 (thats what VLX was using) & 7.0 Alpha
+    Kernel builds require c6x-elf-as to be in $PATH. This is the FSF binutils version
+    of the assembler and is used only for building in the initramfs binary blob. It is
+    not used to assemble any code.
 
-KNOWN ISSUES:
-	Must use correct length on command line for initramfs or ensure that any remainer is 0
-	    previously used zapmem for this purpose
-	CCS memory load of binary file: must set size to 32 bits and file size must be multiple of 4
-	    size 8 puts 8 bits from file into 32 bits of target
-	    if file length is not mod 4 bytes then random pad characters get used for last word (screws up initramfs parsing)
-	We are now using a padded initramfs image as a easy way to take care of the above two items
-	DSK6455 kernel hangs waiting for MDIO if ENET cable not connected (even if ENET device not used)
-	ofd6x segfaults on hello program when creating a dump
-	    dump is informational, not really needed
+BUILDING
+
+    Quick Steps:
+
+    1) Copy setenv.example to setenv and edit for the local configuration.
+
+    2) Run ./setup
+
+    3) Run make to build all targets.
 
 
+    One of the variables in setenv is KERNELS_TO_BUILD. This is a space separated list
+    of kernels to build. The names in the list correspond to makefile fragments found
+    in the kbuilds directory. For example KERNELS_TO_BUILD="dsk6455" refers to
+    kbuilds/dsk6455.mk which will be included by the top-level makefile during kernel
+    builds. These makefile fragments control a number of things in the kernel build.
+    The available variables are:
+
+      DEFCONFIG 
+         The name of the kernel config file to use (found in kernel source
+         tree at arch/c6x/configs).
+
+      LOCALVERSION
+         This is a fixed string which is added to the base kernel version
+         to form the full kernel version. For example, building a 2.6.34
+         kernel with LOCALVERION=-dsk6455 will result in a full kernel
+         version of 2.6.34-dsk6455.
+
+      CMDLINE
+         Overrides the CONFIG_CMDLINE found in $(DEFCONFIG)
+
+      PRODVERSION
+         An extra string to append to the kernel name when copying vmlinux to the
+         product directory. The kernel filename in the product directory ends up
+         being (for a 2.6.34 kernel): vmlinux-2.6.34$(LOCALVERION)$(PRODVERSION)
+
+      CONFIGPATCH
+         Name of an optional patch file used to patch $(DEFCONFIG). The patchfile
+         must be located in the kbuilds directory.
+
+      CONFIGSCRIPT
+         Name of an optional shell script to be run after $(DEFCONFIG) is copied
+         to the kernel build directory. This shell script must be located in the
+         kbuilds directory. See kbuilds/initramfs.sh for an example.
+
+      CONFIGARGS
+         A list of arguments to pass the $(CONFIGSCRIPT) when it is run. The first
+         argument to $(CONFIGSCRIPT) is always the full pathname to the kernel
+         .config file. $(CONFIGARGS) follows after that.
+
+      KOBJNAME
+        This is the name of the kernel object directory. Kernels are built out of
+        tree and the objects are placed in $(TOP)/kobjs/$(KOBJNAME). By default,
+        KOBJNAME is the same as the name used in KERNELS_TO_BUILD with .el or .eb
+        added depending on endianess of the build. Overriding this is useful when
+        the variant being built only modifies config items which do not effect
+        kernel modules. That is, when one variant can use the same modules as some
+        other variant. This is the case when only $(CMDLINE) changes, or when using
+        and initramfs instead of NFS root. See dsk6455-initramfs.mk for an
+        example of how this is used to point to the objdir used by the dsk6455.mk
+        file. This greatly speeds up building since minor changes like cmdline
+        won't require a full rebuild of the kernel.
+
+
+Makefile fragments are provided to build kernels for the DSK6455 and EVMC6472
+boards. Variants include initramfs versions with min-root initramfs and a romfs
+variant which will look for and use a romfs, ext2, or ext3 filesystem blob
+immediately following the kernel in memory.

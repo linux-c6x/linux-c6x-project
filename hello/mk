@@ -1,7 +1,15 @@
 #!/bin/bash
 # V=1 ./mk to see gcc passes
+set -x
 if [ ! -z "$V" ] ; then VOPT=-v; fi
-CC=$GCC_WRAP_DIR/../sdk/bin/c6x-linux-gcc
-$CC -g $VOPT -Wl,-ar hello.c -o hello.out 
+CC=$SDK_DIR/bin/c6x-elf-linux-gcc
+LD=$SDK_DIR/binutils/bin/c6x-elf-ld
+
+$CC -g $VOPT -mdprel -c hello.c -o hello.o
+
+# $SDK_DIR/bin/c6x-elf-linux-gcc  -mdprel  $SDK_DIR/lib/gcc-lib/c6x-elf/3.2.2/crti.o hello.o -Wl,--reread_libs -Wl,-lm $SDK_DIR/lib/gcc-lib/c6x-elf/3.2.2/crtn.o -o hello.out
+
+$LD -e _start $SDK_DIR/lib/gcc-lib/c6x-elf/3.2.2/crti.o $SDK_DIR/lib/gcc-lib/c6x-elf/3.2.2/crt1.o hello.o -L$SDK_DIR/lib/gcc-lib/c6x-elf/3.2.2 -L$SDK_DIR/binutils/lib -lc -lcl6x -lm $SDK_DIR/lib/gcc-lib/c6x-elf/3.2.2/crtn.o -o hello.out
+
 $TI_CG6X_DIR/bin/ofd6x hello.out >hello.dump
 true

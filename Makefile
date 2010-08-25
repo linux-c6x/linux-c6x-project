@@ -4,34 +4,60 @@
 # This is intentional not modular or distributed to keep this simple case in one place
 # Real distribution build will be done w/ bitbake
 
-ALL_TARGETS= sdk0 kernel clib sdk hello busybox hello-root min-root product zapmem
-def_target: product
+all: product
 
-.PHONY: $(ALL_TARGETS) all clean kernel-sub clib-sub busybox-sub one which_one
+product: rootfs extra-kernels
 
-all:
-	@if [ x$(ABI) == x"BOTH" ]; then 	\
-	    $(MAKE) ABI=coff all;		\
-	    $(MAKE) ABI=elf  all;   		\
-	elif [ x$(ENDIAN)  == x"BOTH" ]; then	\
-	    $(MAKE) ENDIAN=little all;		\
-	    $(MAKE) ENDIAN=big	all;		\
+DATE = $(shell date +'%Y%m%d')
+
+# These targets can be built little-endian and/or big-endian
+TOP_TARGETS = rootfs busybox sdk clib kernels sdk0 clean busybox-clean clib-clean extra-kernels
+
+# These sub-targets build only little-endian or big-endian
+ENDIAN_TARGETS = one-rootfs one-busybox one-sdk one-clib one-kernels one-sdk0 \
+	one-kernels-clean one-uclibc-clean one-busybox-clean min-root-clean one-clean \
+	one-extra-kernels
+
+$(TOP_TARGETS) product kernel-headers: sanity
+
+sanity:
+	@if [ -z "$$LINUX_C6X_TOP_DIR" ] ; then echo Does not look like setenv has been setup; exit 1; fi
+	@echo $(if $(ONLY),skipping conditional dependencies,using full dependencies)
+
+$(ENDIAN_TARGETS): endian-sanity
+
+endian-sanity:
+	@if [ -z "$(ENDIAN_SUFFIX)" ] ; then echo Must define ENDIAN for this target; exit 1; fi
+
+# If these get called with undefined ENDIAN, build both endians
+$(TOP_TARGETS):
+	if [ -z $(ENDIAN) ]; then		\
+	    $(MAKE) ENDIAN=little one-$@;	\
+	    $(MAKE) ENDIAN=big	one-$@;		\
 	else					\
-	    $(MAKE) one;			\
+	    $(MAKE) ENDIAN=$(ENDIAN) one-$@;	\
 	fi
+
+ifeq ($(ENDIAN),little)
+ARCHendian     = 
+ENDIAN_SUFFIX  = .el
+else
+ifeq ($(ENDIAN),big)
+ARCHendian     = eb
+ENDIAN_SUFFIX  = .eb
+else
+ENDIAN =
+endif
+endif
 
 PRJ=$(LINUX_C6X_PROJECT_DIR)
 TOP=$(LINUX_C6X_TOP_DIR)
 TOOL_WRAP_DIR=$(TOP)/ti-gcc-wrap/tool-wrap
 
-ENDIAN        := little
-ABI           := coff
-
-ifeq ($(ENDIAN),little)
-ARCHendian     = 
-else
-ARCHendian     = eb
-endif
+ABI           ?= elf
+DSBT_SIZE     ?= 32
+KERNELS_TO_BUILD ?= dsk6455 evm7472
+EXTRA_KERNELS_TO_BUILD ?=
 
 ifeq ($(ABI),coff)
 ARCHabi        = coff
@@ -41,81 +67,121 @@ endif
 
 ARCHe		= c6x$(ARCHendian)
 ARCH		= $(ARCHe)-$(ARCHabi)
+SYSROOT_DIR	= $(SDK_DIR)/$(ARCH)-sysroot
+
+ROOTFS ?= min-root
+
+ifeq ($(ABI),coff)
+EXTRA_CFLAGS=
+else
+EXTRA_CFLAGS=-dsbt
+endif
 
 # SDK0 is a compiler only w/o C library. it is used to build kernel and C library
-# SDK is compiler & c library and is used for busybox and other user apps and libraries
+# SDK is SDK0 + c library and is used for busybox and other user apps and libraries
 CC_SDK0=$(SDK0_DIR)/bin/$(ARCH)-linux-
 CC_SDK=$(SDK_DIR)/bin/$(ARCH)-linux-
+
+# install kernel modules here
+MOD_DIR = $(PRJ)/rootfs/kernel-modules-$(ARCHe)
+
+# install kernel headers here
+HDR_DIR = $(TOP)/kernel-headers
+KHDR_DIR = $(HDR_DIR)/usr
+
+# install busybox here
+BBOX_DIR = $(PRJ)/rootfs/busybox-$(ARCHe)
+
+KOBJ_BASE = $(TOP)/kobjs
+ifneq ($(KNAME),)
+KCONF = $(PRJ)/kbuilds/$(KNAME).mk
+ifneq ($(wildcard $(KCONF)),)
+include $(KCONF)
+endif
+ifeq ($(KOBJNAME),)
+KOBJNAME = $(KNAME)$(ENDIAN_SUFFIX)
+endif
+KOBJDIR = $(KOBJ_BASE)/$(KOBJNAME)
+endif
 
 SUB_MAKE=$(MAKE) -f $(PRJ)/Makefile
 
 ONLY=
 COND_DEP=$(if $(ONLY),,$(1))
 
-ifeq ("$(DEBUG)","")
-    K_DEBUG_LINE=\\\# CONFIG_DEBUG_INFO is not set
-else
-    K_DEBUG_LINE=CONFIG_DEBUG_INFO=y
-endif
+one-kernels: productdir $(call COND_DEP, sdk0)
+	for kname in $(KERNELS_TO_BUILD) ; do \
+		$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_SDK0) KNAME=$$kname kernel-sub ; \
+	done
 
+one-extra-kernels: productdir
+	for kname in $(EXTRA_KERNELS_TO_BUILD) ; do \
+		$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_SDK0) KNAME=$$kname kernel-sub ; \
+	done
 
-one: which_one $(ALL_TARGETS)
+kernel-sub:
+	@if [ -z "$(KNAME)" ] ; then echo Must define KNAME for this target; exit 1; fi
+	[ -d $(KOBJDIR) ] || mkdir -p $(KOBJDIR)
+	cp arch/c6x/configs/$(DEFCONFIG) $(KOBJDIR)/.config
+	[ -z "$(CONFIGPATCH)" ] || patch -p1 -d $(KOBJDIR) -i $(PRJ)/kbuilds/$(CONFIGPATCH)
+	[ -z "$(CONFIGSCRIPT)" ] || $(PRJ)/kbuilds/$(CONFIGSCRIPT) $(KOBJDIR)/.config $(CONFIGARGS)
+	[ "$(ENDIAN)" == "little" ] || \
+	   sed -i -e 's,# CONFIG_CPU_BIG_ENDIAN is not set,CONFIG_CPU_BIG_ENDIAN=y,' $(KOBJDIR)/.config
+	[ -z "$(LOCALVERSION)" ] || \
+	   sed -i -e 's,CONFIG_LOCALVERSION=.*,CONFIG_LOCALVERSION="$(LOCALVERSION)",' $(KOBJDIR)/.config
+	[ -x "$(CMDLINE)" ] || \
+	   sed -i -e 's%CONFIG_CMDLINE=.*%CONFIG_CMDLINE="$(CMDLINE)"%' $(KOBJDIR)/.config
+	make ARCH=c6x O=$(KOBJDIR)/ oldconfig
+	make ARCH=c6x O=$(KOBJDIR)/
+	make ARCH=c6x O=$(KOBJDIR)/ INSTALL_MOD_PATH=$(MOD_DIR) modules_install
+	cp $(KOBJDIR)/vmlinux $(PRODUCT_DIR)/vmlinux-`cat $(KOBJDIR)/include/config/kernel.release`$(PRODVERSION)
 
-which_one:
-	@echo ENDIAN=$(ENDIAN) ABI=$(ABI) ARCH=$(ARCH)
+kernel-headers: kernels
+	$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_SDK0) \
+		ENDIAN=$(KERNEL_HEADERS_ENDIAN) KNAME=$(KERNEL_HEADERS_KERNEL) kernel-headers-sub
 
-$(ALL_TARGETS): sanity
+kernel-headers-sub:
+	if [ ! -d $(KHDR_DIR)/include/asm ]; then   \
+		mkdir -p $(KHDR_DIR) ;  \
+		make -C $(LINUX_C6X_KERNEL_DIR) ARCH=c6x CROSS_COMPILE=$(CC_SDK0) \
+		        INSTALL_HDR_PATH=$(KHDR_DIR) O=$(KOBJDIR) headers_install ; \
+	fi
 
-sanity:
-	@if [ -z "$$LINUX_C6X_TOP_DIR" ] ; then echo Does not look like setenv has been setup; exit 1; fi
-	@echo $(if $(ONLY),skipping conditional dependencies,using full dependencies)
+one-clib: $(call COND_DEP, sdk0 kernel-headers)
+	[ -d $(TOP)/uClibc$(ENDIAN_SUFFIX) ] || mkdir -p $(TOP)/uClibc$(ENDIAN_SUFFIX)
+	cp -a $(TOP)/uClibc/* $(TOP)/uClibc$(ENDIAN_SUFFIX)
+	$(SUB_MAKE) -C $(TOP)/uClibc$(ENDIAN_SUFFIX) CROSS_COMPILE=ensure_not_used CROSS=$(CC_SDK0) clib-sub
 
-kernel: $(call COND_DEP, sdk0)
-	$(SUB_MAKE) -C $(TOP)/linux-c6x CROSS=should_not_be_used- CROSS_COMPILE=$(CC_SDK0) kernel-sub
-
-kernel-sub: 
-	ARCH=c6x make $(DEFCONFIG)
-	mv .config .config.before
-	grep -v "CONFIG_DEBUG_INFO[= ]" .config.before >.config
-	echo $(K_DEBUG_LINE) >> .config
-	ARCH=c6x make
-
-clib: $(call COND_DEP, sdk0 kernel)
-	$(SUB_MAKE) -C $(TOP)/uClibc CROSS_COMPILE=ensure_not_used CROSS=$(CC_SDK0) clib-sub
-
-clib-sub:
-	cp uClibc-0.9.28-c64xplus.config .config
+$(TOP)/uClibc$(ENDIAN_SUFFIX)/.config: $(TOP)/uClibc/uClibc-0.9.30-c64xplus-shared.config
+	cp uClibc-0.9.30-c64xplus-shared.config .config
 	make oldconfig
+
+clib-sub: $(TOP)/uClibc$(ENDIAN_SUFFIX)/.config
 	make
 
-# Have not finished hooking this in yet
-gdbserver:$(call COND_DEP, sdk)
-	@echo building gdbserver...
-	(cd $(GDBSERVER); CC=$(CROSS)gcc ./configure --host=$(ARCH)-linux --target=$(ARCH)-linux;)
-	(cd $(GDBSERVER); make CC=$(CROSS)gcc LDFLAGS=-Wl,-ar,-L$(SDK_LIB_PATH) CFLAGS="-Dfork=vfork";)
-	mkdir -p $(SDK0_DIR)/target/$(ARCH)
-	cp -f $(GDBSERVER)/gdbserver $(SDK0_DIR)/target/$(ARCH)/gdbserver
+one-busybox:  $(call COND_DEP, one-sdk)
+	[ -d $(TOP)/busybox$(ENDIAN_SUFFIX) ] || mkdir -p $(TOP)/busybox$(ENDIAN_SUFFIX)
+	$(SUB_MAKE) -C $(TOP)/busybox$(ENDIAN_SUFFIX) CONF=$(TOP)/busybox/busybox-1.00-full-c6x.config \
+		CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) busybox-sub
 
-busybox: $(call COND_DEP, sdk)
-	$(SUB_MAKE) -C ../busybox CONF=busybox-1.00-full-c6x.config CROSS=$(CC_SDK) busybox-sub
+BBOX_MAKE = make ARCH=c6x CROSS_COMPILE=$(CC_SDK) KBUILD_SRC=$(TOP)/busybox -f $(TOP)/busybox/Makefile
 
 busybox-sub:
-	mkdir -p $(PRJ)/rootfs/busybox-image
-	sed -e "s|@CROSS_COMPILE@|$(CROSS)|g" \
-	    -e "s|@CFLAGS@|-D__uClinux__=1|g" \
-	    "$(CONF)" > .config
-	make oldconfig
-	make dep
-	make EXTRA_LDFLAGS="-Wl,-ar" STRIP=true
-	make PREFIX=$(PRJ)/rootfs/busybox-image install
+	rm -rf $(BBOX_DIR)
+	mkdir -p $(BBOX_DIR)
+	cp $(CONF) .config
+	$(BBOX_MAKE) oldconfig
+	$(BBOX_MAKE) EXTRA_LDFLAGS="-static"
+	$(BBOX_MAKE) EXTRA_LDFLAGS="-static" CONFIG_PREFIX=$(BBOX_DIR) install
 
-sdk0:
-	@if [ -e $(SDK0_DIR)/linux-c6x-sdk0-prebuilt ] ; then 	\
+one-sdk0:
+	if [ -e $(SDK0_DIR)/linux-$(ARCHe)-sdk0-prebuilt ] ; then 	\
 	    echo using pre-built sdk0;				\
 	else	    						\
 	    if [ -e $(TOOL_WRAP_DIR)/Makefile ] ; then 		\
 		rm -rf $(SDK0_DIR); 				\
-		cd $(TOOL_WRAP_DIR); $(MAKE) ENDIAN=$(ENDIAN) ABI=$(ABI) GCC_C6X_DEST=$(SDK0_DIR) ALIAS=$(ALIAS) all;	\
+		cd $(TOOL_WRAP_DIR); $(MAKE) ENDIAN=$(ENDIAN) ABI=$(ABI) DSBT_SIZE=$(DSBT_SIZE) \
+			GCC_C6X_DEST=$(SDK0_DIR) ALIAS=$(ALIAS) all;	\
 	    else									\
 		echo "You must install the prebuilt sdk0 or the build kit for it";	\
 		false;						\
@@ -123,10 +189,12 @@ sdk0:
 	fi;							
 
 sdk0-keep:
-	touch $(SDK0_DIR)/linux-c6x-sdk0-prebuilt
+	@touch $(SDK0_DIR)/linux-c6x-sdk0-prebuilt
+	@touch $(SDK0_DIR)/linux-c6xeb-sdk0-prebuilt
 
 sdk0-unkeep:
-	-rm $(SDK0_DIR)/linux-c6x-sdk0-prebuilt
+	@rm -f $(SDK0_DIR)/linux-c6x-sdk0-prebuilt
+	@rm -f $(SDK0_DIR)/linux-c6xeb-sdk0-prebuilt
 
 sdk0-clean:
 	@if [ -e $(SDK0_DIR)/linux-c6x-sdk0-prebuilt ] ; then 	\
@@ -140,74 +208,58 @@ sdk0-clean:
 	    fi;							\
 	fi							\
 
-sdk:	sdk0 sdk-fresh clib sdk-clib sdk-kernel-headers sdk-mashup
-
-sdk-fresh:
-	if [ -e $(SDK_DIR)/linux-c6x-sdk-marker ] ; then rm -rf $(SDK_DIR); fi
-	mkdir -p $(SDK_DIR)/usr
-	touch $(SDK_DIR)/linux-c6x-sdk-marker
-
-sdk-clib:
-	make -C $(TOP)/uClibc CROSS_COMPILE=ensure_not_used CROSS=$(CC_SDK0) PREFIX=$(SDK_DIR) install
-
-sdk-kernel-headers:
-	# Copy the required header files
-	(cd $(TOP)/linux-c6x/; \
-		find include/linux include/asm include/asm-generic -follow -type f ! -name "*.hdep" | \
-		cpio -pduL $(SDK_DIR)/usr)
-	# Set correct access rights
-	find $(SDK_DIR)/usr -type d -exec chmod 755 {} \;
-	find $(SDK_DIR)/usr ! -type d -exec chmod 644 {} \;
-
-sdk-mashup:
-	@echo the specs for the stock vlx gcc are kind of funny, mush everything together
-	cp -pr $(SDK0_DIR)/* $(SDK_DIR)
-	cp -pr $(SDK_DIR)/usr/include/* $(SDK_DIR)/lib/gcc-lib/$(ARCH)/3.2.2/include
-	cp -pr $(SDK_DIR)/usr/lib/*     $(SDK_DIR)/lib/gcc-lib/$(ARCH)/3.2.2
+one-sdk: sdk0 one-clib
+	[ -e $(SYSROOT_DIR) ] || mkdir -p $(SYSROOT_DIR)
+	[ -d $(SYSROOT_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_DIR)
+	cp -a $(SDK0_DIR)/* $(SDK_DIR)
+	make -C $(TOP)/uClibc$(ENDIAN_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_DIR) install
 
 sdk-clean:
-	if [ -e $(SDK_DIR)/linux-c6x-sdk-marker ] ; then rm -rf $(SDK_DIR); fi
+	rm -rf $(SDK_DIR)
 
-rootfs: $(ROOTFS)
+one-rootfs: $(ROOTFS)-$(ARCHe)
 
-hello:	$(call COND_DEP, sdk)
-	(cd hello; ./mk)
-
-hello-root: $(call COND_DEP, hello)
-	# start fresh after we verify we have the dir we expect
+min-root-$(ARCHe): productdir $(call COND_DEP, one-busybox)
 	if [ -d $(PRJ)/rootfs/$@ -a -e $(PRJ)/rootfs/mkcpio ] ; then rm -rf $(PRJ)/rootfs/$@; fi
-	(cd rootfs; ./uncpio $@-skel $@)
-	(cp hello/hello.out rootfs/hello-root/bin/hello)
-#	(cp -rp rootfs/$@-extra/* rootfs/$@)
-	(cd rootfs; ./mkcpio $@ $@-1; gzip -c $@-1.cpio $@-devs.cpio >$@.cpio.gz)
-	(cd rootfs; dd if=/dev/zero of=$@.pad.bin bs=1024 count=4096; dd conv=notrunc seek=0 if=$@.cpio.gz of=$@.pad.bin)
+	(cd rootfs; ./uncpio min-root-skel $@)
+	cp -a $(BBOX_DIR)/* rootfs/$@
+	cp -a rootfs/min-root-extra/* rootfs/$@
+	cp -a $(MOD_DIR)/* rootfs/$@
+	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(PRJ)/rootfs/$@; tar xf -))
+	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - usr/lib | (cd $(PRJ)/rootfs/$@; tar xf -))
+	cp rootfs/min-root-devs.cpio rootfs/$@.cpio
+	(cd rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
+	gzip -c rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
-min-root: $(call COND_DEP, busybox)
-	# start fresh after we verify we have the dir we expect
-	if [ -d $(PRJ)/rootfs/$@ -a -e $(PRJ)/rootfs/mkcpio ] ; then rm -rf $(PRJ)/rootfs/$@; fi
-	mkdir -p $(SDK_DIR)
-	touch $(SDK_DIR)/linux-c6x-sdk-marker
-	(cd rootfs; ./uncpio $@-skel $@)
-	(cp -rp rootfs/busybox-image/* rootfs/$@/)
-	(cp -rp rootfs/$@-extra/* rootfs/$@)
-	(cp rootfs/min-root-pgms/gdbserver rootfs/$@/bin/)
-# not yet (cp $(SDK0)/target/$(ARCH)/gdbserver rootfs/$@/bin/)
-	(cd rootfs; ./mkcpio $@ $@-1; gzip -c $@-1.cpio $@-devs.cpio >$@.cpio.gz)
-	(cd rootfs; dd if=/dev/zero of=$@.pad.bin bs=1024 count=4096; dd conv=notrunc seek=0 if=$@.cpio.gz of=$@.pad.bin)
+productdir:
+	[ -d $(PRODUCT_DIR) ] || mkdir -p $(PRODUCT_DIR)
 
-zapmem:
-	(cd experiments/zapmem; ./mk-elf)
+product-clean:
+	rm -rf $(PRODUCT_DIR)
 
-product: kernel $(ROOTFS)
-	(mkdir -p $(PRODUCT_DIR))
-	(cp rootfs/$(ROOTFS).cpio.gz rootfs/$(ROOTFS).pad.bin $(PRODUCT_DIR)/)
-	(cp ../linux-c6x/vmlinux $(PRODUCT_DIR)/vmlinux.out)
+kernel-clean-sub:
+	rm -rf $(KOBJDIR)
 
-clean:
-	ARCH=c6x make -C ../linux-c6x clean
-	make -C ../uClibc    clean
-	make -C ../busybox   clean
-	$(SUB_MAKE) sdk0-clean
-	$(SUB_MAKE) sdk-clean
-	rm $(PRODUCT_DIR)/*.cpio.gz $(PRODUCT_DIR)/*.pad.bin $(PRODUCT_DIR)/vmlinux.out*
+one-kernels-clean:
+	for kname in $(KERNELS_TO_BUILD) ; do \
+		$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_SDK0) KNAME=$$kname kernel-clean-sub ; \
+	done
 
+one-sdk-clean:
+	rm -rf $(SYSROOT_DIR)
+	[ -d $(SDK_DIR)/c6x-sysroot -o -d $(SDK_DIR)/c6xeb-sysroot ] || rm -rf $(SDK_DIR)
+
+one-clib-clean:
+	rm -rf $(TOP)/uClibc$(ENDIAN_SUFFIX)
+
+one-busybox-clean:
+	rm -rf $(TOP)/busybox$(ENDIAN_SUFFIX)
+
+one-min-root-clean:
+	rm -rf rootfs/min-root-$(ARCHe)
+	rm -rf rootfs/min-root-$(ARCHe).cpio
+
+one-clean: one-busybox-clean one-clib-clean one-sdk-clean one-min-root-clean
+	rm -rf $(MOD_DIR) $(HDR_DIR) $(BBOX_DIR)
+	rm -rf $(KOBJ_BASE)
+	make sdk0-clean
