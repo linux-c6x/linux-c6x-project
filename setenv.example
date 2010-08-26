@@ -47,7 +47,7 @@ export PRODUCT_DIR=$LINUX_C6X_TOP_DIR/product
 export SDK0_DIR=$LINUX_C6X_TOP_DIR/sdk0
 export SDK_DIR=$LINUX_C6X_TOP_DIR/sdk
 export LINUX_C6X_PROJECT_DIR=$LINUX_C6X_TOP_DIR/linux-c6x-project
-export LINUX_C6X_KERNEL_DIR=$LINUX_C6X_TOP_DIR/linux-2.6
+export LINUX_C6X_KERNEL_DIR=$LINUX_C6X_TOP_DIR/linux-c6x
 export SHELL=/bin/bash 
 
 # If you are building sdk0 you must use a 3.x gcc version
