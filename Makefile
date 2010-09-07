@@ -179,7 +179,6 @@ one-sdk0:
 	    echo using pre-built sdk0;				\
 	else	    						\
 	    if [ -e $(TOOL_WRAP_DIR)/Makefile ] ; then 		\
-		rm -rf $(SDK0_DIR); 				\
 		cd $(TOOL_WRAP_DIR); $(MAKE) ENDIAN=$(ENDIAN) ABI=$(ABI) DSBT_SIZE=$(DSBT_SIZE) \
 			GCC_C6X_DEST=$(SDK0_DIR) ALIAS=$(ALIAS) all;	\
 	    else									\
