@@ -153,7 +153,7 @@ kernel-sub:
 	   sed -i -e 's%CONFIG_CMDLINE=.*%CONFIG_CMDLINE="$(CMDLINE)"%' $(KOBJDIR)/.config
 	make ARCH=c6x O=$(KOBJDIR)/ oldconfig
 	make ARCH=c6x O=$(KOBJDIR)/
-	make ARCH=c6x O=$(KOBJDIR)/ INSTALL_MOD_PATH=$(MOD_DIR) modules_install
+	make ARCH=c6x O=$(KOBJDIR)/ DEPMOD=$(DEPMOD) INSTALL_MOD_PATH=$(MOD_DIR) modules_install
 	cp $(KOBJDIR)/vmlinux $(PRODUCT_DIR)/vmlinux-$(KERNEL_FNAME)
 	objcopy -I elf32-$(ENDIAN) -O binary $(PRODUCT_DIR)/vmlinux-$(KERNEL_FNAME) $(PRODUCT_DIR)/vmlinux-$(KERNEL_FNAME).bin
 
