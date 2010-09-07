@@ -11,7 +11,7 @@ if [ "$BARE" == "no" ]; then BARE_EXP="/"; else BARE_EXP=""; fi
 
 BOM_PRJ="linux-c6x-project"
 BASE_PRJ="linux-c6x busybox uClibc"
-WRAP_PRJ="ti-gcc-wrap/binutils ti-gcc-wrap/cil ti-gcc-wrap/gdb ti-gcc-wrap/sources ti-gcc-wrap/tool-wrap"
+WRAP_PRJ="ti-gcc-wrap/binutils ti-gcc-wrap/cil ti-gcc-wrap/sources ti-gcc-wrap/tool-wrap"
 TOP=..
 
 REST_PRJ="$BASE_PRJ $WRAP_PRJ"
