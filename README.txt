@@ -1,4 +1,5 @@
-This is the linux-c6x project
+This is the Linux-c6x project.
+version: linux-c6x-0.7.x
 
 SCOPE:
     This project is intentionally simplistic so we can focus on the basics.
@@ -7,25 +8,63 @@ SCOPE:
     min-root does a real boot typical of a small system.
     busybox is built for use in min-root
 
-ISSUES
-    Builds of SDK0 are problematic due to the version of gcc used in the too wrappers.
-    For the purpose of the move to 2.6.34 and ELF DSBT support, the SDK0 was built on
-    a RHEL5 system but using a gcc 3.4 based gnupro-04r2-4 toolchain. This SDK0 was
-    used as the basis for building the rest of the system components.
+    YES Linux-kernel	2.6.34
+    YES uClibc
+    YES busybox		1.17.1
+    YES C6455, C6472, C6474 based 
+    YES single core running Linux
+    YES Ethernet (all) and UART (evmc6472)
 
-    Kernel builds require c6x-elf-as to be in $PATH. This is the FSF binutils version
-    of the assembler and is used only for building in the initramfs binary blob. It is
-    not used to assemble any code.
+    NO c++
+    NO pthreads
+    NO gdb
+    NO Linux running on multiple cores
+    NO Explicit support of RTOS on other cores.
+    NO other peripherals / interfaces
+    NO Full distribution with lots of packages
 
-BUILDING
+ISSUES:
+    A full gcc based toolchain is not available for this version of Linux-c6x.
+
+    The TI compiler used for this release is an Alpha version of CGT 7.2.
+
+    Current TI compilers do not accept all GCC language extensions used in
+    the kernel, uClibc, and busybox.
+
+    For these reasons a custom "tool wrapper" toolchain is used.  This tool-
+    chain is built as part of the sdk0 build process.  This toolchain wraps
+    the TI compiler with a frontend that does common command line option 
+    translation and uses a customized version of the CIL project to do C to
+    C translation.
+
+    A gcc-3.x host compiler must be used when building SDK0 due to the version
+    of gcc used in the tool wrappers.  The following are known to work:
+	default gcc on RHEL4
+	gcc-3.4 from Ubuntu 9.04 on Ubuntu 9.04 or Ubuntu 10.04
+	gcc 3.4 based gnupro-04r2-4 toolchain (on a RHEL5 system)
+
+    64 bit host systems have been known to cause issues, especially for SDK0 
+    builds.
+
+    Most of the binutils built by sdk0 are not useful as they don't support 
+    c6x-elf.  Only the utils found in sdk0/bin are expected to be used.
+
+    Some features in busybox do not work with the current toolchain.  If you 
+    customize the configuration of busybox be prepared to work around build 
+    issues and do your own testing.
+
+BUILDING:
 
     Quick Steps:
 
-    1) Copy setenv.example to setenv and edit for the local configuration.
+    1) Run ./setup 
+	[It will copy setenv.example to setenv and make some configurations.]
 
-    2) Run ./setup
+    2) Edit setenv to make any manual configuration changes
 
-    3) Run make to build all targets.
+    3) Run ./setup
+
+    4) Run make to build all targets.
 
 
     One of the variables in setenv is KERNELS_TO_BUILD. This is a space separated list
@@ -75,13 +114,18 @@ BUILDING
         the variant being built only modifies config items which do not effect
         kernel modules. That is, when one variant can use the same modules as some
         other variant. This is the case when only $(CMDLINE) changes, or when using
-        and initramfs instead of NFS root. See dsk6455-initramfs.mk for an
+        an initramfs instead of NFS root. See dsk6455-initramfs.mk for an
         example of how this is used to point to the objdir used by the dsk6455.mk
         file. This greatly speeds up building since minor changes like cmdline
         won't require a full rebuild of the kernel.
 
 
-Makefile fragments are provided to build kernels for the DSK6455 and EVMC6472
-boards. Variants include initramfs versions with min-root initramfs and a romfs
-variant which will look for and use a romfs, ext2, or ext3 filesystem blob
-immediately following the kernel in memory.
+    Makefile fragments are provided to build kernels for the DSK6455, EVMC6472,
+    and EVMC6474.  
+
+    Example variants include initramfs and romfs versions.  The initramfs
+    versions includes the min-root cpio image directly into the kernel.  The 
+    romfs variant will look for and use a romfs, ext2, or ext3 filesystem image
+    immediately following the kernel in memory.  However look at bootblob for
+    another way to combine a kernel and a filesystem that does not require
+    rebuilding.
