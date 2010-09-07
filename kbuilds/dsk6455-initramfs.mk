@@ -6,7 +6,7 @@ LOCALVERSION = -dsk6455$(ENDIAN_SUFFIX)-$(DATE)
 KOBJNAME=dsk6455$(ENDIAN_SUFFIX)
 CONFIGPATCH =
 CONFIGSCRIPT = initramfs.sh
-CONFIGARGS = $(PRJ)/rootfs/$(ROOTFS)-$(ARCHe) NONE
+CONFIGARGS = $(BLD)/rootfs/$(ROOTFS)-$(ARCHe) NONE
 
 CMDLINE = emac_addr=00:0e:1e:64:55:01 console=cio ip=dhcp rw
 PRODVERSION = -1-initramfs

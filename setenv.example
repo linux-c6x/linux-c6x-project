@@ -25,14 +25,6 @@ export KERNELS_TO_BUILD="evmc6472"
 #
 # export EXTRA_KERNELS_TO_BUILD="dsk6455-initramsfs dsk6455-romfs evmc6472-initramfs evmc6472-romfs"
 
-# Kernel build to use for kernel headers
-#
-# Headers do not change based on board or endian, so pick one kernel
-# build and endian to use for kernel headers.
-#
-export KERNEL_HEADERS_KERNEL=dsk6455
-export KERNEL_HEADERS_ENDIAN=little
-
 # Choices for config
 
 export ROOTFS=min-root

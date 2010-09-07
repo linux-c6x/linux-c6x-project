@@ -52,30 +52,46 @@ endif
 
 PRJ=$(LINUX_C6X_PROJECT_DIR)
 TOP=$(LINUX_C6X_TOP_DIR)
+LINUX_C6X_BUILD_DIR ?= $(LINUX_C6X_TOP_DIR)/Build
+BLD=$(LINUX_C6X_TOP_DIR)/Build
 TOOL_WRAP_DIR=$(TOP)/ti-gcc-wrap/tool-wrap
 
 ABI           ?= elf
-DSBT_SIZE     ?= 32
+DSBT_SIZE     ?= 64
 KERNELS_TO_BUILD ?= dsk6455 evm7472
 EXTRA_KERNELS_TO_BUILD ?=
+ROOTFS ?= min-root
+
+# ensure all the config ENV vars are exported, even if the definition was from this file
+export ABI
+export DSBT_SIZE
+export HOSTCC
+export LINUX_C6X_BUILD_DIR
+
+# Kernel build to use for kernel headers
+#
+# Headers do not change based on board or endian, so pick one kernel
+# build and endian to use for kernel headers.
+#
+KERNEL_HEADERS_KERNEL=$(firstword $(KERNELS_TO_BUILD))
+ifeq ($(ENDIAN),big)
+KERNEL_HEADERS_ENDIAN=big
+else
+KERNEL_HEADERS_ENDIAN=little
+endif
+
 
 ifeq ($(ABI),coff)
 ARCHabi        = coff
+EXTRA_CFLAGS=
 else
 ARCHabi        = elf
+EXTRA_CFLAGS=-dsbt
 endif
 
 ARCHe		= c6x$(ARCHendian)
 ARCH		= $(ARCHe)-$(ARCHabi)
 SYSROOT_DIR	= $(SDK_DIR)/$(ARCH)-sysroot
-
-ROOTFS ?= min-root
-
-ifeq ($(ABI),coff)
-EXTRA_CFLAGS=
-else
-EXTRA_CFLAGS=-dsbt
-endif
 
 # SDK0 is a compiler only w/o C library. it is used to build kernel and C library
 # SDK is SDK0 + c library and is used for busybox and other user apps and libraries
@@ -83,16 +99,17 @@ CC_SDK0=$(SDK0_DIR)/bin/$(ARCH)-linux-
 CC_SDK=$(SDK_DIR)/bin/$(ARCH)-linux-
 
 # install kernel modules here
-MOD_DIR = $(PRJ)/rootfs/kernel-modules-$(ARCHe)
+MOD_DIR = $(BLD)/rootfs/kernel-modules-$(ARCHe)
 
 # install kernel headers here
-HDR_DIR = $(TOP)/kernel-headers
+HDR_DIR = $(BLD)/kernel-headers
 KHDR_DIR = $(HDR_DIR)/usr
 
 # install busybox here
-BBOX_DIR = $(PRJ)/rootfs/busybox-$(ARCHe)
+BBOX_DIR = $(BLD)/rootfs/busybox-$(ARCHe)
 
-KOBJ_BASE = $(TOP)/kobjs
+KOBJ_BASE = $(BLD)/kobjs
+
 ifneq ($(KNAME),)
 KCONF = $(PRJ)/kbuilds/$(KNAME).mk
 ifneq ($(wildcard $(KCONF)),)
@@ -119,6 +136,7 @@ one-extra-kernels: productdir
 		$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_SDK0) KNAME=$$kname kernel-sub ; \
 	done
 
+KERNEL_FNAME=`cat $(KOBJDIR)/include/config/kernel.release`$(PRODVERSION)
 kernel-sub:
 	@if [ -z "$(KNAME)" ] ; then echo Must define KNAME for this target; exit 1; fi
 	[ -d $(KOBJDIR) ] || mkdir -p $(KOBJDIR)
@@ -129,12 +147,13 @@ kernel-sub:
 	   sed -i -e 's,# CONFIG_CPU_BIG_ENDIAN is not set,CONFIG_CPU_BIG_ENDIAN=y,' $(KOBJDIR)/.config
 	[ -z "$(LOCALVERSION)" ] || \
 	   sed -i -e 's,CONFIG_LOCALVERSION=.*,CONFIG_LOCALVERSION="$(LOCALVERSION)",' $(KOBJDIR)/.config
-	[ -x "$(CMDLINE)" ] || \
+	[ -z "$(CMDLINE)" ] || \
 	   sed -i -e 's%CONFIG_CMDLINE=.*%CONFIG_CMDLINE="$(CMDLINE)"%' $(KOBJDIR)/.config
 	make ARCH=c6x O=$(KOBJDIR)/ oldconfig
 	make ARCH=c6x O=$(KOBJDIR)/
 	make ARCH=c6x O=$(KOBJDIR)/ INSTALL_MOD_PATH=$(MOD_DIR) modules_install
-	cp $(KOBJDIR)/vmlinux $(PRODUCT_DIR)/vmlinux-`cat $(KOBJDIR)/include/config/kernel.release`$(PRODVERSION)
+	cp $(KOBJDIR)/vmlinux $(PRODUCT_DIR)/vmlinux-$(KERNEL_FNAME)
+	objcopy -I elf32-$(ENDIAN) -O binary $(PRODUCT_DIR)/vmlinux-$(KERNEL_FNAME) $(PRODUCT_DIR)/vmlinux-$(KERNEL_FNAME).bin
 
 kernel-headers: kernels
 	$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_SDK0) \
@@ -148,20 +167,20 @@ kernel-headers-sub:
 	fi
 
 one-clib: $(call COND_DEP, sdk0 kernel-headers)
-	[ -d $(TOP)/uClibc$(ENDIAN_SUFFIX) ] || mkdir -p $(TOP)/uClibc$(ENDIAN_SUFFIX)
-	cp -a $(TOP)/uClibc/* $(TOP)/uClibc$(ENDIAN_SUFFIX)
-	$(SUB_MAKE) -C $(TOP)/uClibc$(ENDIAN_SUFFIX) CROSS_COMPILE=ensure_not_used CROSS=$(CC_SDK0) clib-sub
+	[ -d $(BLD)/uClibc$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/uClibc$(ENDIAN_SUFFIX)
+	cp -a $(TOP)/uClibc/* $(BLD)/uClibc$(ENDIAN_SUFFIX)
+	$(SUB_MAKE) -C $(BLD)/uClibc$(ENDIAN_SUFFIX) CROSS_COMPILE=ensure_not_used CROSS=$(CC_SDK0) clib-sub
 
-$(TOP)/uClibc$(ENDIAN_SUFFIX)/.config: $(TOP)/uClibc/uClibc-0.9.30-c64xplus-shared.config
+$(BLD)/uClibc$(ENDIAN_SUFFIX)/.config: $(BLD)/uClibc$(ENDIAN_SUFFIX)/uClibc-0.9.30-c64xplus-shared.config
 	cp uClibc-0.9.30-c64xplus-shared.config .config
 	make oldconfig
 
-clib-sub: $(TOP)/uClibc$(ENDIAN_SUFFIX)/.config
+clib-sub: $(BLD)/uClibc$(ENDIAN_SUFFIX)/.config
 	make
 
 one-busybox:  $(call COND_DEP, one-sdk)
-	[ -d $(TOP)/busybox$(ENDIAN_SUFFIX) ] || mkdir -p $(TOP)/busybox$(ENDIAN_SUFFIX)
-	$(SUB_MAKE) -C $(TOP)/busybox$(ENDIAN_SUFFIX) CONF=$(TOP)/busybox/busybox-1.00-full-c6x.config \
+	[ -d $(BLD)/busybox$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/busybox$(ENDIAN_SUFFIX)
+	$(SUB_MAKE) -C $(BLD)/busybox$(ENDIAN_SUFFIX) CONF=$(TOP)/busybox/busybox-1.00-full-c6x.config \
 		CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) busybox-sub
 
 BBOX_MAKE = make ARCH=c6x CROSS_COMPILE=$(CC_SDK) KBUILD_SRC=$(TOP)/busybox -f $(TOP)/busybox/Makefile
@@ -211,7 +230,7 @@ one-sdk: sdk0 one-clib
 	[ -e $(SYSROOT_DIR) ] || mkdir -p $(SYSROOT_DIR)
 	[ -d $(SYSROOT_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_DIR)
 	cp -a $(SDK0_DIR)/* $(SDK_DIR)
-	make -C $(TOP)/uClibc$(ENDIAN_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_DIR) install
+	make -C $(BLD)/uClibc$(ENDIAN_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_DIR) install
 
 sdk-clean:
 	rm -rf $(SDK_DIR)
@@ -219,16 +238,17 @@ sdk-clean:
 one-rootfs: $(ROOTFS)-$(ARCHe)
 
 min-root-$(ARCHe): productdir $(call COND_DEP, one-busybox)
-	if [ -d $(PRJ)/rootfs/$@ -a -e $(PRJ)/rootfs/mkcpio ] ; then rm -rf $(PRJ)/rootfs/$@; fi
-	(cd rootfs; ./uncpio min-root-skel $@)
-	cp -a $(BBOX_DIR)/* rootfs/$@
-	cp -a rootfs/min-root-extra/* rootfs/$@
-	cp -a $(MOD_DIR)/* rootfs/$@
-	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(PRJ)/rootfs/$@; tar xf -))
-	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - usr/lib | (cd $(PRJ)/rootfs/$@; tar xf -))
-	cp rootfs/min-root-devs.cpio rootfs/$@.cpio
-	(cd rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
-	gzip -c rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
+	if [ -d $(BLD)/rootfs/$@ -a -e $(BLD)/rootfs/$@-marker ] ; then rm -rf $(BLD)/rootfs/$@; fi
+	mkdir -p $(BLD)/rootfs/$@; date > $(BLD)/rootfs/$@-marker
+	(cd $(BLD)/rootfs/$@; cpio -i <$(PRJ)/rootfs/min-root-skel.cpio)
+	cp -a $(BBOX_DIR)/* $(BLD)/rootfs/$@
+	cp -a rootfs/min-root-extra/* $(BLD)/rootfs/$@
+	cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
+	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(BLD)/rootfs/$@; tar xf -))
+	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - usr/lib | (cd $(BLD)/rootfs/$@; tar xf -))
+	cp rootfs/min-root-devs.cpio $(BLD)/rootfs/$@.cpio
+	(cd $(BLD)/rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
+	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
 productdir:
 	[ -d $(PRODUCT_DIR) ] || mkdir -p $(PRODUCT_DIR)
@@ -249,14 +269,14 @@ one-sdk-clean:
 	[ -d $(SDK_DIR)/c6x-sysroot -o -d $(SDK_DIR)/c6xeb-sysroot ] || rm -rf $(SDK_DIR)
 
 one-clib-clean:
-	rm -rf $(TOP)/uClibc$(ENDIAN_SUFFIX)
+	rm -rf $(BLD)/uClibc$(ENDIAN_SUFFIX)
 
 one-busybox-clean:
-	rm -rf $(TOP)/busybox$(ENDIAN_SUFFIX)
+	rm -rf $(BLD)/busybox$(ENDIAN_SUFFIX)
 
 one-min-root-clean:
-	rm -rf rootfs/min-root-$(ARCHe)
-	rm -rf rootfs/min-root-$(ARCHe).cpio
+	rm -rf $(BLD)/rootfs/min-root-$(ARCHe)
+	rm -rf $(BLD)/rootfs/min-root-$(ARCHe).cpio
 
 one-clean: one-busybox-clean one-clib-clean one-sdk-clean one-min-root-clean
 	rm -rf $(MOD_DIR) $(HDR_DIR) $(BBOX_DIR)

@@ -6,7 +6,7 @@ LOCALVERSION = -evmc6472$(ENDIAN_SUFFIX)-$(DATE)
 KOBJNAME=evmc6472$(ENDIAN_SUFFIX)
 CONFIGPATCH =
 CONFIGSCRIPT = initramfs.sh
-CONFIGARGS = $(PRJ)/rootfs/$(ROOTFS)-$(ARCHe) NONE
+CONFIGARGS = $(BLD)/rootfs/$(ROOTFS)-$(ARCHe) NONE
 
 CMDLINE = console=cio ip=dhcp rw
 PRODVERSION = -1-initramfs
