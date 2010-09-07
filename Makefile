@@ -110,6 +110,8 @@ BBOX_DIR = $(BLD)/rootfs/busybox-$(ARCHe)
 
 KOBJ_BASE = $(BLD)/kobjs
 
+SYSROOT_TMP_DIR = $(BLD)/tmp-$(ARCH)-sysroot
+
 ifneq ($(KNAME),)
 KCONF = $(PRJ)/kbuilds/$(KNAME).mk
 ifneq ($(wildcard $(KCONF)),)
@@ -185,13 +187,16 @@ one-busybox:  $(call COND_DEP, one-sdk)
 
 BBOX_MAKE = make ARCH=c6x CROSS_COMPILE=$(CC_SDK) KBUILD_SRC=$(TOP)/busybox -f $(TOP)/busybox/Makefile
 
-busybox-sub:
+busybox-sub: $(BLD)/busybox$(ENDIAN_SUFFIX)/.config_done
 	rm -rf $(BBOX_DIR)
 	mkdir -p $(BBOX_DIR)
-	cp $(CONF) .config
-	$(BBOX_MAKE) oldconfig
 	$(BBOX_MAKE) EXTRA_LDFLAGS="-static"
 	$(BBOX_MAKE) EXTRA_LDFLAGS="-static" CONFIG_PREFIX=$(BBOX_DIR) install
+
+$(BLD)/busybox$(ENDIAN_SUFFIX)/.config_done: $(CONF) $(PRJ)/Makefile
+	cp $(CONF) .config
+	$(BBOX_MAKE) oldconfig
+	cp $(CONF) $@
 
 one-sdk0:
 	if [ -e $(SDK0_DIR)/linux-$(ARCHe)-sdk0-prebuilt ] ; then 	\
@@ -228,9 +233,11 @@ sdk0-clean:
 
 one-sdk: sdk0 one-clib
 	[ -e $(SYSROOT_DIR) ] || mkdir -p $(SYSROOT_DIR)
-	[ -d $(SYSROOT_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_DIR)
+	[ -e $(SYSROOT_TMP_DIR) ] || mkdir -p $(SYSROOT_TMP_DIR)
 	cp -a $(SDK0_DIR)/* $(SDK_DIR)
-	make -C $(BLD)/uClibc$(ENDIAN_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_DIR) install
+	[ -d $(SYSROOT_TMP_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_TMP_DIR)
+	make -C $(BLD)/uClibc$(ENDIAN_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_TMP_DIR) install
+	rsync -rlpgocv --delete $(SYSROOT_TMP_DIR)/ $(SYSROOT_DIR)/
 
 sdk-clean:
 	rm -rf $(SDK_DIR)
