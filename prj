@@ -1,0 +1,58 @@
+#!/bin/bash
+
+#set -e
+
+if [ x"$URL" == x"" ]; then URL="git://linux-c6x.org/git"; fi
+if [ x"$BRANCH" == x"" ]; then BRANCH="master"; fi
+if [ x"$REMOTE" == x"" ]; then REMOTE="origin"; fi
+if [ x"$BARE" == x"" ]; then BARE="yes"; fi
+
+if [ "$BARE" == "no" ]; then BARE_EXP="/"; else BARE_EXP=""; fi
+
+BOM_PRJ="linux-c6x-project"
+BASE_PRJ="linux-c6x busybox uClibc"
+WRAP_PRJ="ti-gcc-wrap/binutils ti-gcc-wrap/cil ti-gcc-wrap/gdb ti-gcc-wrap/sources ti-gcc-wrap/tool-wrap"
+TOP=..
+
+REST_PRJ="$BASE_PRJ $WRAP_PRJ"
+ALL_PRJ="$BOM_PRJ $BASE_PRJ $WRAP_PRJ"
+
+cd $TOP
+case $1 in
+finish-clone)
+    for prj in $REST_PRJ ; do
+	echo "****** $prj"
+	mkdir -p $(dirname $prj)
+	(cd $(dirname $prj); git clone $URL/$prj.git)
+	(cd $prj; git checkout $BRANCH)
+    done
+;;
+status)
+    for prj in $ALL_PRJ ; do
+	echo "****** $prj"
+	(cd $prj; git status)
+    done
+;;
+git)
+    shift
+    for prj in $ALL_PRJ ; do
+	echo "****** $prj"
+	(cd $prj; git "$@")
+    done
+;;
+for-each)
+    shift
+    for prj in $ALL_PRJ ; do
+	echo "****** $prj"
+	(cd $prj; "$@")
+    done
+;;
+*)
+    echo "Don't know command $1"
+    false
+;;
+esac
+
+
+
+

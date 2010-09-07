@@ -1,0 +1,5 @@
+#! /bin/sh
+./time-make clean
+./time-make product
+./time-make product null
+

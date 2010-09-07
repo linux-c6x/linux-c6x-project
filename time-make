@@ -1,0 +1,9 @@
+#! /bin/sh
+mkdir -p logs
+
+NAME=-$2
+if [ "$NAME" = "-" ] ; then NAME=-$1 ; fi
+if [ "$NAME" = "-" ] ; then NAME=""  ; fi
+
+$(which time) -v -o logs/make$NAME.time make $1  2>&1 | tee logs/make$NAME.log
+

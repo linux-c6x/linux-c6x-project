@@ -1,23 +1,7 @@
 # These files should not be recorded in version control
 setenv
 *~
-*.out
-*.elf
-*.o
-*.obj
-*.dump
-*.dat
-*.cpio.gz
-*.cpio
-*.bin
-*.log
-*.time
-rootfs/hello-root*/
-rootfs/min-root*/
-rootfs/full-root*/
-rootfs/busybox-image*/
-rootfs/busybox-c6x*/
-rootfs/kernel-modules-c6x*/
+logs/
 junk/
 
 
