@@ -1,0 +1,217 @@
+#! /bin/bash
+
+PAD_SIZE=0
+ROUND_SIZE=0
+FSIMAGE_START=""
+FSIMAGE_SIZE=""
+ABS_BASE=0
+
+need-args() {
+    found=$1; shift
+    echo "$CMD expected $# arguments and found $found"
+    i=1
+    for name in "$@" ; do
+        printf "\t%s\t%s\n" "arg$i" "$name"
+        i=$((i+1))
+    done
+    exit 2
+}
+    
+save-cmdline() {
+    if [ $# -ne 2 ]; then need-args $# "bootblob or kernel image"  "cmdline save file"; fi
+    IMAGE=$1
+    CMDLINE_FILE=$2
+    # get 0x400 bytes at offset 0x1000
+    dd if=$IMAGE of=$CMDLINE_FILE skip=4 bs=1024 count=1
+}
+
+get-cmdline() {
+    if [ $# -ne 1 ]; then need-args $# "bootblob or kernel image"; fi
+    IMAGE=$1
+    if [ ! -r $IMAGE ]; then echo "Can not read image file $IMAGE"; return 2; fi
+    # get 0x400 bytes at offset 0x1000 and isolate the stuff before the first NUL character
+    dd if=$IMAGE skip=4 bs=1024 count=1 2>/dev/null | xargs -0 -n 1 2>/dev/null | head -n 1
+}
+
+set-cmdline() {
+    if [ $# -ne 2 ]; then need-args $# "bootblob or kernel image"  "quoted command line text"; fi
+
+    IMAGE=$1
+    CMDLINE=$2
+    dd if=/dev/zero of=$IMAGE seek=4 bs=1024 count=1 conv=notrunc 2>/dev/null
+    echo -n "$2" | dd  of=$IMAGE seek=4 bs=1024 count=1 conv=notrunc 2>/dev/null
+}
+
+expand-vars() {
+    FSIMAGE_START_ABS=$(($ABS_BASE + $FSIMAGE_START))
+    KERNEL_START_ABS=$(($ABS_BASE + 0))
+
+    val=$1
+    val=${val//%fsimage-start-off%/$(printf "%d" $FSIMAGE_START)}
+    val=${val//%fsimage-start-off-x%/$(printf "%x" $FSIMAGE_START)}
+    val=${val//%fsimage-start-abs%/$(printf "%d" $FSIMAGE_START_ABS)}
+    val=${val//%fsimage-start-abs-x%/$(printf "%x" $FSIMAGE_START_ABS)}
+    val=${val//%fsimage-size%/$(printf "%d" $FSIMAGE_SIZE)}
+    val=${val//%fsimage-size-x%/$(printf "%x" $FSIMAGE_SIZE)}
+    echo "$val"
+}
+
+my-dd() {
+    COUNT=$1
+    SEEK=$2
+    SKIP=$3
+    shift 3
+
+    if [ -z "$COUNT" ] ; then COUNT=0x40000000 ; fi
+
+    for BLOCKSIZE in 1048576 4096 1024 16 4 1 ; do
+        if [ $(( ($COUNT % $BLOCKSIZE) + ($SEEK % $BLOCKSIZE) + ($SKIP % $BLOCKSIZE) )) -eq 0 ]; then
+            break;
+        fi
+    done
+    echo "using blocksize of $BLOCKSIZE"
+    COUNT=$(($COUNT / $BLOCKSIZE ))
+    SEEK=$(($SEEK / $BLOCKSIZE ))
+    SKIP=$(($SKIP / $BLOCKSIZE ))
+
+    dd bs=$BLOCKSIZE seek=$SEEK skip=$SKIP count=$COUNT "$@"
+}
+
+make-image() {
+    if [ $# -ne 4 ]; then need-args $# "bootblob to create"  "kernel binary image" "filesystem/initramfs image" "quoted command line text"; fi
+    IMAGE=$1
+    KERNEL=$2
+    FSIMAGE=$3
+    CMDLINE=$4
+
+    KERNEL_REAL_SIZE=$(stat -c"%s" $KERNEL)
+    FS_REAL_SIZE=$(stat -c"%s" $FSIMAGE)
+
+    if [ $ROUND_SIZE -gt 0 ] ; then
+        KERNEL_ROUND_SIZE=$(( (($KERNEL_REAL_SIZE + $ROUND_SIZE - 1) / $ROUND_SIZE) * $ROUND_SIZE ))
+        FS_ROUND_SIZE=$((     (($FS_REAL_SIZE     + $ROUND_SIZE - 1) / $ROUND_SIZE) * $ROUND_SIZE ))
+    else
+        KERNEL_ROUND_SIZE=$KERNEL_REAL_SIZE
+        FS_ROUND_SIZE=$FS_REAL_SIZE
+    fi
+
+    if [ -z "$FSIMAGE_START" ] ; then FSIMAGE_START=$KERNEL_ROUND_SIZE; fi
+    if [ -z "$FSIMAGE_SIZE"  ] ; then FSIMAGE_SIZE=$FS_ROUND_SIZE; fi
+    TOTAL_SIZE=$(( $FSIMAGE_START + $FSIMAGE_SIZE ))
+    if [ $TOTAL_SIZE -lt $KERNEL_ROUND_SIZE  ] ; then TOTAL_SIZE=$KERNEL_ROUND_SIZE; fi
+
+   CMDLINE=$(expand-vars "$CMDLINE")
+
+    printf "kernel   %8.8X  for %10d bytes end at %8.8X\n"  0  $KERNEL_REAL_SIZE $((0+$KERNEL_ROUND_SIZE-1))
+    printf "fsimage  %8.8X  for %10d bytes end at %8.8X\n"  $FSIMAGE_START  $FS_REAL_SIZE  $(($FSIMAGE_START + $FSIMAGE_SIZE-1))
+    printf "total    %8.8X  for %10d bytes end at %8.8X\n"  0 $TOTAL_SIZE $(($TOTAL_SIZE-1))
+    printf "cmdline  %s\n"  "$CMDLINE"
+
+#    dd if=/dev/zero   of=$IMAGE bs=1 count=$TOTAL_SIZE
+#    dd if=$KERNEL     of=$IMAGE conv=notrunc
+#    dd if=$FSIMAGE    of=$IMAGE bs=1 seek=$FSIMAGE_START conv=notrunc
+    my-dd $TOTAL_SIZE 0                 0       if=/dev/zero   of=$IMAGE 
+    my-dd ""          0                 0       if=$KERNEL     of=$IMAGE conv=notrunc
+    my-dd ""          $FSIMAGE_START    0       if=$FSIMAGE    of=$IMAGE conv=notrunc
+    set-cmdline $IMAGE "$CMDLINE"
+}
+
+do_help() {
+    echo "bootblob [options] <cmd> [options] <args>"
+    echo "where cmd is one of: (run just the command to see the argument description)"
+    echo "    make-image              create a new bootblob image"
+    echo "    set-cmdline             set command line of a blob image or kernel binary image"
+    echo "    get-cmdline             print the current command line of a blob image or kernel binary image"
+    echo "    save-cmdline            save the raw cmdline data to a file"
+    echo ""
+    echo "and where options is zero or more of: (use decimal or 0x prefix for hex)"
+    echo "    --fsimage-start=        specify the starting offset of the file system image"
+    echo "    --fsimage-size=         specify the size of the file system image"
+    echo "    --round=                round starting and ending addresses to a multiple of this value"
+    echo "    --abs-base=             specify the absolute address where image will reside (used for var expansion)"
+    echo ""
+    echo "the command line value of make-image (only) can have variable expansion.  The following values are supported"
+    echo "    %fsimage-start-off%     starting offset of the filesystem image (decimal)"
+    echo "    %fsimage-start-off-x%   starting offset of the filesystem image (hex)"
+    echo "    %fsimage-start-abs%     starting absolute address of the filesystem image (decimal)"
+    echo "    %fsimage-start-abs-x%   starting absolute address of the filesystem image (hex)"
+    echo "    %fsimage-size%          size of filesystem image (decimal)"
+    echo "    %fsimage-size-x%        size of filesystem image (hex)"
+    echo ""
+    echo "example:"
+    echo "    ./bootblob make-image --abs-base=0xe0000000 --round=0x10000 test.blob vmlinux-xxx.bin min-root-c6x.cpio.gz \\"
+    echo "        console=cio initrd=0x%fsimage-start-abs-x%,0x%fsimage-size-x% ip=dhcp"
+}
+
+handle-one-option() {
+    opt=$1
+    case $opt in
+        -d|--debug)
+            set -x
+            ;;
+        -h|--help)
+            do_help
+            exit 0
+            ;;
+        --fsimage-start=*)
+            FSIMAGE_START=${1#--fsimage-start=}
+            ;;
+        --fsimage-size=*)
+            FSIMAGE_SIZE=${1#--fsimage-size=}
+            ;;
+        --round=*)
+            ROUND_SIZE=$(( ${1#--round=} + 0 ))
+            ;;
+        --abs-base=*)
+            ABS_BASE=$(( ${1#--abs-base=} + 0 ))
+            ;;
+        --)
+            return 2
+            ;;
+        -*)
+            echo "unknow option use '$0 help' for info"
+            exit 2
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+    return 0
+}
+
+BINDIR=$(dirname $0)
+
+# handle options before the CMD
+while handle-one-option $1 ; do
+    shift
+done
+if [ "$1" == "--" ]; then shift; fi
+
+# get command
+CMD=$1
+shift
+
+# handle options after the CMD
+while handle-one-option $1 ; do
+    shift
+done
+if [ "$1" == "--" ]; then shift; fi
+
+case $CMD in
+    help)
+        do_help
+        exit 0
+        ;;
+    make-image|set-cmdline|get-cmdline|save-cmdline)
+        $CMD "$@"
+        ;;
+    "")
+        echo "must specifiy a command, try:"
+        echo "    bootblob help"
+        exit 1
+        ;;
+    *)
+        echo "unknown command $CMD"
+        exit 1
+        ;;
+esac

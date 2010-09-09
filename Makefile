@@ -242,7 +242,7 @@ one-sdk: sdk0 one-clib
 sdk-clean:
 	rm -rf $(SDK_DIR)
 
-one-rootfs: $(ROOTFS)-$(ARCHe)
+one-rootfs: $(ROOTFS)-$(ARCHe) bootblob
 
 min-root-$(ARCHe): productdir $(call COND_DEP, one-busybox)
 	if [ -d $(BLD)/rootfs/$@ -a -e $(BLD)/rootfs/$@-marker ] ; then rm -rf $(BLD)/rootfs/$@; fi
@@ -256,6 +256,9 @@ min-root-$(ARCHe): productdir $(call COND_DEP, one-busybox)
 	cp rootfs/min-root-devs.cpio $(BLD)/rootfs/$@.cpio
 	(cd $(BLD)/rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
+
+bootblob: productdir
+	cp -a $(PRJ)/bootblob $(PRODUCT_DIR)/
 
 productdir:
 	[ -d $(PRODUCT_DIR) ] || mkdir -p $(PRODUCT_DIR)
