@@ -1,50 +1,323 @@
 #!/bin/bash
 
-#set -e
+# This is either the prj script or a bootstrap script create from it
 
-if [ x"$URL" == x"" ]; then URL="git://linux-c6x.org/git"; fi
-if [ x"$BRANCH" == x"" ]; then BRANCH="master"; fi
-if [ x"$REMOTE" == x"" ]; then REMOTE="origin"; fi
-if [ x"$BARE" == x"" ]; then BARE="yes"; fi
+### INSTANCE MARK
+### INSTANCE VARS BEGIN
+# configurations for this instance of prj
+PROJECT="linux-c6x"
+BASEURL="git://linux-c6x.org/git/"
+BOMPRJ=linux-c6x-project
+BOMEXT=.git
+REF="master"
+REMOTE="origin"
 
-if [ "$BARE" == "no" ]; then BARE_EXP="/"; else BARE_EXP=""; fi
-
-BOM_PRJ="linux-c6x-project"
 BASE_PRJ="linux-c6x busybox uClibc"
 WRAP_PRJ="ti-gcc-wrap/binutils ti-gcc-wrap/cil ti-gcc-wrap/sources ti-gcc-wrap/tool-wrap"
 TOP=..
-
 REST_PRJ="$BASE_PRJ $WRAP_PRJ"
-ALL_PRJ="$BOM_PRJ $BASE_PRJ $WRAP_PRJ"
+ALL_PRJ="$BOMPRJ $BASE_PRJ $WRAP_PRJ"
+### INSTANCE VARS END
 
-cd $TOP
-case $1 in
-finish-clone)
-    for prj in $REST_PRJ ; do
-	echo "****** $prj"
-	mkdir -p $(dirname $prj)
-	(cd $(dirname $prj); git clone $URL/$prj.git)
-	(cd $prj; git checkout $BRANCH)
+do-help-bootstrap() {
+    echo "bootstrap a project development setup for $PROJECT"
+    echo "bootstrap [options] [version]"
+    echo ""
+    echo "supported options:"
+    echo "    --help  -h              print this help message and exit"
+    echo "    --debug -d              do debug tracing"
+    echo "    --url=                  specify a base URL"
+    echo "    --bom=                  specify the master / Bill Of Materials project"
+    echo "    --print-vars            print the default vars from this instance of bootstrap and exit"
+    echo "    --safer                 don't run stage 2, allow user to verify it & run it manually"
+    echo ""
+    echo "version is a branch or tag name in the master project"
+    echo ""
+    echo "This instance of bootstrap has:"
+    echo "  Default URL              $BASEURL"
+    echo "  Default BOM Project      $BOMPRJ"
+    echo "  Default Version          $REF"
+    echo ""
+    if [ -n "$OTHER_REF_SUGGESTIONS" ] ; then
+        echo "It also suggests the following other versions:"
+        printf "%b\n" "$OTHER_REF_SUGGESTIONS"
+    fi
+}
+
+do-help-prj() {
+    do-include-local
+
+    echo "operations across multi-components of $PROJECT"
+    echo "prj [options] cmd <args>"
+    echo ""
+    echo "supported options:"
+    echo "    --help  -h              print this help message and exit"
+    echo "    --debug -d              do debug tracing"
+    echo ""
+    echo "version is a branch or tag name in the master project"
+    echo ""
+    echo "This instance of prj has:"
+    echo "  Base URL                  $BASEURL"
+    echo "  BOM Project               $BOMPRJ"
+    echo "  Version                   $REF"
+    echo ""
+}
+
+
+do-print-vars-bootstrap() {
+    printf 'PROJECT="%s"\n' "$PROJECT"
+    echo "BASEURL=\"$BASEURL\""
+    echo "BOMPRJ=\"$BOMPRJ\""
+    echo "BOMEXT=\"$BOMEXT\""
+    echo "REF=\"$REF\""
+    echo "OTHER_REF_SUGGESTIONS=\"$OTHER_REF_SUGGESTIONS\""
+}
+
+handle-one-option-bootstrap() {
+    opt=$1
+    case $opt in
+        -d|--debug)
+            set -x
+            STAGE2_OPTIONS="$STAGE2_OPTIONS --debug"
+            ;;
+        -h|--help)
+            do-help-bootstrap
+            exit 0
+            ;;
+        --url=*)
+            BASEURL=${1#--url=}
+            ;;
+        --bom=*)
+            BOMPRJ=${1#--bom=}
+            ;;
+        --avail)
+            do-print-avail
+            exit 0
+            ;;
+        --print-vars)
+            do-print-vars-bootstrap
+            exit 0
+            ;;
+        --safer)
+            SAFER_MODE=true
+            ;;
+        --)
+            return 2
+            ;;
+        -*)
+            echo "unknow option use '$0 help' for info"
+            exit 2
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+    return 0
+}
+
+handle-one-option-prj() {
+    opt=$1
+    case $opt in
+        -d|--debug)
+            set -x
+            ;;
+        -h|--help)
+            do-help-prj
+            exit 0
+            ;;
+        --)
+            return 2
+            ;;
+        -*)
+            echo "unknow option use '$0 help' for info"
+            exit 2
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+    return 0
+}
+
+do-bootstrap-stage1() {
+    # handle options
+    while handle-one-option-bootstrap $1 ; do
+        shift
     done
+    if [ "$1" == "--" ]; then shift; fi
+
+    if [ -n "$1" ] ; then REF=$1 ; fi
+
+    # assure we have at least the tools we need to get the bom project
+    if ! which git ; then echo "you don't have git in your $PATH."; exit 2; fi
+
+    # get the BOM project
+    TOP="."
+    (do-clone-ref $BOMPRJ $REF)
+
+    # hack for development of bootstrap and ./prj
+    if [ -n "$BOOTSTRAP_DEV_HACK" ] ; then 
+        (cd $STARTPWD; cp -p $MYDIR/prj $BOMPRJ/ )
+    fi
+
+    # save info on what we did
+    cd $BOMPRJ
+    do-print-vars-bootstrap >.prj.local
+
+    # execute the bootstrap 2nd stage which is part of the bom project itself
+    # since this executes stuff just downloaded, allow a mode that tells user
+    # how to manually do it.
+    if $SAFER_MODE ; then
+        echo "you should:"
+        echo "  cd $PWD"
+        echo "  less ./prj"
+        echo "        (inspect the prj script and assure yourself it is OK)"
+        echo "  ./prj bootstrap-stage2"
+        exit 0
+    else
+        # see if the bom project has a ./prj script and it supports bootstrap
+        if [ ! -x ./prj -o "$(./prj parle-vu-bootstrap)" != "parle-vu-i-do" ] ; then 
+            echo "The $REF version is not bootstrap enabled"
+            exit 2
+        fi
+        ./prj $STAGE2_OPTIONS bootstrap-stage2 
+        echo "Done.  you should:"
+        echo "  cd $PWD"
+    fi
+}
+
+do-clone-ref() {
+    PRJ=$1
+    PRJ_REF=$2
+
+    STARTDIR=$(pwd)
+    BASEDIR=$(dirname $TOP/$PRJ)
+    mkdir -p $BASEDIR
+    cd $BASEDIR
+
+    # get the project
+    git clone $BASEURL$PRJ$BOMEXT
+    cd $STARTDIR
+    cd $TOP/$PRJ
+
+    # pull down more info & resolve ref
+    git fetch --tags origin
+    FULL_REF=$(git show-ref $REF | head -n 1 | cut -f2 -d" ")
+    if [ -z "$FULL_REF" ]; then 
+        echo "can't find ref $REF in $PRJ"; 
+        return 2 
+    fi
+
+    case $FULL_REF in
+    refs/heads/*)
+        # already a local branch of the same name, see if we can switch to it and update it
+        git checkout ${FULL_REF#refs/heads/}
+        if ! git pull --ff-only $REMOTE $REF ; then
+            git checkout $FULL_REF
+        fi
+        ;;
+    refs/remotes/*)
+        # remote branch w/ no local one, 
+        git checkout -b $REF ${FULL_REF#refs/remotes/}
+        ;;
+    refs/tags/*)
+        # tag, leave the HEAD disconnected, the user can create a branch if she wishes
+        git checkout $FULL_REF
+        ;;
+    *)
+        # unexpected pattern, try it
+        echo "unexpected reference format $FULL_REF"
+        git checkout $FULL_REF
+        ;;
+    esac
+}
+
+do-include-local() {
+    if [ -r $TOP/$BOMPRJ/.prj.local ] ; then
+        source $TOP/$BOMPRJ/.prj.local
+    fi
+}
+
+#local vars
+SAFER_MODE=false
+STAGE2_OPTIONS=""
+
+
+ME=$0
+MYDIR=$(dirname $0)
+STARTPWD=$PWD
+IS_BOOTSTRAP=false
+case "$(basename $0)" in
+*bootstrap) 
+    IS_BOOTSTRAP=1
+
+    if [ y"$1" == y"parle-vu-bootstrap" ] ; then
+        echo "no, I just do stage1"
+        exit 2
+    fi
+    
+    do-bootstrap-stage1 "$@"
+    exit $?
+;;
+esac
+
+# if here we are a real prj script
+while handle-one-option-prj $1 ; do
+    shift
+done
+if [ "$1" == "--" ]; then shift; fi
+
+do-include-local
+
+case $1 in
+parle-vu-bootstrap)
+    # protocol version 0 ignores any args and answers back like so
+    echo "parle-vu-i-do"
+    # future enhancements in bootstrap can supply a requested level 
+    # the response would include the level granted (unless the grant is level 0 as above)
+;;
+bootstrap-stage1)
+    do-bootstrap-stage1 "$@"
+;;
+bootstrap-stage2)
+    for prj in $REST_PRJ ; do
+        echo "****** $prj"
+        (do-clone-ref $prj $REF)
+    done
+;;
+make-bootstrap)
+    OUTFILE=$2
+    if [ -z "$OUTFILE" ] ; then 
+        echo "need path/filename to which to write"
+        exit 2
+    fi
+    TMPFILE=$(mktemp)
+    printf "### INSTANCE VARS BEGIN\n"  >$TMPFILE
+    printf "# variables for this instance of bootstrap\n" >>$TMPFILE
+    do-print-vars-bootstrap             >>$TMPFILE
+    printf "### INSTANCE VARS END\n"    >>$TMPFILE
+    sed -e '/^### INSTANCE VARS BEGIN/,/^### INSTANCE VARS END/ d' \
+        -e '/^### INSTANCE MARK/ r'"$TMPFILE" <$ME >$OUTFILE
+    rm $TMPFILE
 ;;
 status)
     for prj in $ALL_PRJ ; do
-	echo "****** $prj"
-	(cd $prj; git status)
+        echo "****** $prj"
+        (cd $TOP/$prj; git status)
     done
 ;;
 git)
     shift
     for prj in $ALL_PRJ ; do
-	echo "****** $prj"
-	(cd $prj; git "$@")
+        echo "****** $prj"
+        (cd $TOP/$prj; git "$@")
     done
 ;;
 for-each)
     shift
     for prj in $ALL_PRJ ; do
-	echo "****** $prj"
-	(cd $prj; "$@")
+        echo "****** $prj"
+        (cd $TOP/$prj; "$@")
     done
 ;;
 *)
@@ -52,7 +325,3 @@ for-each)
     false
 ;;
 esac
-
-
-
-

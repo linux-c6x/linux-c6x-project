@@ -3,7 +3,4 @@ setenv
 *~
 logs/
 junk/
-
-
-
-
+.prj.local
