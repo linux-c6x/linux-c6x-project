@@ -23,7 +23,7 @@ export KERNELS_TO_BUILD="evmc6472"
 #
 # See bootblob for easier was to change the command line and to use an external initramfs
 #
-# export EXTRA_KERNELS_TO_BUILD="dsk6455-initramsfs dsk6455-romfs evmc6472-initramfs evmc6472-romfs"
+# export EXTRA_KERNELS_TO_BUILD="dsk6455-initramfs dsk6455-romfs evmc6472-initramfs evmc6472-romfs"
 
 # Choices for config
 
