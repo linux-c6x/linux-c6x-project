@@ -1,4 +1,4 @@
 #!/bin/bash
 CC=$SDK_DIR/bin/c6x-elf-linux-gcc
-$CC -dsbt --gcc -static -o hello_thread  -pthread  hello_thread.c
+$CC -dsbt --gcc -static -o hello_thread.out  -pthread  hello_thread.c
 true

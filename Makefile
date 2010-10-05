@@ -111,6 +111,7 @@ BBOX_DIR = $(BLD)/rootfs/busybox-$(ARCHe)
 KOBJ_BASE = $(BLD)/kobjs
 
 SYSROOT_TMP_DIR = $(BLD)/tmp-$(ARCH)-sysroot
+SYSROOT_TMP_DIR_THREAD = $(BLD)/tmp-$(ARCH)-sysroot-thread
 
 ifneq ($(KNAME),)
 KCONF = $(PRJ)/kbuilds/$(KNAME).mk
@@ -172,12 +173,22 @@ one-clib: $(call COND_DEP, sdk0 kernel-headers)
 	[ -d $(BLD)/uClibc$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/uClibc$(ENDIAN_SUFFIX)
 	cp -a $(TOP)/uClibc/* $(BLD)/uClibc$(ENDIAN_SUFFIX)
 	$(SUB_MAKE) -C $(BLD)/uClibc$(ENDIAN_SUFFIX) CROSS_COMPILE=ensure_not_used CROSS=$(CC_SDK0) clib-sub
+	[ -d $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)
+	cp -a $(TOP)/uClibc/* $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)
+	$(SUB_MAKE) -C $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX) CROSS_COMPILE=ensure_not_used CROSS=$(CC_SDK0) clib-sub-pthread
 
 $(BLD)/uClibc$(ENDIAN_SUFFIX)/.config: $(BLD)/uClibc$(ENDIAN_SUFFIX)/uClibc-0.9.30-c64xplus-shared.config
 	cp uClibc-0.9.30-c64xplus-shared.config .config
 	make oldconfig
 
+$(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/.config: $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/uClibc-0.9.30-c64xplus-shared.config
+	cp uClibc-0.9.30-c64xplus-shared-thread.config .config
+	make oldconfig
+
 clib-sub: $(BLD)/uClibc$(ENDIAN_SUFFIX)/.config
+	make
+
+clib-sub-pthread: $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/.config
 	make
 
 one-busybox:  $(call COND_DEP, one-sdk)
@@ -237,6 +248,11 @@ one-sdk: sdk0 one-clib
 	cp -a $(SDK0_DIR)/* $(SDK_DIR)
 	[ -d $(SYSROOT_TMP_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_TMP_DIR)
 	make -C $(BLD)/uClibc$(ENDIAN_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_TMP_DIR) install
+	[ -e $(SYSROOT_TMP_DIR_THREAD) ] || mkdir -p $(SYSROOT_TMP_DIR_THREAD)
+	make -C $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_TMP_DIR_THREAD) install
+	# Just updating with new files. Re-visit it later as needed
+	mv -f $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/lib/libc.a $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/lib/libc-pthread.a
+	rsync -rlpgocv --ignore-existing $(SYSROOT_TMP_DIR_THREAD)/ $(SYSROOT_TMP_DIR)/
 	rsync -rlpgocv --delete $(SYSROOT_TMP_DIR)/ $(SYSROOT_DIR)/
 
 sdk-clean:
@@ -280,6 +296,7 @@ one-sdk-clean:
 
 one-clib-clean:
 	rm -rf $(BLD)/uClibc$(ENDIAN_SUFFIX)
+	rm -rf $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)
 
 one-busybox-clean:
 	rm -rf $(BLD)/busybox$(ENDIAN_SUFFIX)
