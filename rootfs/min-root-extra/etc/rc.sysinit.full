@@ -1,13 +1,10 @@
 #!/bin/sh
 
+set -x 
+
 echo
 echo Starting system...
 echo
-
-# If we're using devfs, start devfsd now - we need the old device names.
-if [ -e /dev/.devfsd -a -x /sbin/devfsd ]; then
-    /sbin/devfsd /dev
-fi
 
 # Default configuration.
 PATH=/bin:/sbin:/usr/bin:/usr/sbin
@@ -66,6 +63,10 @@ if [ -f /etc/fstab ]; then
     mount -n -a
     echo "done."
 fi
+
+# Start mdev
+echo "Starting mdev"
+/etc/start_mdev
 
 # Clean up /var.
 for afile in /var/lock/* /var/run/*; do

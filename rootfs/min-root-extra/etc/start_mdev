@@ -1,0 +1,99 @@
+#!/bin/sh
+#
+# NOTE: This shell script must work with both bash and busybox ash.
+#
+# Configuration files:
+# - /etc/mdev_static_nodes.conf specifies the devices, symbolic links and
+#   directories which must be created statically at boot time.
+# - /etc/mdev.conf provides mdev rules for dynamically creating device
+#   nodes in /dev.
+#
+
+tmpdir() {
+    mktemp -d /tmp/$1.XXXXXX || exit 1
+}
+
+mount_move() {
+    mount --move $1 $2 || exit 1
+}
+
+mount_dev() {
+    if ! grep -sq "[^ ]* /dev tmpfs" /proc/mounts; then
+	if ! grep -sq "[^ ]* /dev ramfs" /proc/mounts; then
+	    if grep -sq "nodev.*ramfs" /proc/filesystems; then
+		TMPFS=ramfs
+	    else
+		if grep -sq "nodev.*tmpfs" /proc/filesystems; then
+		    TMPFS=tmpfs
+		else
+		    echo "Error: cannot mount /dev as a memory filesystem"
+		    exit 1
+		fi
+	    fi
+
+	    TMPDEV=`tmpdir dev`
+	    mount -n none $TMPDEV -t $TMPFS
+
+	    if grep -sq "[^ ]* /dev/pts " /proc/mounts; then
+		TMPDEVPTS=`tmpdir devpts`
+		mount_move /dev/pts $TMPDEVPTS
+	    fi
+
+	    if grep -sq "[^ ]* /dev/shm " /proc/mounts; then
+		TMPDEVSHM=`tmpdir devshm`
+		mount_move /dev/shm $TMPDEVSHM
+	    fi
+
+	    cp -a /dev/. $TMPDEV 2>&1
+	    mount_move $TMPDEV /dev
+
+	    if [ -n "$TMPDEVPTS" ]; then
+		mkdir -p /dev/pts
+		mount_move $TMPDEVPTS /dev/pts
+		rmdir $TMPDEVPTS
+	    fi
+
+	    if [ -n "$TMPDEVSHM" ]; then
+		mount_move $TMPDEVSHM /dev/shm
+		rmdir $TMPDEVSHM
+	    fi
+	    rmdir $TMPDEV
+
+	fi
+    fi
+}
+
+make_static_nodes() {
+    CONF=/etc/mdev_static_nodes.conf
+    [ -e $CONF ] || return 0
+    grep '^[^#]' $CONF | 
+    while read type name arg1; do
+	[ "$type" -a "$name" -a ! -e "/dev/$name" -a ! -L "/dev/$name" ] || 
+	continue
+	case "$type" in
+	    L) ln -s $arg1 /dev/$name;;
+            D) mkdir -p /dev/$name ;;
+	    M) mknod -m 600 /dev/$name $arg1 ;;
+	    *) echo "`basename $CONF`: malformed line '$type $name $arg1'" ;;
+        esac
+    done
+}
+
+if [ ! -x /sbin/mdev ]; then
+    echo "Error: mdev is missing"
+    exit 1
+fi
+
+if [ ! -d /sys/class ]; then
+    echo "Error: sysfs is not mounted"
+    exit 1
+fi
+
+mount_dev
+
+#make_static_nodes
+
+echo "/sbin/mdev" > /proc/sys/kernel/hotplug
+/sbin/mdev -s
+
+exit 0
