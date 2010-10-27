@@ -60,6 +60,7 @@ ABI           ?= elf
 DSBT_SIZE     ?= 64
 KERNELS_TO_BUILD ?= dsk6455 evm7472
 EXTRA_KERNELS_TO_BUILD ?=
+BUILD_KERNEL_WITH_GCC ?=
 ROOTFS ?= min-root
 
 # ensure all the config ENV vars are exported, even if the definition was from this file
@@ -97,6 +98,7 @@ SYSROOT_DIR	= $(SDK_DIR)/$(ARCH)-sysroot
 # SDK is SDK0 + c library and is used for busybox and other user apps and libraries
 CC_SDK0=$(SDK0_DIR)/bin/$(ARCH)-linux-
 CC_SDK=$(SDK_DIR)/bin/$(ARCH)-linux-
+CC_GNU=$(GNU_TOOLS_DIR)/bin/c6x-uclinux-
 
 # install kernel modules here
 MOD_DIR = $(BLD)/rootfs/kernel-modules-$(ARCHe)
@@ -131,12 +133,20 @@ COND_DEP=$(if $(ONLY),,$(1))
 
 one-kernels: productdir $(call COND_DEP, sdk0)
 	for kname in $(KERNELS_TO_BUILD) ; do \
-		$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_SDK0) KNAME=$$kname kernel-sub ; \
+		if [ "$(BUILD_KERNEL_WITH_GCC)" = "yes" ] ; then \
+			$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_GNU) KNAME=$$kname kernel-sub ; \
+		else \
+			$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_SDK0) KNAME=$$kname kernel-sub ; \
+		fi \
 	done
 
 one-extra-kernels: productdir
 	for kname in $(EXTRA_KERNELS_TO_BUILD) ; do \
-		$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_SDK0) KNAME=$$kname kernel-sub ; \
+		if [ "$(BUILD_KERNEL_WITH_GCC)" = "yes" ] ; then \
+			$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_GNU) KNAME=$$kname kernel-sub ; \
+		else \
+			$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_SDK0) KNAME=$$kname kernel-sub ; \
+		fi \
 	done
 
 KERNEL_FNAME=`cat $(KOBJDIR)/include/config/kernel.release`$(PRODVERSION)
@@ -148,6 +158,10 @@ kernel-sub:
 	[ -z "$(CONFIGSCRIPT)" ] || $(PRJ)/kbuilds/$(CONFIGSCRIPT) $(KOBJDIR)/.config $(CONFIGARGS)
 	[ "$(ENDIAN)" == "little" ] || \
 	   sed -i -e 's,# CONFIG_CPU_BIG_ENDIAN is not set,CONFIG_CPU_BIG_ENDIAN=y,' $(KOBJDIR)/.config
+	[ "$(BUILD_KERNEL_WITH_GCC)" != "yes" ] || \
+	   sed -i -e 's,CONFIG_TI_C6X_COMPILER=y,# CONFIG_TI_C6X_COMPILER is not set,' \
+		-e 's,CONFIG_TI_C6X_LINKER=y,# CONFIG_TI_C6X_LINKER is not set,' \
+		$(KOBJDIR)/.config
 	[ -z "$(LOCALVERSION)" ] || \
 	   sed -i -e 's,CONFIG_LOCALVERSION=.*,CONFIG_LOCALVERSION="$(LOCALVERSION)",' $(KOBJDIR)/.config
 	[ -z "$(CMDLINE)" ] || \
