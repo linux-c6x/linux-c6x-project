@@ -12,7 +12,7 @@ export TI_CG6X_DIR=$LINUX_C6X_TOP_DIR/cg6x
 # Makefile.
 #
 # any or all of the below can be included
-# export KERNELS_TO_BUILD="dsk6455 evmc6472 evmc6474"
+# export KERNELS_TO_BUILD="dsk6455 evmc6472 evmc6474 evmc6457 evmc6474-lite"
 #
 export KERNELS_TO_BUILD="evmc6472"
 
