@@ -11,11 +11,11 @@ product: rootfs extra-kernels
 DATE = $(shell date +'%Y%m%d')
 
 # These targets can be built little-endian and/or big-endian
-TOP_TARGETS = rootfs busybox sdk clib kernels sdk0 clean busybox-clean clib-clean extra-kernels
+TOP_TARGETS = rootfs mtd busybox sdk clib kernels sdk0 clean mtd-clean busybox-clean clib-clean extra-kernels
 
 # These sub-targets build only little-endian or big-endian
-ENDIAN_TARGETS = one-rootfs one-busybox one-sdk one-clib one-kernels one-sdk0 \
-	one-kernels-clean one-uclibc-clean one-busybox-clean min-root-clean one-clean \
+ENDIAN_TARGETS = one-rootfs one-mtd one-busybox one-sdk one-clib one-kernels one-sdk0 \
+	one-kernels-clean one-uclibc-clean one-mtd-clean one-busybox-clean min-root-clean one-clean \
 	one-extra-kernels
 
 $(TOP_TARGETS) product kernel-headers: sanity
@@ -109,6 +109,11 @@ KHDR_DIR = $(HDR_DIR)/usr
 
 # install busybox here
 BBOX_DIR = $(BLD)/rootfs/busybox-$(ARCHe)
+
+MTD_SRC = $(TOP)/mtd-utils
+
+# install mtd here
+MTD_DIR = $(BLD)/rootfs/mtd-utils$(ARCHe)
 
 KOBJ_BASE = $(BLD)/kobjs
 
@@ -223,6 +228,18 @@ $(BLD)/busybox$(ENDIAN_SUFFIX)/.config_done: $(CONF) $(PRJ)/Makefile
 	$(BBOX_MAKE) oldconfig
 	cp $(CONF) $@
 
+one-mtd: $(call COND_DEP, one-sdk)
+	[ -d $(BLD)/mtd-utils$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/mtd-utils$(ENDIAN_SUFFIX)
+	$(SUB_MAKE) -C $(BLD)/mtd-utils$(ENDIAN_SUFFIX) CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) mtd-sub
+
+MTD_MAKE = make -C $(MTD_SRC) CROSS=$(CC_SDK) LDFLAGS="-dsbt -static" CFLAGS="-O1 -g -dsbt" SUBDIRS=
+
+mtd-sub:
+	rm -rf $(MTD_DIR)
+	mkdir -p $(MTD_DIR)
+	$(MTD_MAKE)
+	$(MTD_MAKE) DESTDIR=$(MTD_DIR) install
+
 one-sdk0:
 	if [ -e $(SDK0_DIR)/linux-$(ARCHe)-sdk0-prebuilt ] ; then 	\
 	    echo using pre-built sdk0;				\
@@ -274,11 +291,12 @@ sdk-clean:
 
 one-rootfs: $(ROOTFS)-$(ARCHe) bootblob
 
-min-root-$(ARCHe): productdir $(call COND_DEP, one-busybox)
+min-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one-mtd)
 	if [ -d $(BLD)/rootfs/$@ -a -e $(BLD)/rootfs/$@-marker ] ; then rm -rf $(BLD)/rootfs/$@; fi
 	mkdir -p $(BLD)/rootfs/$@; date > $(BLD)/rootfs/$@-marker
 	(cd $(BLD)/rootfs/$@; cpio -i <$(PRJ)/rootfs/min-root-skel.cpio)
 	cp -a $(BBOX_DIR)/* $(BLD)/rootfs/$@
+	cp -a $(MTD_DIR)/* rootfs/$@
 	cp -a rootfs/min-root-extra/* $(BLD)/rootfs/$@
 	cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
 	if [ -n $(EXTRA_ROOT_DIR) ] ; then for dir in $(EXTRA_ROOT_DIR); do cp -a $$dir/rootfs/* $(BLD)/rootfs/$@ ; done ; fi
@@ -316,11 +334,14 @@ one-clib-clean:
 one-busybox-clean:
 	rm -rf $(BLD)/busybox$(ENDIAN_SUFFIX)
 
+one-mtd-clean:
+	rm -rf $(BLD)/mtd-utils$(ENDIAN_SUFFIX)
+
 one-min-root-clean:
 	rm -rf $(BLD)/rootfs/min-root-$(ARCHe)
 	rm -rf $(BLD)/rootfs/min-root-$(ARCHe).cpio
 
-one-clean: one-busybox-clean one-clib-clean one-sdk-clean one-min-root-clean
+one-clean: one-mtd-clean one-busybox-clean one-clib-clean one-sdk-clean one-min-root-clean
 	rm -rf $(MOD_DIR) $(HDR_DIR) $(BBOX_DIR)
 	rm -rf $(KOBJ_BASE)
 	make sdk0-clean
