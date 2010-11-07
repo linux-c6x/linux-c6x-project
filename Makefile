@@ -113,7 +113,7 @@ BBOX_DIR = $(BLD)/rootfs/busybox-$(ARCHe)
 MTD_SRC = $(TOP)/mtd-utils
 
 # install mtd here
-MTD_DIR = $(BLD)/rootfs/mtd-utils$(ARCHe)
+MTD_DIR = $(BLD)/rootfs/mtd-utils-$(ARCHe)
 
 KOBJ_BASE = $(BLD)/kobjs
 
@@ -296,7 +296,7 @@ min-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one
 	mkdir -p $(BLD)/rootfs/$@; date > $(BLD)/rootfs/$@-marker
 	(cd $(BLD)/rootfs/$@; cpio -i <$(PRJ)/rootfs/min-root-skel.cpio)
 	cp -a $(BBOX_DIR)/* $(BLD)/rootfs/$@
-	cp -a $(MTD_DIR)/* rootfs/$@
+	cp -a $(MTD_DIR)/* $(BLD)/rootfs/$@
 	cp -a rootfs/min-root-extra/* $(BLD)/rootfs/$@
 	cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
 	if [ -n $(EXTRA_ROOT_DIR) ] ; then for dir in $(EXTRA_ROOT_DIR); do cp -a $$dir/rootfs/* $(BLD)/rootfs/$@ ; done ; fi
