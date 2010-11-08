@@ -1,5 +1,5 @@
 # these are mandatory
-LOCALVERSION = -evmc6472$(ENDIAN_SUFFIX)-$(DATE)-0
+LOCALVERSION = -evmc6472$(ENDIAN_SUFFIX)-$(DATE)-A
 DEFCONFIG = ti_evmc6472_defconfig
 
 # these are optional
