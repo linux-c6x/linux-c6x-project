@@ -110,7 +110,7 @@ KHDR_DIR = $(HDR_DIR)/usr
 # install busybox here
 BBOX_DIR = $(BLD)/rootfs/busybox-$(ARCHe)
 
-MTD_SRC = $(TOP)/mtd-utils
+MTD_SRC = $(TOP)/projects/mtd-utils
 
 # install mtd here
 MTD_DIR = $(BLD)/rootfs/mtd-utils-$(ARCHe)
