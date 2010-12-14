@@ -67,3 +67,13 @@ export CROSS=$CROSS_COMPILE
 # project make file will manage the correct setting for ARCH
 # Here we set it for direct builds of the kernel
 export ARCH=c6x 
+
+# SysLink target platform for build
+export SYSLINK_PLATFORM=C6474
+#export SYSLINK_PLATFORM=C6472
+
+# SysLink install directory
+export SYSLINK_ROOT=$LINUX_C6X_TOP_DIR/syslink_<version>
+
+# IPC package install directory
+export IPC_DIR=$LINUX_C6X_TOP_DIR/ipc_<version>
