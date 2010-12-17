@@ -379,10 +379,11 @@ syslink-help:
 
 syslink-kernel:
 ifeq ($(SYSLINK_PLATFORM),)
-	@echo "No SYSLINK_PLATFORM defined" \
+	@echo "No SYSLINK_PLATFORM defined"; \
 	false;
 endif
 	if [ ! -d $(SYSLINK_ROOT) ] ; then echo "Install SysLink before build"; false ; fi
+	if [ ! -d $(IPC_DIR) ] ; then echo "Install IPC package before build"; false ; fi
 	@echo "building syslink kernel module"
 	(cd $(SYSLINK_ROOT)/ti/syslink/utils/hlos/knl/Linux; \
 	make ARCH=c6x CROSS_COMPILE=$(CC_SDK0) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
@@ -397,6 +398,8 @@ endif
 	done;
 	
 syslink-user:
+	if [ ! -d $(SYSLINK_ROOT) ] ; then echo "Install SysLink before build"; false ; fi
+	if [ ! -d $(IPC_DIR) ] ; then echo "Install IPC package before build"; false ; fi
 	@echo "building user syslink library"
 	(cd $(SYSLINK_ROOT)/ti/syslink/utils/hlos/usr/Linux; \
 	make TOOLCHAIN_PREFIX=$(CC_SDK) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
