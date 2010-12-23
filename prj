@@ -241,7 +241,7 @@ do-include-local() {
 #local vars
 SAFER_MODE=false
 STAGE2_OPTIONS=""
-
+export prj=none
 
 ME=$0
 MYDIR=$(dirname $0)
@@ -310,14 +310,14 @@ git)
     shift
     for prj in $ALL_PRJ ; do
         echo "****** $prj"
-        (cd $TOP/$prj; git "$@")
+        (cd $TOP/$prj; eval "git" "$@")
     done
 ;;
 for-each)
     shift
     for prj in $ALL_PRJ ; do
         echo "****** $prj"
-        (cd $TOP/$prj; "$@")
+        (cd $TOP/$prj; eval "$@")
     done
 ;;
 *)
