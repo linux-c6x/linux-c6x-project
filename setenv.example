@@ -17,8 +17,13 @@ export GNU_TOOLS_DIR=$LINUX_C6X_TOP_DIR/c6x-4.4
 #
 export KERNELS_TO_BUILD="evmc6472"
 
-# set to yes for kernel builds using gcc
+# set to yes to build kernels with GCC
+# leave blank for kernel builds with TI tools
 export BUILD_KERNEL_WITH_GCC=
+
+# set to yes to build userspace components with GCC
+# leave blank for userspace builds with TI tools
+export BUILD_USERSPACE_WITH_GCC=
 
 # This is a space-separated list of kernels to build after everything else has built
 # This is for variants of the main kernels. Variants which have minor differences in

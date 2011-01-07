@@ -32,10 +32,10 @@ endian-sanity:
 # If these get called with undefined ENDIAN, build both endians
 $(TOP_TARGETS):
 	if [ -z $(ENDIAN) ]; then		\
-	    $(MAKE) ENDIAN=little one-$@;	\
-	    $(MAKE) ENDIAN=big	one-$@;		\
+	    $(MAKE) ENDIAN=little KERNEL_HEADERS_ENDIAN=little one-$@;	\
+	    $(MAKE) ENDIAN=big KERNEL_HEADERS_ENDIAN=little one-$@;		\
 	else					\
-	    $(MAKE) ENDIAN=$(ENDIAN) one-$@;	\
+	    $(MAKE) ENDIAN=$(ENDIAN) KERNEL_HEADERS_ENDIAN=$(ENDIAN) one-$@;	\
 	fi
 
 ifeq ($(ENDIAN),little)
@@ -61,6 +61,8 @@ DSBT_SIZE     ?= 64
 KERNELS_TO_BUILD ?= dsk6455 evm7472
 EXTRA_KERNELS_TO_BUILD ?=
 BUILD_KERNEL_WITH_GCC ?=
+BUILD_USERSPACE_WITH_GCC ?=
+BUILD_STATIC_BBOX ?= yes
 ROOTFS ?= min-root
 
 # SysLink kernel samples to build
@@ -82,9 +84,9 @@ export LINUX_C6X_BUILD_DIR
 #
 KERNEL_HEADERS_KERNEL=$(firstword $(KERNELS_TO_BUILD))
 ifeq ($(ENDIAN),big)
-KERNEL_HEADERS_ENDIAN=big
+KERNEL_HEADERS_ENDIAN ?= big
 else
-KERNEL_HEADERS_ENDIAN=little
+KERNEL_HEADERS_ENDIAN ?= little
 endif
 
 
@@ -103,8 +105,21 @@ SYSROOT_DIR	= $(SDK_DIR)/$(ARCH)-sysroot
 # SDK0 is a compiler only w/o C library. it is used to build kernel and C library
 # SDK is SDK0 + c library and is used for busybox and other user apps and libraries
 CC_SDK0=$(SDK0_DIR)/bin/$(ARCH)-linux-
-CC_SDK=$(SDK_DIR)/bin/$(ARCH)-linux-
 CC_GNU=$(GNU_TOOLS_DIR)/bin/c6x-uclinux-
+
+ifeq ($(BUILD_USERSPACE_WITH_GCC),yes)
+CC_SDK=$(CC_GNU)
+CC_UCLIBC = $(CC_GNU)
+UCLIBC_CONFIGNAME = uClibc-0.9.30-cs.config
+UCLIBC_SRCDIR = $(TOP)/uclibc-ti-c6x
+else
+CC_SDK=$(SDK_DIR)/bin/$(ARCH)-linux-
+CC_UCLIBC = $(CC_SDK0)
+UCLIBC_CONFIGNAME = uClibc-0.9.30-c64xplus-shared.config
+UCLIBC_THR_CONFIGNAME = uClibc-0.9.30-c64xplus-shared-thread.config
+UCLIBC_SRCDIR = $(TOP)/uClibc
+endif
+BBOX_CONFIGNAME ?= busybox-1.00-full-c6x.config
 
 # install kernel modules here
 MOD_DIR = $(BLD)/rootfs/kernel-modules-$(ARCHe)
@@ -196,18 +211,36 @@ kernel-headers-sub:
 
 one-clib: $(call COND_DEP, sdk0 kernel-headers)
 	[ -d $(BLD)/uClibc$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/uClibc$(ENDIAN_SUFFIX)
-	cp -a $(TOP)/uClibc/* $(BLD)/uClibc$(ENDIAN_SUFFIX)
-	$(SUB_MAKE) -C $(BLD)/uClibc$(ENDIAN_SUFFIX) CROSS_COMPILE=ensure_not_used CROSS=$(CC_SDK0) clib-sub
-	[ -d $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)
-	cp -a $(TOP)/uClibc/* $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)
-	$(SUB_MAKE) -C $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX) CROSS_COMPILE=ensure_not_used CROSS=$(CC_SDK0) clib-sub-pthread
+	cp -a $(UCLIBC_SRCDIR)/* $(BLD)/uClibc$(ENDIAN_SUFFIX)
+	$(SUB_MAKE) -C $(BLD)/uClibc$(ENDIAN_SUFFIX) CROSS_COMPILE=ensure_not_used CROSS=$(CC_UCLIBC) clib-sub
+	if [ "$(BUILD_USERSPACE_WITH_GCC)" != "yes" ] ; then \
+		[ -d $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX) ; \
+		cp -a $(UCLIBC_SRCDIR)/* $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX) ; \
+		$(SUB_MAKE) -C $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX) CROSS_COMPILE=ensure_not_used CROSS=$(CC_UCLIBC) clib-sub-pthread ; \
+	fi
 
-$(BLD)/uClibc$(ENDIAN_SUFFIX)/.config: $(BLD)/uClibc$(ENDIAN_SUFFIX)/uClibc-0.9.30-c64xplus-shared.config
-	cp uClibc-0.9.30-c64xplus-shared.config .config
+UCLIBC_CONFIG = $(PRJ)/uclibc-configs/$(UCLIBC_CONFIGNAME)
+
+$(BLD)/uClibc$(ENDIAN_SUFFIX)/.config: $(UCLIBC_CONFIG)
+	cp $(UCLIBC_CONFIG) .config
+	if [ "$(BUILD_USERSPACE_WITH_GCC)" == "yes" ] ; then \
+	    sed -i -e 's,USE_TI_C6X_COMPILER=y,# USE_TI_C6X_COMPILER is not set,' \
+		   -e 's,USE_TI_C6X_LINKER=y,# USE_TI_C6X_LINKER is not set,' \
+	    	   -e 's,CROSS_COMPILER_PREFIX=*,CROSS_COMPILER_PREFIX="$(CROSS)",' \
+		   .config ; \
+	    if [ "$(ENDIAN)" != "little" ] ; then \
+		    sed -i -e 's,ARCH_LITTLE_ENDIAN=y,ARCH_BIG_ENDIAN=y,' \
+			   -e 's,ARCH_WANTS_LITTLE_ENDIAN=y,# ARCH_WANTS_LITTLE_ENDIAN is not set,' \
+			   -e 's,# ARCH_WANTS_BIG_ENDIAN is not set,ARCH_WANTS_BIG_ENDIAN=y,' \
+		   .config ; \
+	    fi \
+	fi
 	make oldconfig
 
-$(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/.config: $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/uClibc-0.9.30-c64xplus-shared.config
-	cp uClibc-0.9.30-c64xplus-shared-thread.config .config
+UCLIBC_THR_CONFIG = $(PRJ)/uclibc-configs/$(UCLIBC_THR_CONFIGNAME)
+
+$(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/.config: $(UCLIBC_THR_CONFIG)
+	cp $(UCLIBC_THR_CONFIG) .config
 	make oldconfig
 
 clib-sub: $(BLD)/uClibc$(ENDIAN_SUFFIX)/.config
@@ -216,18 +249,40 @@ clib-sub: $(BLD)/uClibc$(ENDIAN_SUFFIX)/.config
 clib-sub-pthread: $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/.config
 	make
 
+BBOX_CONFIG = $(BLD)/busybox$(ENDIAN_SUFFIX)/$(BBOX_CONFIGNAME)
+
 one-busybox:  $(call COND_DEP, one-sdk)
 	[ -d $(BLD)/busybox$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/busybox$(ENDIAN_SUFFIX)
-	$(SUB_MAKE) -C $(BLD)/busybox$(ENDIAN_SUFFIX) CONF=$(TOP)/busybox/busybox-1.00-full-c6x.config \
-		CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) busybox-sub
+	cp $(PRJ)/busybox-configs/$(BBOX_CONFIGNAME) $(BBOX_CONFIG)
+	if [ "$(BUILD_USERSPACE_WITH_GCC)" == "yes" ] ; then \
+	    sed -i -e 's,CONFIG_CROSS_COMPILER_PREFIX=*,CONFIG_CROSS_COMPILER_PREFIX="$(CC_SDK)",' \
+		   -e 's,-dsbt,-mdsbt -D__DSBT__,' \
+		 $(BBOX_CONFIG) ; \
+	    if [ "$(ENDIAN)" != "little" ] ; then \
+		sed -i -e 's,-D__DSBT__,-D__DSBT__ -mbig-endian,' \
+		   $(BBOX_CONFIG) ; \
+	    fi \
+	fi
+	$(SUB_MAKE) -C $(BLD)/busybox$(ENDIAN_SUFFIX) \
+		CONF=$(BBOX_CONFIG) CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) busybox-sub ; \
 
-BBOX_MAKE = make ARCH=c6x CROSS_COMPILE=$(CC_SDK) KBUILD_SRC=$(TOP)/busybox -f $(TOP)/busybox/Makefile
+ifeq ($(BUILD_STATIC_BBOX),yes)
+BBOX_EXTRA = -static
+endif
+ifeq ($(BUILD_USERSPACE_WITH_GCC),yes)
+ifneq ($(ENDIAN),little)
+BBOX_EXTRA += -mbig-endian
+endif
+endif
+
+BBOX_MAKE = make ARCH=c6x CROSS_COMPILE=$(CC_SDK) KBUILD_SRC=$(TOP)/busybox \
+		-f $(TOP)/busybox/Makefile
 
 busybox-sub: $(BLD)/busybox$(ENDIAN_SUFFIX)/.config_done
 	rm -rf $(BBOX_DIR)
 	mkdir -p $(BBOX_DIR)
-	$(BBOX_MAKE) EXTRA_LDFLAGS="-static"
-	$(BBOX_MAKE) EXTRA_LDFLAGS="-static" CONFIG_PREFIX=$(BBOX_DIR) install
+	$(BBOX_MAKE) EXTRA_LDFLAGS="$(BBOX_EXTRA)"
+	$(BBOX_MAKE) EXTRA_LDFLAGS="$(BBOX_EXTRA)" CONFIG_PREFIX=$(BBOX_DIR) install
 
 $(BLD)/busybox$(ENDIAN_SUFFIX)/.config_done: $(CONF) $(PRJ)/Makefile
 	cp $(CONF) .config
@@ -238,13 +293,25 @@ one-mtd: $(call COND_DEP, one-sdk)
 	[ -d $(BLD)/mtd-utils$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/mtd-utils$(ENDIAN_SUFFIX)
 	$(SUB_MAKE) -C $(BLD)/mtd-utils$(ENDIAN_SUFFIX) CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) mtd-sub
 
-MTD_MAKE = make -C $(MTD_SRC) CROSS=$(CC_SDK) LDFLAGS="-dsbt -static" CFLAGS="-O1 -g -dsbt" SUBDIRS=
+ifeq ($(BUILD_USERSPACE_WITH_GCC),yes)
+MTD_LDFLAGS = -mdsbt -static
+MTD_CFLAGS = -O2 -g -mdsbt
+ifneq ($(ENDIAN),little)
+MTD_LDFLAGS += -mbig-endian
+MTD_CFLAGS += -mbig-endian
+endif
+else
+MTD_LDFLAGS = -dsbt -static
+MTD_CFLAGS = -O1 -g -dsbt
+endif
+
+MTD_MAKE = make -C $(MTD_SRC) CROSS=$(CC_SDK) SUBDIRS= DESTDIR=$(MTD_DIR) \
+	LDFLAGS="$(MTD_LDFLAGS)" CFLAGS="$(MTD_CFLAGS)"
 
 mtd-sub:
 	rm -rf $(MTD_DIR)
 	mkdir -p $(MTD_DIR)
-	$(MTD_MAKE)
-	$(MTD_MAKE) DESTDIR=$(MTD_DIR) install
+	$(MTD_MAKE) install
 
 one-sdk0:
 	if [ -e $(SDK0_DIR)/linux-$(ARCHe)-sdk0-prebuilt ] ; then 	\
@@ -281,16 +348,20 @@ sdk0-clean:
 
 one-sdk: sdk0 one-clib
 	[ -e $(SYSROOT_DIR) ] || mkdir -p $(SYSROOT_DIR)
-	[ -e $(SYSROOT_TMP_DIR) ] || mkdir -p $(SYSROOT_TMP_DIR)
-	cp -a $(SDK0_DIR)/* $(SDK_DIR)
-	[ -d $(SYSROOT_TMP_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_TMP_DIR)
-	make -C $(BLD)/uClibc$(ENDIAN_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_TMP_DIR) install
-	[ -e $(SYSROOT_TMP_DIR_THREAD) ] || mkdir -p $(SYSROOT_TMP_DIR_THREAD)
-	make -C $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_TMP_DIR_THREAD) install
 	# Just updating with new files. Re-visit it later as needed
-	mv -f $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/lib/libc.a $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/lib/libc-pthread.a
-	rsync -rlpgocv --ignore-existing $(SYSROOT_TMP_DIR_THREAD)/ $(SYSROOT_TMP_DIR)/
-	rsync -rlpgocv --delete $(SYSROOT_TMP_DIR)/ $(SYSROOT_DIR)/
+	if [ "$(BUILD_USERSPACE_WITH_GCC)" != "yes" ] ; then \
+		[ -e $(SYSROOT_TMP_DIR) ] || mkdir -p $(SYSROOT_TMP_DIR) ; \
+		cp -a $(SDK0_DIR)/* $(SDK_DIR) ; \
+		[ -d $(SYSROOT_TMP_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_TMP_DIR) ; \
+		make -C $(BLD)/uClibc$(ENDIAN_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_TMP_DIR) install ; \
+		[ -e $(SYSROOT_TMP_DIR_THREAD) ] || mkdir -p $(SYSROOT_TMP_DIR_THREAD) ; \
+		make -C $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_TMP_DIR_THREAD) install ; \
+		mv -f $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/lib/libc.a $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/lib/libc-pthread.a ; \
+		rsync -rlpgocv --ignore-existing $(SYSROOT_TMP_DIR_THREAD)/ $(SYSROOT_TMP_DIR)/ ; \
+		rsync -rlpgocv --delete $(SYSROOT_TMP_DIR)/ $(SYSROOT_DIR)/ ; \
+	else \
+		make -C $(BLD)/uClibc$(ENDIAN_SUFFIX) CROSS=$(CC_GNU) PREFIX=$(SYSROOT_DIR) install ; \
+	fi
 
 sdk-clean:
 	rm -rf $(SDK_DIR)
