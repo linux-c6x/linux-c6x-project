@@ -5,7 +5,7 @@
 # Stuff that will often change from machine to machine
 export LINUX_C6X_TOP_DIR=@TOP_DIR@
 export TI_CG6X_DIR=$LINUX_C6X_TOP_DIR/cg6x
-export GNU_TOOLS_DIR=$LINUX_C6X_TOP_DIR/c6x-4.4
+export GNU_TOOLS_DIR=$LINUX_C6X_TOP_DIR/gcc-c6x-4.5-76
 
 # Choose kernels to build
 # This is a space-separated list of kernels to build. The names used are
@@ -19,11 +19,11 @@ export KERNELS_TO_BUILD="evmc6472"
 
 # set to yes to build kernels with GCC
 # leave blank for kernel builds with TI tools
-export BUILD_KERNEL_WITH_GCC=
+export BUILD_KERNEL_WITH_GCC=yes
 
 # set to yes to build userspace components with GCC
 # leave blank for userspace builds with TI tools
-export BUILD_USERSPACE_WITH_GCC=
+export BUILD_USERSPACE_WITH_GCC=yes
 
 # This is a space-separated list of kernels to build after everything else has built
 # This is for variants of the main kernels. Variants which have minor differences in
