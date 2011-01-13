@@ -100,7 +100,6 @@ endif
 
 ARCHe		= c6x$(ARCHendian)
 ARCH		= $(ARCHe)-$(ARCHabi)
-SYSROOT_DIR	= $(SDK_DIR)/$(ARCH)-sysroot
 
 # SDK0 is a compiler only w/o C library. it is used to build kernel and C library
 # SDK is SDK0 + c library and is used for busybox and other user apps and libraries
@@ -108,16 +107,22 @@ CC_SDK0=$(SDK0_DIR)/bin/$(ARCH)-linux-
 CC_GNU=$(GNU_TOOLS_DIR)/bin/c6x-uclinux-
 
 ifeq ($(BUILD_USERSPACE_WITH_GCC),yes)
-CC_SDK=$(CC_GNU)
+CC_SDK=$(SDK_DIR)/bin/c6x-uclinux-
 CC_UCLIBC = $(CC_GNU)
 UCLIBC_CONFIGNAME = uClibc-0.9.30-cs.config
 UCLIBC_SRCDIR = $(TOP)/uclibc-ti-c6x
+ifeq ($(ENDIAN),little)
+SYSROOT_DIR	= $(SDK_DIR)/c6x-uclinux/libc
+else
+SYSROOT_DIR	= $(SDK_DIR)/c6x-uclinux/libc/be
+endif
 else
 CC_SDK=$(SDK_DIR)/bin/$(ARCH)-linux-
 CC_UCLIBC = $(CC_SDK0)
 UCLIBC_CONFIGNAME = uClibc-0.9.30-c64xplus-shared.config
 UCLIBC_THR_CONFIGNAME = uClibc-0.9.30-c64xplus-shared-thread.config
 UCLIBC_SRCDIR = $(TOP)/uClibc
+SYSROOT_DIR	= $(SDK_DIR)/$(ARCH)-sysroot
 endif
 BBOX_CONFIGNAME ?= busybox-1.00-full-c6x.config
 
@@ -360,6 +365,9 @@ one-sdk: sdk0 one-clib
 		rsync -rlpgocv --ignore-existing $(SYSROOT_TMP_DIR_THREAD)/ $(SYSROOT_TMP_DIR)/ ; \
 		rsync -rlpgocv --delete $(SYSROOT_TMP_DIR)/ $(SYSROOT_DIR)/ ; \
 	else \
+		cp -a $(GNU_TOOLS_DIR)/{bin,lib,libexec,share} $(SDK_DIR) ; \
+		cp -a $(GNU_TOOLS_DIR)/c6x-uclinux/{bin,lib,share} $(SDK_DIR)/c6x-uclinux ; \
+		[ -d $(SYSROOT_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_DIR) ; \
 		make -C $(BLD)/uClibc$(ENDIAN_SUFFIX) CROSS=$(CC_GNU) PREFIX=$(SYSROOT_DIR) install ; \
 	fi
 
