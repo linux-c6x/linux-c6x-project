@@ -192,12 +192,15 @@ do-clone-ref() {
 
     STARTDIR=$(pwd)
     BASEDIR=$(dirname $TOP/$PRJ)
-    mkdir -p $BASEDIR
-    cd $BASEDIR
 
-    # get the project
-    git clone $BASEURL$PRJ$BOMEXT
-    cd $STARTDIR
+    # get the project, unless it exists already
+    if [ -d $TOP/$PRJ/.git ] ; then
+        echo "$TOP/$PRJ/.git already exists, skipping clone"
+    else
+        mkdir -p $BASEDIR
+        cd $BASEDIR
+        git clone $BASEURL$PRJ$BOMEXT
+    fi
     cd $TOP/$PRJ
 
     # pull down more info & resolve ref
@@ -299,6 +302,12 @@ make-bootstrap)
     sed -e '/^### INSTANCE VARS BEGIN/,/^### INSTANCE VARS END/ d' \
         -e '/^### INSTANCE MARK/ r'"$TMPFILE" <$ME >$OUTFILE
     rm $TMPFILE
+;;
+clone)
+    for prj in $ALL_PRJ ; do
+        echo "****** $prj"
+        (do-clone-ref $prj $REF)
+    done
 ;;
 status)
     for prj in $ALL_PRJ ; do
