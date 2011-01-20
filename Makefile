@@ -11,11 +11,11 @@ product: rootfs extra-kernels
 DATE = $(shell date +'%Y%m%d')
 
 # These targets can be built little-endian and/or big-endian
-TOP_TARGETS = rootfs mtd busybox packages sdk clib kernels sdk0 clean mtd-clean busybox-clean packages-clean clib-clean extra-kernels
+TOP_TARGETS = rootfs mtd rio busybox packages sdk clib kernels sdk0 clean mtd-clean rio-clean busybox-clean packages-clean clib-clean extra-kernels
 
 # These sub-targets build only little-endian or big-endian
-ENDIAN_TARGETS = one-rootfs one-mtd one-busybox one-sdk one-clib one-kernels one-sdk0 \
-	one-kernels-clean one-uclibc-clean one-mtd-clean one-busybox-clean min-root-clean full-root-clean one-clean \
+ENDIAN_TARGETS = one-rootfs one-mtd one-rio one-busybox one-sdk one-clib one-kernels one-sdk0 \
+	one-kernels-clean one-uclibc-clean one-mtd-clean one-rio-clean one-busybox-clean min-root-clean full-root-clean one-clean \
 	one-extra-kernels one-packages one-packages-clean
 
 $(TOP_TARGETS) product kernel-headers: sanity
@@ -142,6 +142,11 @@ MTD_SRC = $(TOP)/projects/mtd-utils
 
 # install mtd here
 MTD_DIR = $(BLD)/rootfs/mtd-utils-$(ARCHe)
+
+RIO_SRC = $(TOP)/projects/rio-utils
+
+# install rio  here
+RIO_DIR = $(BLD)/rootfs/rio-utils-$(ARCHe)
 
 PACKAGES_SRC = $(TOP)/projects/packages/
 PACKAGES_BIN = $(TOP)/projects/package-downloads/
@@ -324,6 +329,20 @@ mtd-sub:
 	mkdir -p $(MTD_DIR)
 	$(MTD_MAKE) install
 
+ifeq ($(BUILD_USERSPACE_WITH_GCC),yes)
+RIO_CFLAGS = -O3 -mdsbt
+ifneq ($(ENDIAN),little)
+RIO_CFLAGS += -mbig-endian
+endif
+else
+RIO_CFLAGS = -dsbt
+endif
+
+one-rio: $(call COND_DEP, one-sdk)
+	[ -d $(BLD)/rio-utils$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/rio-utils$(ENDIAN_SUFFIX)
+	make -f $(RIO_SRC)/Makefile -C $(RIO_SRC) CC="$(CC_SDK)gcc" EXTRA_CFLAGS="$(RIO_CFLAGS)" BUILDIR=$(BLD)/rio-utils$(ENDIAN_SUFFIX) DESTDIR=$(RIO_DIR)
+	make -f $(RIO_SRC)/Makefile -C $(RIO_SRC) CC="$(CC_SDK)gcc" EXTRA_CFLAGS="$(RIO_CFLAGS)" BUILDIR=$(BLD)/rio-utils$(ENDIAN_SUFFIX) DESTDIR=$(RIO_DIR) install
+
 one-packages: $(SDK_DIR)/rpm
 	@if [ "$(BUILD_USERSPACE_WITH_GCC)" != "yes" ] ; then echo "cannot build packages without GCC"; exit 1; fi
 	mkdir -p $(RPM_CROSS_DIR)/tmp
@@ -412,6 +431,7 @@ min-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one
 	(cd $(BLD)/rootfs/$@; cpio -i <$(PRJ)/rootfs/min-root-skel.cpio)
 	cp -a $(BBOX_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(MTD_DIR)/* $(BLD)/rootfs/$@
+	cp -a $(RIO_DIR)/* $(BLD)/rootfs/$@
 	cp -a rootfs/min-root-extra/* $(BLD)/rootfs/$@
 	cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
 	if [ -n $(EXTRA_ROOT_DIR) ] ; then for dir in $(EXTRA_ROOT_DIR); do cp -a $$dir/rootfs/* $(BLD)/rootfs/$@ ; done ; fi
@@ -421,12 +441,13 @@ min-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one
 	(cd $(BLD)/rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
-full-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one-mtd) $(call COND_DEP, one-packages)
+full-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one-mtd) $(call COND_DEP, one-rio) $(call COND_DEP, one-packages)
 	if [ -d $(BLD)/rootfs/$@ -a -e $(BLD)/rootfs/$@-marker ] ; then rm -rf $(BLD)/rootfs/$@; fi
 	mkdir -p $(BLD)/rootfs/$@; date > $(BLD)/rootfs/$@-marker
 	(cd $(BLD)/rootfs/$@; cpio -i <$(PRJ)/rootfs/min-root-skel.cpio)
 	cp -a $(BBOX_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(MTD_DIR)/* $(BLD)/rootfs/$@
+	cp -a $(RIO_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(PACKAGES_DIR)/* $(BLD)/rootfs/$@
 	cp -a rootfs/min-root-extra/* $(BLD)/rootfs/$@
 	cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
@@ -472,6 +493,9 @@ one-busybox-clean:
 one-mtd-clean:
 	rm -rf $(BLD)/mtd-utils$(ENDIAN_SUFFIX)
 
+one-rio-clean:
+	rm -rf $(BLD)/rio-utils$(ENDIAN_SUFFIX)
+
 one-packages-clean:
 	rm -rf $(RPM_CROSS_DIR)
 
@@ -483,7 +507,7 @@ one-full-root-clean:
 	rm -rf $(BLD)/rootfs/full-root-$(ARCHe)
 	rm -rf $(BLD)/rootfs/full-root-$(ARCHe).cpio
 
-one-clean: one-mtd-clean one-busybox-clean one-clib-clean one-sdk-clean one-min-root-clean one-full-root-clean
+one-clean: one-mtd-clean one-rio-clean one-busybox-clean one-clib-clean one-sdk-clean one-min-root-clean one-full-root-clean
 	rm -rf $(MOD_DIR) $(HDR_DIR) $(BBOX_DIR)
 	rm -rf $(KOBJ_BASE)
 	make sdk0-clean
