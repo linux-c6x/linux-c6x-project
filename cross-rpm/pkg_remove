@@ -1,0 +1,15 @@
+#!/bin/sh
+#set -x
+
+# Arguments are package names:
+# $ ./pkg_remove busybox uClibc...
+
+export CROSS_ROOTDIR=$ROOTFS_C6X_DIR
+export CROSS_BINDIR=$SDK_C6X_DIR/rpm/cross-rpm/bin
+DBPATH=$ROOTFS_C6X_DIR/var/lib/rpm
+
+$SDK_C6X_DIR/rpm/bin/rpm --rcfile $SDK_C6X_DIR/rpm/cross-rpm/rpmrc --define="_crossrootdir $ROOTFS_C6X_DIR" --dbpath $DBPATH -v -e --allmatches $@
+if [ $? -ne 0 ]; then
+	echo "*** Error when removing RPM package from linux root fs ***"
+	exit 2
+fi

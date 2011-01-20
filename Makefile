@@ -11,12 +11,12 @@ product: rootfs extra-kernels
 DATE = $(shell date +'%Y%m%d')
 
 # These targets can be built little-endian and/or big-endian
-TOP_TARGETS = rootfs mtd busybox sdk clib kernels sdk0 clean mtd-clean busybox-clean clib-clean extra-kernels
+TOP_TARGETS = rootfs mtd busybox packages sdk clib kernels sdk0 clean mtd-clean busybox-clean packages-clean clib-clean extra-kernels
 
 # These sub-targets build only little-endian or big-endian
 ENDIAN_TARGETS = one-rootfs one-mtd one-busybox one-sdk one-clib one-kernels one-sdk0 \
-	one-kernels-clean one-uclibc-clean one-mtd-clean one-busybox-clean min-root-clean one-clean \
-	one-extra-kernels
+	one-kernels-clean one-uclibc-clean one-mtd-clean one-busybox-clean min-root-clean full-root-clean one-clean \
+	one-extra-kernels one-packages one-packages-clean
 
 $(TOP_TARGETS) product kernel-headers: sanity
 
@@ -55,6 +55,7 @@ TOP=$(LINUX_C6X_TOP_DIR)
 LINUX_C6X_BUILD_DIR ?= $(LINUX_C6X_TOP_DIR)/Build
 BLD=$(LINUX_C6X_TOP_DIR)/Build
 TOOL_WRAP_DIR=$(TOP)/ti-gcc-wrap/tool-wrap
+RPM_CROSS_DIR=$(BLD)/packages$(ENDIAN_SUFFIX)
 
 ABI           ?= elf
 DSBT_SIZE     ?= 64
@@ -76,6 +77,7 @@ export ABI
 export DSBT_SIZE
 export HOSTCC
 export LINUX_C6X_BUILD_DIR
+export RPM_CROSS_DIR
 
 # Kernel build to use for kernel headers
 #
@@ -98,33 +100,33 @@ ARCHabi        = elf
 EXTRA_CFLAGS=-dsbt
 endif
 
-ARCHe		= c6x$(ARCHendian)
-ARCH		= $(ARCHe)-$(ARCHabi)
+ARCHe		= $(ARCH)$(ARCHendian)
+FARCH		= $(ARCHe)-$(ARCHabi)
 
 # SDK0 is a compiler only w/o C library. it is used to build kernel and C library
 # SDK is SDK0 + c library and is used for busybox and other user apps and libraries
-CC_SDK0=$(SDK0_DIR)/bin/$(ARCH)-linux-
-CC_GNU=$(GNU_TOOLS_DIR)/bin/c6x-uclinux-
+CC_SDK0=$(SDK0_DIR)/bin/$(FARCH)-linux-
+CC_GNU=$(GNU_TOOLS_DIR)/bin/$(ARCH)-uclinux-
 
 ifeq ($(BUILD_USERSPACE_WITH_GCC),yes)
-CC_SDK=$(SDK_DIR)/bin/c6x-uclinux-
+CC_SDK=$(SDK_DIR)/bin/$(ARCH)-uclinux-
 CC_UCLIBC = $(CC_GNU)
 UCLIBC_CONFIGNAME = uClibc-0.9.30-cs.config
-UCLIBC_SRCDIR = $(TOP)/uclibc-ti-c6x
+UCLIBC_SRCDIR = $(TOP)/uclibc-ti-$(ARCH)
 ifeq ($(ENDIAN),little)
-SYSROOT_DIR	= $(SDK_DIR)/c6x-uclinux/libc
+SYSROOT_DIR	= $(SDK_DIR)/$(ARCH)-uclinux/libc
 else
-SYSROOT_DIR	= $(SDK_DIR)/c6x-uclinux/libc/be
+SYSROOT_DIR	= $(SDK_DIR)/$(ARCH)-uclinux/libc/be
 endif
 else
-CC_SDK=$(SDK_DIR)/bin/$(ARCH)-linux-
+CC_SDK=$(SDK_DIR)/bin/$(FARCH)-linux-
 CC_UCLIBC = $(CC_SDK0)
 UCLIBC_CONFIGNAME = uClibc-0.9.30-c64xplus-shared.config
 UCLIBC_THR_CONFIGNAME = uClibc-0.9.30-c64xplus-shared-thread.config
 UCLIBC_SRCDIR = $(TOP)/uClibc
-SYSROOT_DIR	= $(SDK_DIR)/$(ARCH)-sysroot
+SYSROOT_DIR	= $(SDK_DIR)/$(FARCH)-sysroot
 endif
-BBOX_CONFIGNAME ?= busybox-1.00-full-c6x.config
+BBOX_CONFIGNAME ?= busybox-1.00-full-$(ARCH).config
 
 # install kernel modules here
 MOD_DIR = $(BLD)/rootfs/kernel-modules-$(ARCHe)
@@ -141,10 +143,14 @@ MTD_SRC = $(TOP)/projects/mtd-utils
 # install mtd here
 MTD_DIR = $(BLD)/rootfs/mtd-utils-$(ARCHe)
 
+PACKAGES_SRC = $(TOP)/projects/packages/
+PACKAGES_BIN = $(TOP)/projects/package-downloads/
+PACKAGES_DIR = $(BLD)/rootfs/packages-$(ARCHe)
+
 KOBJ_BASE = $(BLD)/kobjs
 
-SYSROOT_TMP_DIR = $(BLD)/tmp-$(ARCH)-sysroot
-SYSROOT_TMP_DIR_THREAD = $(BLD)/tmp-$(ARCH)-sysroot-thread
+SYSROOT_TMP_DIR = $(BLD)/tmp-$(FARCH)-sysroot
+SYSROOT_TMP_DIR_THREAD = $(BLD)/tmp-$(FARCH)-sysroot-thread
 
 ifneq ($(KNAME),)
 KCONF = $(PRJ)/kbuilds/$(KNAME).mk
@@ -184,7 +190,7 @@ KERNEL_FNAME=`cat $(KOBJDIR)/include/config/kernel.release`$(PRODVERSION)
 kernel-sub:
 	@if [ -z "$(KNAME)" ] ; then echo Must define KNAME for this target; exit 1; fi
 	[ -d $(KOBJDIR) ] || mkdir -p $(KOBJDIR)
-	cp arch/c6x/configs/$(DEFCONFIG) $(KOBJDIR)/.config
+	cp arch/$(ARCH)/configs/$(DEFCONFIG) $(KOBJDIR)/.config
 	[ -z "$(CONFIGPATCH)" ] || patch -p1 -d $(KOBJDIR) -i $(PRJ)/kbuilds/$(CONFIGPATCH)
 	[ -z "$(CONFIGSCRIPT)" ] || $(PRJ)/kbuilds/$(CONFIGSCRIPT) $(KOBJDIR)/.config $(CONFIGARGS)
 	[ "$(ENDIAN)" == "little" ] || \
@@ -197,9 +203,9 @@ kernel-sub:
 	   sed -i -e 's,CONFIG_LOCALVERSION=.*,CONFIG_LOCALVERSION="$(LOCALVERSION)",' $(KOBJDIR)/.config
 	[ -z "$(CMDLINE)" ] || \
 	   sed -i -e 's%CONFIG_CMDLINE=.*%CONFIG_CMDLINE="$(CMDLINE)"%' $(KOBJDIR)/.config
-	make ARCH=c6x O=$(KOBJDIR)/ oldconfig
-	make ARCH=c6x O=$(KOBJDIR)/
-	make ARCH=c6x O=$(KOBJDIR)/ DEPMOD=$(DEPMOD) INSTALL_MOD_PATH=$(MOD_DIR) modules_install
+	make ARCH=$(ARCH) O=$(KOBJDIR)/ oldconfig
+	make ARCH=$(ARCH) O=$(KOBJDIR)/
+	make ARCH=$(ARCH) O=$(KOBJDIR)/ DEPMOD=$(DEPMOD) INSTALL_MOD_PATH=$(MOD_DIR) modules_install
 	cp $(KOBJDIR)/vmlinux $(PRODUCT_DIR)/vmlinux-$(KERNEL_FNAME)
 	objcopy -I elf32-$(ENDIAN) -O binary $(PRODUCT_DIR)/vmlinux-$(KERNEL_FNAME) $(PRODUCT_DIR)/vmlinux-$(KERNEL_FNAME).bin
 
@@ -210,7 +216,7 @@ kernel-headers: kernels
 kernel-headers-sub:
 	if [ ! -d $(KHDR_DIR)/include/asm ]; then   \
 		mkdir -p $(KHDR_DIR) ;  \
-		make -C $(LINUX_C6X_KERNEL_DIR) ARCH=c6x CROSS_COMPILE=$(CC_SDK0) \
+		make -C $(LINUX_C6X_KERNEL_DIR) ARCH=$(ARCH) CROSS_COMPILE=$(CC_SDK0) \
 		        INSTALL_HDR_PATH=$(KHDR_DIR) O=$(KOBJDIR) headers_install ; \
 	fi
 
@@ -280,7 +286,7 @@ BBOX_EXTRA += -mbig-endian
 endif
 endif
 
-BBOX_MAKE = make ARCH=c6x CROSS_COMPILE=$(CC_SDK) KBUILD_SRC=$(TOP)/busybox \
+BBOX_MAKE = make ARCH=$(ARCH) CROSS_COMPILE=$(CC_SDK) KBUILD_SRC=$(TOP)/busybox \
 		-f $(TOP)/busybox/Makefile
 
 busybox-sub: $(BLD)/busybox$(ENDIAN_SUFFIX)/.config_done
@@ -318,6 +324,26 @@ mtd-sub:
 	mkdir -p $(MTD_DIR)
 	$(MTD_MAKE) install
 
+one-packages: $(SDK_DIR)/rpm
+	@if [ "$(BUILD_USERSPACE_WITH_GCC)" != "yes" ] ; then echo "cannot build packages without GCC"; exit 1; fi
+	mkdir -p $(RPM_CROSS_DIR)/tmp
+	mkdir -p $(RPM_CROSS_DIR)/db
+	mkdir -p $(RPM_CROSS_DIR)/SOURCES
+	mkdir -p $(RPM_CROSS_DIR)/SPECS
+	mkdir -p $(RPM_CROSS_DIR)/SRPMS
+	mkdir -p $(RPM_CROSS_DIR)/RPMS
+	mkdir -p $(RPM_CROSS_DIR)/BUILD
+	cp -flr $(PACKAGES_SRC)/*/* $(RPM_CROSS_DIR)/SOURCES/
+	cp -fl $(PACKAGES_BIN)/* $(RPM_CROSS_DIR)/SOURCES/
+	cp -fl $(PACKAGES_SRC)/*/*.spec $(RPM_CROSS_DIR)/SPECS/
+	(export CROSS_ROOTDEVDIR=$(SYSROOT_DIR) ;$(PRJ)/cross-rpm/pkg_build_all $(ARCHe) )
+	[ -d $(PACKAGES_DIR) ] || mkdir -p $(PACKAGES_DIR)
+	(export CROSS_ROOTDIR=$(PACKAGES_DIR) ; $(PRJ)/cross-rpm/pkg_install_linuxroot $(ARCHe))
+
+
+$(SDK_DIR)/rpm:
+	$(PRJ)/build-rpm.sh
+
 one-sdk0:
 	if [ -e $(SDK0_DIR)/linux-$(ARCHe)-sdk0-prebuilt ] ; then 	\
 	    echo using pre-built sdk0;				\
@@ -343,7 +369,7 @@ sdk0-clean:
 	@if [ -e $(SDK0_DIR)/linux-c6x-sdk0-prebuilt ] ; then 	\
 	    echo "using pre-built sdk0 (skip clean)";		\
 	else	    						\
-	    if [ -e $(SDK0_DIR)/bin/$(ARCH)-linux-gcc ] ; then 	\
+	    if [ -e $(SDK0_DIR)/bin/$(FARCH)-linux-gcc ] ; then 	\
 		rm -rf $(SDK0_DIR); 				\
 	    fi;							\
 	    if [ -e $(TOOL_WRAP_DIR)/Makefile ] ; then 		\
@@ -353,11 +379,13 @@ sdk0-clean:
 
 one-sdk: sdk0 one-clib
 	[ -e $(SYSROOT_DIR) ] || mkdir -p $(SYSROOT_DIR)
-	# Just updating with new files. Re-visit it later as needed
+        # Just updating with new files. Re-visit it later as needed
 	if [ "$(BUILD_USERSPACE_WITH_GCC)" != "yes" ] ; then \
 		[ -e $(SYSROOT_TMP_DIR) ] || mkdir -p $(SYSROOT_TMP_DIR) ; \
 		cp -a $(SDK0_DIR)/* $(SDK_DIR) ; \
 		[ -d $(SYSROOT_TMP_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_TMP_DIR) ; \
+		(cd $(SDK_DIR)/bin; ls c6x-* | cut -d\- -f4 | sort -u | xargs -i ln -sf $(ARCH)-elf-linux-"{}" $(ARCH)-linux-"{}" ) ; \
+		(cd $(SDK_DIR)/bin; ls c6xeb-* | cut -d\- -f4 | sort -u | xargs -i ln -sf $(ARCH)eb-elf-linux-"{}" $(ARCH)eb-linux-"{}" ) ; \
 		make -C $(BLD)/uClibc$(ENDIAN_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_TMP_DIR) install ; \
 		[ -e $(SYSROOT_TMP_DIR_THREAD) ] || mkdir -p $(SYSROOT_TMP_DIR_THREAD) ; \
 		make -C $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_TMP_DIR_THREAD) install ; \
@@ -366,8 +394,10 @@ one-sdk: sdk0 one-clib
 		rsync -rlpgocv --delete $(SYSROOT_TMP_DIR)/ $(SYSROOT_DIR)/ ; \
 	else \
 		cp -a $(GNU_TOOLS_DIR)/{bin,lib,libexec,share} $(SDK_DIR) ; \
-		cp -a $(GNU_TOOLS_DIR)/c6x-uclinux/{bin,lib,share} $(SDK_DIR)/c6x-uclinux ; \
+		cp -a $(GNU_TOOLS_DIR)/$(ARCH)-uclinux/{bin,lib,share} $(SDK_DIR)/$(ARCH)-uclinux ; \
 		[ -d $(SYSROOT_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_DIR) ; \
+		(cd $(SDK_DIR)/bin; ls | cut -d\- -f3 | sort -u | xargs -i ln -sf $(ARCH)-uclinux-"{}" $(ARCH)-linux-"{}" ) ; \
+		(cd $(SDK_DIR)/bin; ls | cut -d\- -f3 | sort -u | xargs -i ln -sf $(ARCH)-uclinux-"{}" $(ARCH)eb-linux-"{}" ) ; \
 		make -C $(BLD)/uClibc$(ENDIAN_SUFFIX) CROSS=$(CC_GNU) PREFIX=$(SYSROOT_DIR) install ; \
 	fi
 
@@ -391,6 +421,22 @@ min-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one
 	(cd $(BLD)/rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
+full-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one-mtd) $(call COND_DEP, one-packages)
+	if [ -d $(BLD)/rootfs/$@ -a -e $(BLD)/rootfs/$@-marker ] ; then rm -rf $(BLD)/rootfs/$@; fi
+	mkdir -p $(BLD)/rootfs/$@; date > $(BLD)/rootfs/$@-marker
+	(cd $(BLD)/rootfs/$@; cpio -i <$(PRJ)/rootfs/min-root-skel.cpio)
+	cp -a $(BBOX_DIR)/* $(BLD)/rootfs/$@
+	cp -a $(MTD_DIR)/* $(BLD)/rootfs/$@
+	cp -a $(PACKAGES_DIR)/* $(BLD)/rootfs/$@
+	cp -a rootfs/min-root-extra/* $(BLD)/rootfs/$@
+	cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
+	if [ -n $(EXTRA_ROOT_DIR) ] ; then for dir in $(EXTRA_ROOT_DIR); do cp -a $$dir/rootfs/* $(BLD)/rootfs/$@ ; done ; fi
+	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(BLD)/rootfs/$@; tar xf -))
+	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - usr/lib | (cd $(BLD)/rootfs/$@; tar xf -))
+	cp rootfs/min-root-devs.cpio $(BLD)/rootfs/$@.cpio
+	(cd $(BLD)/rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
+	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
+
 bootblob: productdir
 	cp -a $(PRJ)/bootblob $(PRODUCT_DIR)/
 
@@ -399,6 +445,10 @@ productdir:
 
 product-clean:
 	rm -rf $(PRODUCT_DIR)
+
+rpm-clean:
+	rm -rf $(BLD)/rpm-4.0.4
+	rm -rf $(SDK_DIR)/rpm
 
 kernel-clean-sub:
 	rm -rf $(KOBJDIR)
@@ -422,11 +472,18 @@ one-busybox-clean:
 one-mtd-clean:
 	rm -rf $(BLD)/mtd-utils$(ENDIAN_SUFFIX)
 
+one-packages-clean:
+	rm -rf $(RPM_CROSS_DIR)
+
 one-min-root-clean:
 	rm -rf $(BLD)/rootfs/min-root-$(ARCHe)
 	rm -rf $(BLD)/rootfs/min-root-$(ARCHe).cpio
 
-one-clean: one-mtd-clean one-busybox-clean one-clib-clean one-sdk-clean one-min-root-clean
+one-full-root-clean:
+	rm -rf $(BLD)/rootfs/full-root-$(ARCHe)
+	rm -rf $(BLD)/rootfs/full-root-$(ARCHe).cpio
+
+one-clean: one-mtd-clean one-busybox-clean one-clib-clean one-sdk-clean one-min-root-clean one-full-root-clean
 	rm -rf $(MOD_DIR) $(HDR_DIR) $(BBOX_DIR)
 	rm -rf $(KOBJ_BASE)
 	make sdk0-clean
@@ -465,17 +522,17 @@ endif
 	if [ ! -d $(IPC_DIR) ] ; then echo "Install IPC package before build"; false ; fi
 	@echo "building syslink kernel module"
 	(cd $(SYSLINK_ROOT)/ti/syslink/utils/hlos/knl/Linux; \
-	make ARCH=c6x CROSS_COMPILE=$(CC_SDK0) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
+	make ARCH=$(ARCH) CROSS_COMPILE=$(CC_SDK0) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
 	KDIR=$(KDIR) IPC_DIR=$(IPC_DIR));
 
 # build all kernel sample modules
 	for module_name in $(SYSLINK_KERNEL_SAMPLES_TO_BUILD) ; do \
 		echo building $$module_name; \
 		(cd $(SYSLINK_ROOT)/ti/syslink/samples/hlos/$$module_name/knl/Linux; \
-		make ARCH=c6x CROSS_COMPILE=$(CC_SDK0) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
+		make ARCH=$(ARCH) CROSS_COMPILE=$(CC_SDK0) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
 		KDIR=$(KDIR) IPC_DIR=$(IPC_DIR)) \
 	done;
-	
+
 syslink-user:
 	if [ ! -d $(SYSLINK_ROOT) ] ; then echo "Install SysLink before build"; false ; fi
 	if [ ! -d $(IPC_DIR) ] ; then echo "Install IPC package before build"; false ; fi
@@ -503,7 +560,7 @@ syslink-install:
 
 syslink-kernel-clean:
 	(cd $(SYSLINK_ROOT)/ti/syslink/utils/hlos/knl/Linux; \
-	make ARCH=c6x CROSS_COMPILE=$(CC_SDK0) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
+	make ARCH=$(ARCH) CROSS_COMPILE=$(CC_SDK0) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
 	KDIR=$(KDIR) IPC_DIR=$(IPC_DIR) clean)
 	rm -rf $(PRODUCT_DIR)/syslink_$(SYSLINK_PLATFORM)/*.ko
 

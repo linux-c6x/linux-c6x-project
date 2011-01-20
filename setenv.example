@@ -34,7 +34,7 @@ export BUILD_USERSPACE_WITH_GCC=yes
 #
 # export EXTRA_KERNELS_TO_BUILD="dsk6455-initramfs dsk6455-romfs evmc6472-initramfs evmc6472-romfs"
 
-# Choices for config
+# Choices for config (min-root or full-root if including additional packages)
 
 export ROOTFS=min-root
 
@@ -72,6 +72,9 @@ export CROSS=$CROSS_COMPILE
 # project make file will manage the correct setting for ARCH
 # Here we set it for direct builds of the kernel
 export ARCH=c6x 
+
+# list of extra packages to build and install when using full-root
+export PKG_LIST="zlib net-snmp ttcp dhrystone polarssl"
 
 # SysLink target platform for build
 export SYSLINK_PLATFORM=C6474

@@ -1,0 +1,25 @@
+#!/bin/bash
+# This script reads filenames from STDIN and outputs any relevant provides
+# information that needs to be included in the package.
+
+filelist=`sed "s/['\"]/\\\&/g"`
+
+pythonlist=
+tcllist=
+
+#
+# --- Perl modules.
+[ -x $SDK_C6X_DIR/rpm/lib/rpm/perl.prov ] &&
+    echo $filelist | tr '[:blank:]' \\n | grep '\.pm$' | $SDK_C6X_DIR/rpm/lib/rpm/perl.prov | sort -u
+
+#
+# --- Python modules.
+[ -x $SDK_C6X_DIR/rpm/lib/rpm/python.prov -a -n "$pythonlist" ] &&
+    echo $pythonlist | tr '[:blank:]' \\n | $SDK_C6X_DIR/rpm/lib/rpm/python.prov | sort -u
+
+#
+# --- Tcl modules.
+[ -x $SDK_C6X_DIR/rpm/lib/rpm/tcl.prov -a -n "$tcllist" ] &&
+    echo $tcllist | tr '[:blank:]' \\n | $SDK_C6X_DIR/rpm/lib/rpm/tcl.prov | sort -u
+
+exit 0

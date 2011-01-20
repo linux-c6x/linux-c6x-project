@@ -1,0 +1,15 @@
+#!/bin/sh
+set -x
+
+# First argument is architecture: either c6x or c6xeb
+# Other argument are package list files
+# $ ./pkg_install_linuxroot c6x <PKG1>.rpm ...
+
+ARCH=$1
+
+for pkg in $PKG_LIST; do
+    RPMS=`find $RPM_CROSS_DIR/RPMS/noarch $RPM_CROSS_DIR/RPMS/$ARCH -name "$pkg-[0-9]*"`
+    RPMS_LIST=`echo $RPMS_LIST $RPMS | tr -d "\n"`
+done
+
+$SDK_DIR/rpm/cross-rpm/pkg_install $RPMS_LIST

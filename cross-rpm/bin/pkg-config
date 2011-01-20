@@ -1,0 +1,83 @@
+# !/bin/sh
+
+PROG="$0"
+PROG_NAME=`basename $0`
+
+# Determine where the current program is installed
+case "$PROG" in
+/*)  PROG_PATH="$PROG"
+     ;;
+*/*) PROG_PATH="`pwd`/$PROG"
+     ;;
+*)   PROG_PATH=`which "$PROG" | grep '^/'`
+     ;;
+esac
+
+if test -z "$PROG_PATH" -o ! -f "$PROG_PATH"; then
+    Error "cannot determine where '$PROG' is installed"
+fi
+
+EXEC_PATH=""
+SAVE_IFS=$IFS ; IFS=":"
+for DIR in $PATH
+do
+    IFS=$SAVE_IFS
+    test -z "$DIR" && DIR=.
+    if test -x "$DIR/$PROG_NAME"; then
+        if test "$FORWARD_EXEC_PATH" = "$DIR/$PROG_NAME"; then
+            continue
+        fi
+        EXEC_PATH=$DIR/$PROG_NAME
+        break
+     fi
+done
+
+if test -z "$EXEC_PATH"; then
+    echo "$PROG_NAME: Command not found." >&2
+    exit 1
+fi
+
+ROOTDEV_DIR="$CROSS_ROOTDEVDIR"
+PKG_CONFIG_PATH="$ROOTDEV_DIR/usr/lib/pkgconfig"
+export PKG_CONFIG_PATH
+
+PKG_ARG_PREFIX="--define-variable=prefix=$ROOTDEV_DIR/usr"
+PKG_ARG_EXEC_PREFIX="--define-variable=exec_prefix=$ROOTDEV_DIR/usr"
+PKG_ARG_LIBDIR="--define-variable=libdir=$ROOTDEV_DIR/usr/lib"
+PKG_ARG_INCLUDEDIR="--define-variable=includedir=$ROOTDEV_DIR/usr/include"
+
+for opt
+do
+    case $opt in
+    --exists | \
+    --atleast-version* | \
+    --atleast-pkgconfig-version* | \
+    --exact-version* | \
+    --max-version*)
+	PKG_ARG_PREFIX=""
+	PKG_ARG_EXEC_PREFIX=""
+	PKG_ARG_LIBDIR=""
+	PKG_ARG_INCLUDEDIR=""
+	;;
+    *exec_prefix=*)
+        PKG_ARG_EXEC_PREFIX=""
+	;;
+    *prefix=*)
+        PKG_ARG_PREFIX=""
+	;;
+    *libdir=*)
+        PKG_ARG_LIBDIR=""
+	;;
+    *includedir=*)
+        PKG_ARG_INCLUDEDIR=""
+	;;
+    esac
+done
+
+FORWARD_EXEC_PATH=$EXEC_PATH \
+exec $EXEC_PATH $PKG_ARG_PREFIX \
+                $PKG_ARG_EXEC_PREFIX \
+                $PKG_ARG_LIBDIR \
+                $PKG_ARG_INCLUDEDIR \
+                "$@"
+exit $?

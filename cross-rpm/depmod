@@ -1,0 +1,5 @@
+#!/bin/sh
+${SDK_C6X_DIR}/rpm/cross-rpm/depmod.pl -F ${KERNEL_C6X_DIR}/System.map \
+                            -b ${INSTALL_MOD_PATH} \
+			    -c ${CROSS_COMPILE} \
+			    ${KERNELRELEASE} "$@"

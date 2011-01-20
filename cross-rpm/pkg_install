@@ -1,0 +1,34 @@
+#!/bin/sh
+set -x
+
+# Arguments are RPM files with full path:
+# $ ./pkg_install $RPM_CROSS_DIR/RPMS/.../<pkg>.rpm ...
+
+export CROSS_BINDIR=$SDK_DIR/rpm/cross-rpm/bin
+
+# We do not use depencies and DB here
+#
+#DBPATH=$RPM_CROSS_DIR/db/var/lib/rpm
+#
+#if [ ! -d $DBPATH ]; then
+#	mkdir -p $DBPATH
+#	$SDK_DIR/rpm/bin/rpm --dbpath $DBPATH --initdb -v
+#	if [ $? -ne 0 ]; then
+#		echo "*** Error when initializing RPM database ***"
+#		exit 1
+#	fi	
+#fi
+#
+#$SDK_DIR/rpm/bin/rpm --rcfile $SDK_DIR/rpm/cross-rpm/rpmrc --nodeps --ignoreos --ignorearch --define="_crossrootdir $CROSS_ROOTDIR" --dbpath $DBPATH -v -U --replacepkgs --replacefiles --excludedocs -h $@
+
+pushd $CROSS_ROOTDIR
+
+for pkg in $@; do
+    $SDK_DIR/rpm/bin/rpm2cpio $pkg | cpio -idmuv > /dev/null
+    if [ $? -ne 0 ]; then
+	    echo "*** Error when installing RPM package within linux root fs ***"
+	    exit 2
+    fi
+done
+
+popd

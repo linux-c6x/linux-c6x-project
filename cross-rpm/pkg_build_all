@@ -1,0 +1,23 @@
+#!/bin/sh
+set -x
+
+# Argument is architecture: either c6x or c6xeb
+# $ ./pkg_build c6x
+
+ARCH=$1
+if [ ! $ARCH ]; then
+	echo "no arch specified"
+	exit 1
+fi
+
+for pkg in $PKG_LIST; do
+	file=$RPM_CROSS_DIR/SPECS/$pkg.spec
+	if [ -f $file ]; then
+		$SDK_DIR/rpm/cross-rpm/pkg_build $ARCH $file
+		if [ $? -ne 0 ]; then
+	  	  exit 2
+		fi
+	else
+		echo "skip $file build"
+	fi
+done

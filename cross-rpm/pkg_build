@@ -1,0 +1,44 @@
+#!/bin/sh
+set -x
+
+# First argument is architecture: either c64xplus or c64xpluseb
+# Other arguments are spec files with full path:
+# $ ./pkg_build c6x $RPM_CROSS_DIR/SPECS/pkg.spec
+
+ARCH=$1
+ARCH_LINUX=$1-linux
+shift
+
+export CROSS_LINUXDIR=$LINUX_C6X_KERNEL_DIR
+export CROSS_BINDIR=$SDK_DIR/rpm/cross-rpm/bin
+export CROSS_ROOTDIR=$SDK/bin
+
+# For compiler
+export PATH=$SDK_DIR/bin:$PATH
+
+for spec in $@; do
+    # Build the corresponding RPM ans SRPMS
+    $SDK_DIR/rpm/bin/rpmbuild --rcfile $SDK_DIR/rpm/cross-rpm/rpmrc --target $ARCH_LINUX -vv --define "_topdir $SDK_DIR/rpm" -ba $spec
+    if [ $? -ne 0 ]; then
+	echo "*** RPM build failed ***"
+	exit 1
+    fi
+
+    # Extract built include files and libraries
+    pkg_list=`$SDK_DIR/rpm/bin/rpm -q --specfile $spec --rcfile $SDK_DIR/rpm/cross-rpm/rpmrc --define '_target_mmu 0'`
+    if [ $? -ne 0 ]; then
+	    echo "*** Cannot get generated RPMs from the spec file ***"
+	    exit 2
+    fi
+
+    for pkg in $pkg_list; do
+        pkg_path=`find $RPM_CROSS_DIR/RPMS -name $pkg.$ARCH.rpm -o -name $pkg.noarch.rpm`
+	pushd $CROSS_ROOTDEVDIR
+	rpm2cpio $pkg_path | cpio -iduv --no-preserve-owner '*/lib/*' '*/include/*'
+	if [ $? -ne 0 ]; then
+	    echo "*** Cannot extract libraries and include file from RPMs ***"
+	    exit 2
+	fi
+	popd
+    done
+done

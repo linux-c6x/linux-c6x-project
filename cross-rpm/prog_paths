@@ -1,0 +1,35 @@
+#!/bin/sh
+#
+# Cache Linux binary paths.
+#
+
+# Table of Linux utils paths/configure variables.
+#
+# sh:     /bin/sh       SH PATH_SH
+# bash:   /bin/bash     BASH
+# perl:   /usr/bin/perl PERL PATH_PERL
+# diff:   /usr/bin/diff DIFF
+# tar:    /bin/tar      TAR
+# mailer: /bin/false    MAILER
+# mount:  /bin/mount    MOUNT
+# umount: /bin/umount   UMOUNT
+# e2fsck: /sbin/e2fsck  E2FSCK
+
+[ "$#" -eq 0 ] && exit 1
+cmd="$1"
+if [ "$#" -gt 1 ]; then
+    postvar="$2"
+else
+    postvar=`echo $cmd | tr "[a-z]" "[A-Z]"`
+fi
+var="ac_cv_path_$postvar"
+
+path=`grep "^# $cmd:" "$0" | grep "[^A-Z0-9_]$postvar" | \
+      sed -e "s|.*:[ ]*\([^ ]*\)[ ]*.*|\1|g"`
+if test "`echo $path | cut -c1`" = "/"
+then
+  echo "export $var=$path"
+else
+  echo "exit 1"
+fi
+exit 0
