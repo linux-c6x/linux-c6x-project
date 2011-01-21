@@ -364,15 +364,17 @@ $(SDK_DIR)/rpm:
 	$(PRJ)/build-rpm.sh
 
 one-sdk0:
-	if [ -e $(SDK0_DIR)/linux-$(ARCHe)-sdk0-prebuilt ] ; then 	\
-	    echo using pre-built sdk0;				\
+	@if [ -e $(SDK0_DIR)/linux-$(ARCHe)-sdk0-prebuilt ] ; then 	\
+	    echo "using pre-built sdk0";				\
 	else	    						\
-	    if [ -e $(TOOL_WRAP_DIR)/Makefile ] ; then 		\
-		cd $(TOOL_WRAP_DIR); $(MAKE) ENDIAN=$(ENDIAN) ABI=$(ABI) DSBT_SIZE=$(DSBT_SIZE) \
-			GCC_C6X_DEST=$(SDK0_DIR) ALIAS=$(ALIAS) all;	\
-	    else									\
-		echo "You must install the prebuilt sdk0 or the build kit for it";	\
-		false;						\
+	    if [ -d "$(TI_CG6X_DIR)" ] ; then                   \
+		    if [ -e $(TOOL_WRAP_DIR)/Makefile ] ; then 	\
+			cd $(TOOL_WRAP_DIR); $(MAKE) ENDIAN=$(ENDIAN) ABI=$(ABI) DSBT_SIZE=$(DSBT_SIZE) \
+				GCC_C6X_DEST=$(SDK0_DIR) ALIAS=$(ALIAS) all;	\
+		    else					\
+			echo "You must install the prebuilt sdk0 or the build kit for it";	\
+			false;					\
+		fi;						\
 	    fi;							\
 	fi;							
 
