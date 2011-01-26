@@ -118,6 +118,7 @@ SYSROOT_DIR	= $(SDK_DIR)/$(ARCH)-uclinux/libc
 else
 SYSROOT_DIR	= $(SDK_DIR)/$(ARCH)-uclinux/libc/be
 endif
+SYSROOT_HDR_DIR	= $(SDK_DIR)/$(ARCH)-uclinux/libc
 else
 CC_SDK=$(SDK_DIR)/bin/$(FARCH)-linux-
 CC_UCLIBC = $(CC_SDK0)
@@ -416,10 +417,14 @@ one-sdk: sdk0 one-clib
 	else \
 		cp -a $(GNU_TOOLS_DIR)/{bin,lib,libexec,share} $(SDK_DIR) ; \
 		cp -a $(GNU_TOOLS_DIR)/$(ARCH)-uclinux/{bin,lib,share} $(SDK_DIR)/$(ARCH)-uclinux ; \
-		[ -d $(SYSROOT_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_DIR) ; \
+		[ -d $(SYSROOT_HDR_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_HDR_DIR) ; \
 		(cd $(SDK_DIR)/bin; ls | cut -d\- -f3 | sort -u | xargs -i ln -sf $(ARCH)-uclinux-"{}" $(ARCH)-linux-"{}" ) ; \
 		(cd $(SDK_DIR)/bin; ls | cut -d\- -f3 | sort -u | xargs -i ln -sf $(ARCH)-uclinux-"{}" $(ARCH)eb-linux-"{}" ) ; \
 		make -C $(BLD)/uClibc$(ENDIAN_SUFFIX) CROSS=$(CC_GNU) PREFIX=$(SYSROOT_DIR) install ; \
+		if [ "$(SYSROOT_DIR)" != "$(SYSROOT_HDR_DIR)" ]; then \
+		    cp -r $(SYSROOT_DIR)/usr/include/* $(SYSROOT_HDR_DIR)/usr/include ; \
+		    rm -rf $(SYSROOT_DIR)/usr/include ; \
+		fi \
 	fi
 
 sdk-clean:
