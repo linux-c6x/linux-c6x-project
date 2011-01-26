@@ -74,7 +74,7 @@ export CROSS=$CROSS_COMPILE
 export ARCH=c6x 
 
 # list of extra packages to build and install when using full-root
-export PKG_LIST="zlib net-snmp ttcp dhrystone nbench-byte polarssl"
+export PKG_LIST="zlib net-snmp polarssl ttcp dhrystone nbench-byte tcpdump"
 
 # SysLink target platform for build
 export SYSLINK_PLATFORM=C6474
