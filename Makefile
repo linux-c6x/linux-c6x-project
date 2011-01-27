@@ -65,6 +65,7 @@ BUILD_KERNEL_WITH_GCC ?=
 BUILD_USERSPACE_WITH_GCC ?=
 BUILD_STATIC_BBOX ?= yes
 ROOTFS ?= min-root
+DEPMOD ?= /sbin/depmod
 
 # SysLink kernel samples to build
 SYSLINK_KERNEL_SAMPLES_TO_BUILD ?= notify gateMP heapBufMP heapMemMP listMP messageQ sharedRegion
