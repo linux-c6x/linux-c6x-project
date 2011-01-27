@@ -130,6 +130,12 @@ SYSROOT_DIR	= $(SDK_DIR)/$(FARCH)-sysroot
 endif
 BBOX_CONFIGNAME ?= busybox-1.00-full-$(ARCH).config
 
+ifeq ($(ENDIAN),little)
+GDBSERVER = $(GNU_TOOLS_DIR)/c6x-uclinux/libc/usr/bin/gdbserver
+else
+GDBSERVER = $(GNU_TOOLS_DIR)/c6x-uclinux/libc/be/usr/bin/gdbserver
+endif
+
 # install kernel modules here
 MOD_DIR = $(BLD)/rootfs/kernel-modules-$(ARCHe)
 
@@ -442,6 +448,7 @@ min-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one
 	cp -a $(MTD_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
 	if [ -n $(EXTRA_ROOT_DIR) ] ; then for dir in $(EXTRA_ROOT_DIR); do cp -a $$dir/rootfs/* $(BLD)/rootfs/$@ ; done ; fi
+	if [ -e $(GDBSERVER) ] ; then cp $(GDBSERVER) $(BLD)/rootfs/$@/usr/bin ; fi
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - usr/lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	cp rootfs/min-root-devs.cpio $(BLD)/rootfs/$@.cpio
@@ -459,6 +466,7 @@ full-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, on
 	cp -a $(PACKAGES_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
 	if [ -n $(EXTRA_ROOT_DIR) ] ; then for dir in $(EXTRA_ROOT_DIR); do cp -a $$dir/rootfs/* $(BLD)/rootfs/$@ ; done ; fi
+	if [ -e $(GDBSERVER) ] ; then cp $(GDBSERVER) $(BLD)/rootfs/$@/usr/bin ; fi
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - usr/lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	cp rootfs/min-root-devs.cpio $(BLD)/rootfs/$@.cpio
