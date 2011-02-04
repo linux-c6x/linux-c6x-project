@@ -114,6 +114,7 @@ CC_SDK=$(SDK_DIR)/bin/$(ARCH)-uclinux-
 CC_UCLIBC = $(CC_GNU)
 UCLIBC_CONFIGNAME = uClibc-0.9.30-cs.config
 UCLIBC_SRCDIR = $(TOP)/uclibc-ti-$(ARCH)
+BUILD_STATIC_BBOX =
 ifeq ($(ENDIAN),little)
 SYSROOT_DIR	= $(SDK_DIR)/$(ARCH)-uclinux/libc
 else
