@@ -79,6 +79,8 @@ export ARCH=c6x
 # list of extra packages to build and install when using full-root
 export PKG_LIST="zlib net-snmp polarssl ttcp dhrystone nbench-byte tcpdump"
 
+# ********** Below this for building SysLink **********************************
+
 # SysLink target platform for build
 export SYSLINK_PLATFORM=C6474
 #export SYSLINK_PLATFORM=C6472
@@ -88,3 +90,17 @@ export SYSLINK_ROOT=$LINUX_C6X_TOP_DIR/syslink_02_00_00_56_c6x_alpha2
 
 # IPC package install directory
 export IPC_DIR=$LINUX_C6X_TOP_DIR/ipc_1_22_00_19
+
+# ********** Below this for building SysLink rtos samples *********************
+
+# BIOS package install directory
+export BIOS_DIR=$LINUX_C6X_TOP_DIR/bios_6_31_00_18
+
+# XDC tool
+export XDC_DIR=$LINUX_C6X_TOP_DIR/xdctools_3_20_05_76
+
+# CGT folders used in config.bld
+export TI_CG6X_DIR_ROOT=$(dirname $TI_CG6X_DIR)
+export TI_CG6X_DIR_NAME=$(basename $TI_CG6X_DIR)
+
+export XDCPATH="$BIOS_DIR/packages;$IPC_DIR/packages"

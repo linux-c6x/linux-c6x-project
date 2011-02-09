@@ -88,7 +88,43 @@ syslink-user:
 		fi \
 	done	
 
-syslink-all:syslink-kernel syslink-user syslink-install
+syslink-rtos:
+	# must match with the patters in $SYSLINK_ROOT/config.bld
+	(cd $(SYSLINK_ROOT); cp config.bld .config.bld.tmp; \
+	sed -i -e 's,var rootDirPre = "/opt/TI/",var rootDirPre = "${TI_CG6X_DIR_ROOT}/",' .config.bld.tmp; \
+	sed -i -e 's,C64P_COFF.rootDir = rootDirPre + "c6000_7.2.0B1",\
+	C64P_COFF.rootDir = rootDirPre + "${TI_CG6X_DIR_NAME}",' .config.bld.tmp;)
+	if [ "$(SYSLINK_PLATFORM)" = "C6472" ] ; then \
+		(cd $(SYSLINK_ROOT); sed -i -e 's,"ti.syslink.samples.rtos.platforms.evm6474.core0"\,,,' .config.bld.tmp; \
+		sed -i -e 's,"ti.syslink.samples.rtos.platforms.evm6474.core1"\,,,' .config.bld.tmp; \
+		sed -i -e 's,//                "ti.syslink.samples.rtos.platforms.evm6472.core0",\
+                "ti.syslink.samples.rtos.platforms.evm6472.core0",' .config.bld.tmp; \
+		sed -i -e 's,//                "ti.syslink.samples.rtos.platforms.evm6472.core1",\
+                "ti.syslink.samples.rtos.platforms.evm6472.core1",' .config.bld.tmp; \
+		sed -i -e 's,//                "ti.syslink.samples.rtos.platforms.evm6472.core2",\
+                "ti.syslink.samples.rtos.platforms.evm6472.core2",' .config.bld.tmp; \
+		sed -i -e 's,//                "ti.syslink.samples.rtos.platforms.evm6472.core3",\
+                "ti.syslink.samples.rtos.platforms.evm6472.core3",' .config.bld.tmp; \
+		sed -i -e 's,//                "ti.syslink.samples.rtos.platforms.evm6472.core4",\
+                "ti.syslink.samples.rtos.platforms.evm6472.core4",' .config.bld.tmp; )\
+	fi
+	(cd $(SYSLINK_ROOT); $(XDC_DIR)/xdc all XDCBUILDCFG="${SYSLINK_ROOT}/.config.bld.tmp" -PR . )
+
+syslink-rtos-clean:
+	(cd $(SYSLINK_ROOT); $(XDC_DIR)/xdc clean XDCBUILDCFG="${SYSLINK_ROOT}/.config.bld.tmp" -PR . ; \
+	rm -rf .config.bld.tmp; )
+	rm -rf $(PRODUCT_DIR)/syslink_$(SYSLINK_PLATFORM)/*.x64P
+
+syslink-rtos-install:
+	[ -d $(PRODUCT_DIR) ] || echo "no product directory"
+	[ -d $(PRODUCT_DIR)/syslink_$(SYSLINK_PLATFORM) ] || mkdir -p $(PRODUCT_DIR)/syslink_$(SYSLINK_PLATFORM)
+	if [ "$(SYSLINK_PLATFORM)" = "C6474" ] ; then \
+		(cd $(SYSLINK_ROOT); cp `find . -name *c6474*x64P` $(PRODUCT_DIR)/syslink_$(SYSLINK_PLATFORM)/; ) \
+	else \
+		(cd $(SYSLINK_ROOT); cp `find . -name *c6472*x64P` $(PRODUCT_DIR)/syslink_$(SYSLINK_PLATFORM)/; ) \
+	fi
+
+syslink-all:syslink-kernel syslink-user syslink-rtos syslink-install syslink-rtos-install
 
 syslink-install:
 	[ -d $(PRODUCT_DIR) ] || echo "no product directory"
@@ -139,4 +175,4 @@ syslink-user-clean:
 	done	
 	rm -rf $(PRODUCT_DIR)/syslink_$(SYSLINK_PLATFORM)/*.exe
 
-syslink-clean:syslink-kernel-clean syslink-user-clean
+syslink-clean:syslink-kernel-clean syslink-user-clean syslink-rtos-clean
