@@ -65,6 +65,8 @@ BUILD_KERNEL_WITH_GCC ?=
 BUILD_USERSPACE_WITH_GCC ?=
 BUILD_STATIC_BBOX ?= yes
 ROOTFS ?= min-root
+BUILD_TESTS ?=
+DEPMOD	?= /sbin/depmod
 
 # SysLink kernel samples to build
 SYSLINK_KERNEL_SAMPLES_TO_BUILD ?= notify gateMP heapBufMP heapMemMP listMP messageQ sharedRegion
@@ -113,6 +115,7 @@ CC_SDK=$(SDK_DIR)/bin/$(ARCH)-uclinux-
 CC_UCLIBC = $(CC_GNU)
 UCLIBC_CONFIGNAME = uClibc-0.9.30-cs.config
 UCLIBC_SRCDIR = $(TOP)/uclibc-ti-$(ARCH)
+BUILD_STATIC_BBOX =
 ifeq ($(ENDIAN),little)
 SYSROOT_DIR	= $(SDK_DIR)/$(ARCH)-uclinux/libc
 else
@@ -128,6 +131,12 @@ UCLIBC_SRCDIR = $(TOP)/uClibc
 SYSROOT_DIR	= $(SDK_DIR)/$(FARCH)-sysroot
 endif
 BBOX_CONFIGNAME ?= busybox-1.00-full-$(ARCH).config
+
+ifeq ($(ENDIAN),little)
+GDBSERVER = $(GNU_TOOLS_DIR)/c6x-uclinux/libc/usr/bin/gdbserver
+else
+GDBSERVER = $(GNU_TOOLS_DIR)/c6x-uclinux/libc/be/usr/bin/gdbserver
+endif
 
 # install kernel modules here
 MOD_DIR = $(BLD)/rootfs/kernel-modules-$(ARCHe)
@@ -153,6 +162,9 @@ PACKAGES_SRC = $(TOP)/projects/packages/
 PACKAGES_BIN = $(TOP)/projects/package-downloads/
 PACKAGES_DIR = $(BLD)/rootfs/packages-$(ARCHe)
 
+TESTING_DIR = $(PRJ)/testing
+TESTMOD_SRC = $(TESTING_DIR)/modules
+
 KOBJ_BASE = $(BLD)/kobjs
 
 SYSROOT_TMP_DIR = $(BLD)/tmp-$(FARCH)-sysroot
@@ -167,6 +179,7 @@ ifeq ($(KOBJNAME),)
 KOBJNAME = $(KNAME)$(ENDIAN_SUFFIX)
 endif
 KOBJDIR = $(KOBJ_BASE)/$(KOBJNAME)
+KTESTOBJDIR = $(KOBJ_BASE)/test-$(KOBJNAME)
 endif
 
 SUB_MAKE=$(MAKE) -f $(PRJ)/Makefile
@@ -212,6 +225,12 @@ kernel-sub:
 	make ARCH=$(ARCH) O=$(KOBJDIR)/ oldconfig
 	make ARCH=$(ARCH) O=$(KOBJDIR)/
 	make ARCH=$(ARCH) O=$(KOBJDIR)/ DEPMOD=$(DEPMOD) INSTALL_MOD_PATH=$(MOD_DIR) modules_install
+	if [ "$(BUILD_TESTS)" == "yes" ]; then \
+		mkdir -p $(KTESTOBJDIR) ; \
+		cp -r $(TESTMOD_SRC)/* $(KTESTOBJDIR) ; \
+		make ARCH=$(ARCH) O=$(KOBJDIR)/ M=$(KTESTOBJDIR) DEPMOD=$(DEPMOD) \
+			INSTALL_MOD_PATH=$(MOD_DIR) modules modules_install ; \
+	fi
 	cp $(KOBJDIR)/vmlinux $(PRODUCT_DIR)/vmlinux-$(KERNEL_FNAME)
 	objcopy -I elf32-$(ENDIAN) -O binary $(PRODUCT_DIR)/vmlinux-$(KERNEL_FNAME) $(PRODUCT_DIR)/vmlinux-$(KERNEL_FNAME).bin
 
@@ -441,6 +460,12 @@ min-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one
 	cp -a $(MTD_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
 	if [ -n $(EXTRA_ROOT_DIR) ] ; then for dir in $(EXTRA_ROOT_DIR); do cp -a $$dir/rootfs/* $(BLD)/rootfs/$@ ; done ; fi
+	if [ -e $(GDBSERVER) ] ; then cp $(GDBSERVER) $(BLD)/rootfs/$@/usr/bin ; fi
+	if [ "$(BUILD_TESTS)" == "yes" ]; then \
+		cp $(TESTING_DIR)/scripts/* $(BLD)/rootfs/$@/bin ; \
+		mkdir -p $(BLD)/rootfs/$@/opt/testing ; \
+		cp -r $(TESTING_DIR)/images $(BLD)/rootfs/$@/opt/testing ; \
+	fi
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - usr/lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	cp rootfs/min-root-devs.cpio $(BLD)/rootfs/$@.cpio
@@ -458,6 +483,12 @@ full-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, on
 	cp -a $(PACKAGES_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
 	if [ -n $(EXTRA_ROOT_DIR) ] ; then for dir in $(EXTRA_ROOT_DIR); do cp -a $$dir/rootfs/* $(BLD)/rootfs/$@ ; done ; fi
+	if [ -e $(GDBSERVER) ] ; then cp $(GDBSERVER) $(BLD)/rootfs/$@/usr/bin ; fi
+	if [ "$(BUILD_TESTS)" == "yes" ]; then \
+		cp $(TESTING_DIR)/scripts/* $(BLD)/rootfs/$@/bin ; \
+		mkdir -p $(BLD)/rootfs/$@/opt/testing ; \
+		cp -r $(TESTING_DIR)/images $(BLD)/rootfs/$@/opt/testing ; \
+	fi
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - usr/lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	cp rootfs/min-root-devs.cpio $(BLD)/rootfs/$@.cpio

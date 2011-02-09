@@ -1,0 +1,166 @@
+#!/bin/sh
+#
+# Copyright (C) 2011 Texas Instruments Incorporated
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as
+# published by the Free Software Foundation version 2.
+#
+# This program is distributed "as is" WITHOUT ANY WARRANTY of any
+# kind, whether express or implied; without even the implied warranty
+# of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+
+IMAGEDIR=/opt/testing/images
+MNTDIR=/mnt/flashtest
+
+check_errs()
+{
+    if [ "${1}" -ne "0" ]
+    then
+	echo "Error: ${2}"
+	MNT=`mount | grep $MNTDIR`
+	[ -z $MNT ] || umount $MNTDIR
+	exit ${1}
+    fi
+}
+
+wait_for_file()
+{
+    # give file time to show up...
+    for tries in 1 2 3 4 5; do
+	if [ -e ${1} ]
+	then
+	    break
+	fi
+	sleep 1
+    done
+    [ -e ${1} ]
+}
+
+modprobe board_name
+check_errs $? "can't load board name helper!"
+
+wait_for_file /proc/boardname
+check_errs $? "board name helper didn't create /proc/boardname!"
+
+BOARD=`cat /proc/boardname`
+if [ "$BOARD" = "EVM6474" ]
+then
+    # no flash, so pass it
+    echo "No flash on this board."
+    exit 0
+fi
+
+if ! [ -e /proc/mtd ]
+then
+    echo "No /proc/mtd!"
+    exit 1
+fi
+
+case "$BOARD" in
+    DSK6455)
+	# 4MiB NOR flash. No sub-partitions.
+	#
+	# empty image created with:
+	#   mkfs.jffs2 -n -l --pad=0x400000 -r empty-dir -e 64 KiB -o image.jffs2
+	#
+	EMPTY_IMAGE=$IMAGEDIR/empty-4M-64K.jffs2
+	MTDNAME=NOR-flash
+	FLASHTYPE=NOR
+	;;
+
+    EVMC6457 | EVMC6472 | EVMC6474L)
+	# 128MiB NAND flash. Three partitions:
+	#
+	#    "bootloader" -> 2MiB
+	#    "kernel"     -> 16MiB
+	#    "filesystem" -> 110MiB
+	#
+	# empty image created with:
+	#   mkfs.jffs2 -n -l --pad=0x6e00000 -r empty-dir -s 2048 -e 128 KiB -o image.jffs2
+	#
+	EMPTY_IMAGE=$IMAGEDIR/empty-110M-128K.jffs2
+	MTDNAME=filesystem
+	FLASHTYPE=NAND
+	;;
+    UNKNOWN)
+	echo "Unknown board"
+	exit 1
+	;;
+    *)
+	echo "Unsupported board: $BOARD"
+	exit 1
+	;;
+esac
+
+if ! [ -e $EMPTY_IMAGE ]
+then
+    echo "No image file: $EMPTY_IMAGE"
+    exit 1
+fi
+
+MTD=`grep $MTDNAME /proc/mtd`
+if [ "$MTD" = "" ]
+then
+    echo "No $MTDNAME device found"
+    exit 1
+fi
+
+MTD_DEVNAME=`echo $MTD | sed -e 's/\(.*\):.*/\1/'`
+
+flash_eraseall /dev/$MTD_DEVNAME
+check_errs $? "flash_eraseall failed"
+
+# write empty flash image
+if [ $FLASHTYPE = NOR ]
+then
+    cat $EMPTY_IMAGE >/dev/$MTD_DEVNAME
+    check_errs $? "flash write failed."
+fi
+if [ $FLASHTYPE = NAND ]
+then
+    nandwrite /dev/$MTD_DEVNAME $EMPTY_IMAGE
+    check_errs $? "flash write failed."
+fi
+
+# mount it
+mkdir -p $MNTDIR
+check_errs $? "failed to create mount dir"
+
+mount -t jffs2 $MTD_DEVNAME $MNTDIR
+check_errs $? "failed to mount $MTD_DEVNAME"
+
+# copy a file to jffs2 fs
+cp /bin/busybox $MNTDIR/bb1
+check_errs $? "copy of busybox to jffs2 fs failed"
+
+# make another copy
+cp $MNTDIR/bb1 $MNTDIR/bb2
+check_errs $? "second copy failed"
+
+# erase old copy
+rm $MNTDIR/bb1
+check_errs $? "rm of first copy failed"
+
+# make one more copy
+cp $MNTDIR/bb2 $MNTDIR/bb3
+check_errs $? "third copy failed"
+
+ORIG_SUM=`md5sum /bin/busybox | awk '{ print $1 }'`
+
+#checksum second copy
+BB2_SUM=`md5sum $MNTDIR/bb2 | awk '{ print $1 }'`
+
+#checksum third copy
+BB3_SUM=`md5sum $MNTDIR/bb3 | awk '{ print $1 }'`
+
+[ "$ORIG_SUM" = "$BB2_SUM" ] || check_errs 1 "md5sum mismatch for second copy"
+
+[ "$ORIG_SUM" = "$BB3_SUM" ] || check_errs 1 "md5sum mismatch for third copy"
+
+umount $MNTDIR
+check_errs $? "umount failed"
+
+exit 0

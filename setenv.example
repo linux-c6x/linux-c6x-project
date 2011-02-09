@@ -25,6 +25,9 @@ export BUILD_KERNEL_WITH_GCC=yes
 # leave blank for userspace builds with TI tools
 export BUILD_USERSPACE_WITH_GCC=yes
 
+# set to yes to install extra kernel modules and scripts used for testing
+#export BUILD_TESTS=yes
+
 # This is a space-separated list of kernels to build after everything else has built
 # This is for variants of the main kernels. Variants which have minor differences in
 # config or commandline compared to a kernel in KENRELS_TO_BUILD. This is used to 
