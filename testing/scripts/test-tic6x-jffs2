@@ -79,9 +79,12 @@ case "$BOARD" in
 	#    "filesystem" -> 110MiB
 	#
 	# empty image created with:
-	#   mkfs.jffs2 -n -l --pad=0x6e00000 -r empty-dir -s 2048 -e 128 KiB -o image.jffs2
+	#   mkfs.jffs2 -n -l --pad=0x6000000 -r empty-dir -s 2048 -e 128 KiB -o image.jffs2
 	#
-	EMPTY_IMAGE=$IMAGEDIR/empty-110M-128K.jffs2
+	#   NB: image is smaller than partition to allow room for bad blocks
+	#       when writing with nandwrite.
+	#
+	EMPTY_IMAGE=$IMAGEDIR/empty-96M-128K.jffs2
 	MTDNAME=filesystem
 	FLASHTYPE=NAND
 	;;
