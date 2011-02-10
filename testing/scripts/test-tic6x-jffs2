@@ -46,7 +46,7 @@ wait_for_file /proc/boardname
 check_errs $? "board name helper didn't create /proc/boardname!"
 
 BOARD=`cat /proc/boardname`
-if [ "$BOARD" = "EVM6474" ]
+if [ "$BOARD" = "EVMC6474" ]
 then
     # no flash, so pass it
     echo "No flash on this board."
