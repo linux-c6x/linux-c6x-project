@@ -46,10 +46,15 @@
 #include <linux/wait.h>
 #include <linux/mm.h>
 #include <linux/dma-mapping.h>
+#include <linux/io.h>
+#include <linux/gpio.h>
+#include <linux/platform_device.h>
 
 #include <mach/irq.h>
 #include <mach/hardware.h>
 #include <asm/edma.h>
+#include <asm/gpio.h>
+#include <asm/delay.h>
 
 /*******************************************************************************
  *	LOCAL DEFINES
@@ -66,8 +71,6 @@
 #define DMA_FN_OUT
 #endif
 
-#define MAX_DMA_TRANSFER_IN_BYTES   (32768)
-
 /*******************************************************************************
  *	FILE GLOBALS
  */
@@ -78,6 +81,9 @@ int edma3_memtomemcpytest_dma(int acnt, int bcnt, int ccnt, int sync_mode,
 			      int event_queue);
 int edma3_memtomemcpytest_dma_link(int acnt, int bcnt, int ccnt, int sync_mode,
 				   int event_queue);
+
+static int edma3_gpio_triggered_dma(int acnt, int bcnt, int ccnt, int sync_mode,
+				    int event_queue, int event_id);
 
 dma_addr_t dmaphyssrc1 = 0;
 dma_addr_t dmaphyssrc2 = 0;
@@ -96,6 +102,33 @@ static int ccnt = 8;
 module_param(acnt, int, S_IRUGO);
 module_param(bcnt, int, S_IRUGO);
 module_param(ccnt, int, S_IRUGO);
+
+#define MAX_DMA_TRANSFER_IN_BYTES   (acnt * bcnt * ccnt)
+
+#define GPIO_LINE     5
+#define GPIO_DMA_EVT  DMA_GPIO_EVT5
+
+static struct gpio_controller *__iomem g;
+static int old_gpio_dir;
+static int old_gpio_val;
+static int old_gpio_falling;
+static int old_gpio_rising;
+
+static struct resource edma_test_resources[] = {
+	{
+		.name	= "GPIO_EVT",
+		.start	= GPIO_DMA_EVT,
+		.flags	= IORESOURCE_DMA,
+	},
+};
+
+static struct platform_device edma_test_device = {
+	.name           = "edma_test_gpio",
+	.id             = 1,
+	.num_resources	= ARRAY_SIZE(edma_test_resources),
+	.resource	= edma_test_resources,
+};
+
 
 /*******************************************************************************
  *	FUNCTION DEFINITIONS
@@ -193,6 +226,30 @@ static int edma_test_init(void)
 		return -ENOMEM;
 	}
 
+#if defined(GPIO_DMA_EVT)
+	/*
+	 * This is to reserve a GPIO event triggered DMA channel.
+	 * The test device must be registered before the first call to
+	 * edma_alloc_channel()
+	 */
+	platform_device_register(&edma_test_device);
+
+	g = __gpio_to_controller(GPIO_LINE);
+	__dint();
+	old_gpio_val = __raw_readl(&g->in_data) & (1 << GPIO_LINE);
+	old_gpio_dir = __raw_readl(&g->dir) & (1 << GPIO_LINE);
+
+	__raw_writel((1 << GPIO_LINE), &g->clr_data);
+	__raw_writel(__raw_readl(&g->dir) & ~(1 << GPIO_LINE), &g->dir);
+
+	/* rising edge event */
+	old_gpio_rising = __raw_readl(&g->set_rising) & (1 << GPIO_LINE);
+	old_gpio_falling = __raw_readl(&g->set_falling) & (1 << GPIO_LINE);
+	__raw_writel((1 << GPIO_LINE), &g->clr_falling);
+	__raw_writel((1 << GPIO_LINE), &g->set_rising);
+	__rint();
+#endif
+
 	for (iterations = 0; iterations < ITERATIONS; iterations++) {
 		DMA_PRINTK("Iteration = %d\n", iterations);
 
@@ -210,7 +267,7 @@ static int edma_test_init(void)
 								   i, j);
 				if (result) {
 					printk(KERN_INFO "edma3_memtomemcpytest_dma failed\n");
-					return result;
+					goto done;
 				}
 
 				DMA_PRINTK("Starting edma3_memtomemcpytest_dma_link\n");
@@ -220,12 +277,44 @@ static int edma_test_init(void)
 									i, j);
 				if (result) {
 					printk("edma3_memtomemcpytest_dma_link failed\n");
-					return result;
+					goto done;
 				}
+#if defined(GPIO_DMA_EVT)
+				result = edma3_gpio_triggered_dma(acnt,
+								  bcnt,
+								  ccnt,
+								  i, j,
+								  GPIO_DMA_EVT);
+				if (result) {
+					printk("edma3_gpio_triggered_dma failed\n");
+					goto done;
+				}
+#endif
 			}
 		}
 	}
 
+done:
+#if defined(GPIO_DMA_EVT)
+	/*
+	 * Restore borrowed gpio
+	 */
+	__dint();
+	if (old_gpio_val)
+		__raw_writel((1 << GPIO_LINE), &g->set_data);
+	else
+		__raw_writel((1 << GPIO_LINE), &g->clr_data);
+
+	if (old_gpio_dir)
+		__raw_writel(__raw_readl(&g->dir) | (1 << GPIO_LINE), &g->dir);
+
+	if (old_gpio_falling)
+		__raw_writel((1 << GPIO_LINE), &g->set_falling);
+
+	if (!old_gpio_rising)
+		__raw_writel((1 << GPIO_LINE), &g->clr_rising);
+	__rint();
+#endif
 	return result;
 }
 
@@ -585,6 +674,140 @@ int edma3_memtomemcpytest_dma_link(int acnt, int bcnt, int ccnt, int sync_mode,
 
 	return result;
 }
+
+#if defined(GPIO_DMA_EVT)
+/* 3. DMA Channel, Mem-2-Mem Copy, ASYNC Mode, INCR Mode, triggered by real event */
+static int edma3_gpio_triggered_dma(int acnt, int bcnt, int ccnt, int sync_mode,
+				    int event_queue, int event_id)
+{
+	int result = 0;
+	unsigned int dma_ch = 0;
+	int i;
+	int count;
+	unsigned int Istestpassed = 0u;
+	unsigned int numenabled = 0;
+	struct edmacc_param param_set;
+
+	/* Initalize source and destination buffers */
+	for (count = 0; count < (acnt * bcnt * ccnt); count++) {
+		dmabufsrc1[count] = 'A' + (count % 26);
+		dmabufdest1[count] = 0;
+	}
+	dma_sync_single_range_for_device(NULL, dmaphyssrc1,
+					 0, (acnt * bcnt * ccnt),
+					 DMA_TO_DEVICE);
+
+	/*
+	 * We use DMA_BIDERCTIONAL on this area since the CPU is both
+	 * writing (before DMA) and reading (after DMA) here.
+	 */
+	dma_sync_single_range_for_device(NULL, dmaphysdest1,
+					 0, (acnt * bcnt * ccnt),
+					 DMA_BIDIRECTIONAL);
+
+	dma_ch = edma_alloc_channel(event_id, callback1, NULL,
+			event_queue);
+	if (dma_ch < 0) {
+		DMA_PRINTK
+		    ("\nedma3_gpio_triggered_dma: edma_alloc_channel failed for dma_ch, error:%d\n",
+		     dma_ch);
+		return dma_ch;
+	}
+
+	param_set.opt = 0;
+	param_set.src = (unsigned)dmaphyssrc1;
+	param_set.dst = (unsigned)dmaphysdest1;
+
+	param_set.a_b_cnt = (bcnt << 16) | acnt;
+	param_set.ccnt = ccnt;
+
+	/* Set B count reload as B count. */
+	param_set.link_bcntrld = bcnt << 16;
+
+	/* Setting up the SRC/DES Index */
+	param_set.src_dst_bidx = (acnt << 16) | acnt;
+
+	/* A Sync Transfer Mode */
+	param_set.src_dst_cidx = (acnt << 16) | acnt;
+
+	/* Enable the Interrupts on Channel 1 */
+	param_set.opt |= (ITCINTEN | TCINTEN);
+	param_set.opt |= EDMA_TCC(EDMA_CHAN_SLOT(dma_ch));
+	edma_write_slot(dma_ch, &param_set);
+
+	numenabled = bcnt * ccnt;
+
+	for (i = 0; i < numenabled; i++) {
+		irqraised1 = 0;
+
+		/* Now enable the transfer as many times as calculated above. */
+		result = edma_start(dma_ch);
+		if (result != 0) {
+			DMA_PRINTK
+				("edma3_gpio_triggered_dma: edma_start failed for ch %d\n", dma_ch);
+			break;
+		}
+
+		/* trigger a GPIO event */
+		__raw_writel((1 << GPIO_LINE), &g->clr_data);
+		__delay(100);
+		__raw_writel((1 << GPIO_LINE), &g->set_data);
+		__delay(100);
+
+		/* Wait for the Completion ISR. */
+		while (irqraised1 == 0u) ;
+		if (irqraised1 == 0) {
+			/* Some error occured, break from the FOR loop. */
+			DMA_PRINTK("edma3_gpio_triggered_dma: "
+				   "Event Timeout!\n");
+			result = -1;
+			break;
+		}
+
+		/* Check the status of the completed transfer */
+		if (irqraised1 < 0) {
+			/* Some error occured, break from the FOR loop. */
+			DMA_PRINTK("edma3_gpio_triggered_dma: "
+				   "Event Miss Occured!!!\n");
+			break;
+		}
+	}
+
+	if (0 == result) {
+		dma_sync_single_range_for_cpu(NULL, dmaphysdest1,
+					      0, (acnt * bcnt * ccnt),
+					      DMA_FROM_DEVICE);
+
+		for (i = 0; i < (acnt * bcnt * ccnt); i++) {
+			if (dmabufsrc1[i] != dmabufdest1[i]) {
+				DMA_PRINTK
+				    ("\nedma3_gpio_triggered_dma: Data write-read matching failed at = %u\n",
+				     i);
+				Istestpassed = 0u;
+				result = -1;
+				break;
+			}
+		}
+		if (i == (acnt * bcnt * ccnt))
+			Istestpassed = 1u;
+
+		edma_stop(dma_ch);
+		edma_clean_channel(dma_ch);
+		edma_free_slot(dma_ch);
+		edma_free_channel(dma_ch);
+	}
+
+	if (Istestpassed == 1u) {
+		DMA_PRINTK
+		    ("\nedma3_gpio_triggered_dma: EDMA Data Transfer Successfull \n");
+	} else {
+		DMA_PRINTK
+		    ("\nedma3_gpio_triggered_dma: EDMA Data Transfer Failed \n");
+	}
+
+	return result;
+}
+#endif
 
 module_init(edma_test_init);
 module_exit(edma_test_exit);
