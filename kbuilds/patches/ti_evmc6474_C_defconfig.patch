@@ -1,11 +1,19 @@
 diff -uNr evmc6474-1A/.config evmc6474-1B/.config
 --- evmc6474-1A/.config	2010-11-05 13:44:03.000000000 +0100
 +++ evmc6474-1B/.config	2010-11-05 13:43:57.000000000 +0100
-@@ -199,18 +199,10 @@
- CONFIG_TMS320C64X_GEMAC=y
- # CONFIG_TMS320C64X_GEMAC_0 is not set
- # CONFIG_TMS320C64X_GEMAC_1 is not set
+@@ -184,7 +184,7 @@ CONFIG_PLL_TCI648X=y
+ CONFIG_TIMER_TCI648X=y
+ CONFIG_PIC_C64XPLUS=y
+ CONFIG_GPIO_TCI648X=y
 -CONFIG_EDMA3=y
++# CONFIG_EDMA3 is not set
+ # CONFIG_SOC_TMS320C6455 is not set
+ # CONFIG_SOC_TMS320C6457 is not set
+ # CONFIG_SOC_TMS320C6472 is not set
+@@ -207,17 +207,9 @@ CONFIG_SGMII=y
+ CONFIG_TMS320C64X_GEMAC=y
+ # CONFIG_MCBSP is not set
+ # CONFIG_MCBSP_UART is not set
 -CONFIG_RAPIDIO_TCI648X=y
 -CONFIG_RAPIDIO_DEV=y
 -CONFIG_RAPIDIO=y
@@ -15,7 +23,6 @@ diff -uNr evmc6474-1A/.config evmc6474-1B/.config
 -CONFIG_RAPIDIO_CPS_XX=y
 -CONFIG_RAPIDIO_TSI568=y
 -CONFIG_RAPIDIO_TSI500=y
-+# CONFIG_EDMA3 is not set
 +# CONFIG_RAPIDIO_TCI648X is not set
  CONFIG_TMS320C6X_CACHES_ON=y
 -CONFIG_PAGE_OFFSET=0x80000000
@@ -23,7 +30,7 @@ diff -uNr evmc6474-1A/.config evmc6474-1B/.config
  CONFIG_CONTIGUOUS_PAGE_ALLOC=y
  # CONFIG_PGCACHE_LIMIT is not set
  # CONFIG_IDLE_LED is not set
-@@ -520,9 +512,6 @@
+@@ -528,9 +520,6 @@ CONFIG_WLAN=y
  # Enable WiMAX (Networking options) to see the WiMAX drivers
  #
  # CONFIG_WAN is not set
@@ -33,3 +40,6 @@ diff -uNr evmc6474-1A/.config evmc6474-1B/.config
  # CONFIG_PPP is not set
  # CONFIG_SLIP is not set
  CONFIG_NETCONSOLE=y
+-- 
+1.6.0.4
+
