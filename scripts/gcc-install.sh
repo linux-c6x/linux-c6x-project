@@ -1,29 +1,48 @@
 #!/bin/sh
 # Author - Murali Karicheri
-# WARNING!
-# It is assumed that code sourcery delivery follows the current convention
-# of file naming. Otherwise this will not work
+# used for installing gcc tool chain to the c6x-project top level
+# install tool chain to c6x-4.5-97 under pwd
+# install uclibc source to uclibc-ti-c6x under pwd
+# edit GCC_TOOL_LOCATION and GCC_TOOL_LOCATION1 for correct path to cs public directory
+# currently set to the folder corresponding to release1703
+# for installation from ti internal server, no change is needed
+# if you are behind a proxy, export http_proxy=<proxy>
 
-# tool chain version numbers. Edit this before running this
+gcc_tools_install_help() {
+    echo "Usage gcc-install <release> <ti/cs>"
+    echo "Example gcc-install 4.5-97 ti - for installing from ti server"
+    echo "--------------OR-------------"
+    echo "Example gcc-install 4.5-97 cs - for installing from cs public folder"
+}
 
-# Tool chain version
 if [ "$1X" = "X" ] ; then
-    echo "Usage gcc-install <release>"
-    echo "Example  gcc-install 4.5-88"
-    exit;
+ 	gcc_tools_install_help	
+    	exit 0;
 else
-    echo "Installing gcc release $1"
+	if [ "$2X" = "csX" ]; then
+		echo "Installing gcc release $1 from cs public site"
+	else
+		if [ "$2X" = "tiX" ]; then
+    			echo "Installing gcc release $1 from ti internal server"
+		else
+			gcc_tools_install_help
+			exit 0;
+		fi
+	fi
 fi
 
 GCC_REL=$1;
 
 INSTALL_DIR=$(pwd)
 
-# installation directory for gcc tool chain
-
-
-# GCC tool chain location
+if [ "$2X" = "tiX" ] ; then
 GCC_TOOL_LOCATION=http://gtwmills.gt.design.ti.com/linux-c6x/received/codesourcery
+else
+GCC_TOOL_LOCATION=http://www.codesourcery.com/sgpp/lite/c6000/portal/package8272/c6x-uclinux
+GCC_TOOL_LOCATION1=http://www.codesourcery.com/sgpp/lite/c6000/portal/package8271/c6x-uclinux
+fi
+
+echo "Downloading from $GCC_TOOL_LOCATION"
 
 # download temp dir
 TEMPDIR=/tmp/gcc-c6x-${GCC_REL}
@@ -44,7 +63,7 @@ if [ -d ${INSTALL_DIR}/c6x-4.5 ]; then
 		echo removing ${INSTALL_DIR}/c6x-4.5-old
 		rm -rf ${INSTALL_DIR}/c6x-4.5-old
 	fi
-	echo moving old too chain to ${INSTALL_DIR}/c6x-4.5-old
+	echo moving old tool chain to ${INSTALL_DIR}/c6x-4.5-old
 	mv -f ${INSTALL_DIR}/c6x-4.5 ${INSTALL_DIR}/c6x-4.5-old
 fi
 
@@ -58,10 +77,19 @@ if [ -d ${INSTALL_DIR}/uclibc-ti-c6x ]; then
 fi
 
 mkdir -p ${TEMPDIR}
+
+if [ "$2X" = "csX" ] ; then
+echo Downloading gcc tool chain binary  ${GCC_TOOL_LOCATION}/${TOOL_DIR}/${TOOLCHAIN_BIN_TARFILE}
+wget --directory-prefix=${TEMPDIR}  ${GCC_TOOL_LOCATION}/${TOOL_DIR}/${TOOLCHAIN_BIN_TARFILE}
+echo Downloading uclibc source ${GCC_TOOL_LOCATION1}/${TOOL_DIR}/${UCLINUX_SRC_PKG_TARFILE}
+wget --directory-prefix=${TEMPDIR}  ${GCC_TOOL_LOCATION1}/${TOOL_DIR}/${UCLINUX_SRC_PKG_TARFILE}
+else
 echo Downloading gcc tool chain binary  ${GCC_TOOL_LOCATION}/${TOOL_DIR}/${TOOLCHAIN_BIN_TARFILE}
 wget --directory-prefix=${TEMPDIR}  ${GCC_TOOL_LOCATION}/${TOOL_DIR}/${TOOLCHAIN_BIN_TARFILE}
 echo Downloading uclibc source ${GCC_TOOL_LOCATION}/${TOOL_DIR}/${UCLINUX_SRC_PKG_TARFILE}
 wget --directory-prefix=${TEMPDIR}  ${GCC_TOOL_LOCATION}/${TOOL_DIR}/${UCLINUX_SRC_PKG_TARFILE}
+fi
+
 echo Extracting ${UCLINUX_SRC_PKG_TARFILE}
 
 (cd ${TEMPDIR}; tar -xvjf ${UCLINUX_SRC_PKG_TARFILE})
@@ -69,9 +97,6 @@ echo Installing gcc tool chain under ${INSTALL_DIR}
 (cd ${INSTALL_DIR}; tar -xvjf ${TEMPDIR}/${TOOLCHAIN_BIN_TARFILE})
 echo Installing uclibc source under ${INSTALL_DIR}
 (cd ${INSTALL_DIR}; tar -xvjf ${TEMPDIR}/${UCLINUX_PREFIX}/${UCLIBC_SRC_TARFILE})
-
-sleep 2
 echo removing the temp files at ${TEMPDIR}
 rm -rf ${TEMPDIR}
-
 
