@@ -59,9 +59,10 @@ check_errs $? "watchdog driver didn't create /dev/watchdog!"
 # start watchdog
 echo >/dev/watchdog
 
-if ! [ "`cat /proc/sys/watchdog/status`" = "1" ]
+WDSTAT=`cat /proc/sys/watchdog/status`
+if ! [ "$WDSTAT" = "1" ]
 then
-    echo "Error: watchdog didn't start!"
+    echo "Error: watchdog didn't start! Status: $WDSTAT"
     exit 1
 fi
 
@@ -93,22 +94,43 @@ done
 
 END=`date`
 
-START_MIN=`echo $START | sed -e 's/.*\([0-9]*\):\([0-9]*\):\([0-9]*\).*/\2/'`
-START_SEC=`echo $START | sed -e 's/.*\([0-9]*\):\([0-9]*\):\([0-9]*\).*/\3/'`
-END_MIN=`echo $END | sed -e 's/.*\([0-9]*\):\([0-9]*\):\([0-9]*\).*/\2/'`
-END_SEC=`echo $END | sed -e 's/.*\([0-9]*\):\([0-9]*\):\([0-9]*\).*/\3/'`
+echo "Watchdog start: $START, end: $END"
 
-MINS=$(($END_MIN - $START_MIN))
-XSECS=$(($MINS * 60))
+XSTART_MIN=`echo $START | sed -e 's/.*\([0-9]*\):\([0-9]*\):\([0-9]*\).*/\2/'`
+XSTART_SEC=`echo $START | sed -e 's/.*\([0-9]*\):\([0-9]*\):\([0-9]*\).*/\3/'`
+XEND_MIN=`echo $END | sed -e 's/.*\([0-9]*\):\([0-9]*\):\([0-9]*\).*/\2/'`
+XEND_SEC=`echo $END | sed -e 's/.*\([0-9]*\):\([0-9]*\):\([0-9]*\).*/\3/'`
+
+# strip leading zero so it doesn't look like an octal number
+START_MIN=`echo $XSTART_MIN | sed -e 's/^0//'`
+START_SEC=`echo $XSTART_SEC | sed -e 's/^0//'`
+END_MIN=`echo $XEND_MIN | sed -e 's/^0//'`
+END_SEC=`echo $XEND_SEC | sed -e 's/^0//'`
+
+# handle minutes rollover
+if [ $(($END_MIN < $START_MIN)) = 1 ]
+then
+    END_MIN=$(($END_MIN + 60))
+fi
+DELTA_MIN=$(($END_MIN - $START_MIN))
+XSECS=$(($DELTA_MIN * 60))
+
+# handle seconds rollover
+if [ $(($END_SEC < $START_SEC)) = 1 ]
+then
+    END_SEC=$(($END_SEC + 60))
+    XSECS=$(($XSECS - 60))
+fi
 END_SEC=$(($END_SEC + $XSECS))
-SECS=$(($END_SEC - $START_SEC))
+
+DELTA=$(($END_SEC - $START_SEC))
 
 MIN=$(($HEARTBEAT - 1))
 MAX=$(($HEARTBEAT + 1))
 
-if [ "$(($SECS < $MIN))" = "1" -o "$(($SECS > $MAX))" = "1" ]
+if [ "$(($DELTA < $MIN))" = "1" -o "$(($DELTA > $MAX))" = "1" ]
 then
-    echo "Error: watchdog expiry out of range! Expected $HEARTBEAT, got $SECS"
+    echo "Error: watchdog expiry out of range! Expected $HEARTBEAT, got $DELTA"
     exit 1
 fi
 
