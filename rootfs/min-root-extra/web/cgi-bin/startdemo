@@ -1,0 +1,10 @@
+#!/bin/sh
+
+cat << EOF
+Content-type: text/plain
+Cache-control: no-cache
+
+EOF
+
+cat /proc/cpuinfo
+
