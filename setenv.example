@@ -86,7 +86,7 @@ export SYSLINK_PLATFORM=C6474
 #export SYSLINK_PLATFORM=C6472
 
 # SysLink install directory
-export SYSLINK_ROOT=$LINUX_C6X_TOP_DIR/syslink_02_00_00_56_c6x_alpha2
+export SYSLINK_ROOT=$LINUX_C6X_TOP_DIR/syslink_02_00_00_56_c6x_01_alpha2
 
 # IPC package install directory
 export IPC_DIR=$LINUX_C6X_TOP_DIR/ipc_1_22_00_19

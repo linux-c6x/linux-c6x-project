@@ -14,8 +14,7 @@ REMOTE="origin"
 
 BASE_PRJ="linux-c6x busybox uClibc"
 WRAP_PRJ="ti-gcc-wrap/binutils ti-gcc-wrap/cil ti-gcc-wrap/sources ti-gcc-wrap/tool-wrap \
- projects/mtd-utils projects/rio-utils projects/packages projects/package-downloads \
- projects/ltp syslink"
+ projects/mtd-utils projects/rio-utils projects/packages projects/ltp syslink"
 
 TOP=..
 REST_PRJ="$BASE_PRJ $WRAP_PRJ"
