@@ -21,9 +21,16 @@ fi
 source setenv
 
 # is the path to the TI compiler correct?
-if [ -z "$TI_CG6X_DIR" -o ! -x $TI_CG6X_DIR/bin/cg6x ] ; then
-	echo TI_CG6X_DIR is \"$TI_CG6X_DIR\" and does not seem to be the TI c6x tools
-	exit 1
+if [ "X$BUILD_KERNEL_WITH_GCC" != "Xyes" ] ; then
+	if [ -z "$TI_CG6X_DIR" -o ! -x $TI_CG6X_DIR/bin/cg6x ] ; then
+		echo TI_CG6X_DIR is \"$TI_CG6X_DIR\" and does not seem to be the TI c6x tools
+		exit 1
+	fi
+else
+	if [ -z "$GNU_TOOLS_DIR" -o ! -x $GNU_TOOLS_DIR/bin/c6x-uclinux-gcc ] ; then
+		echo GNU_TOOLS_DIR is \"$GNU_TOOLS_DIR \" and does not seem to be the GCC tools
+		exit 1
+	fi
 fi
 
 # is the top level project path correct?
