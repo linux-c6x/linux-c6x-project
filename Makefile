@@ -68,12 +68,6 @@ ROOTFS ?= min-root
 BUILD_TESTS ?=
 DEPMOD	?= /sbin/depmod
 
-# SysLink kernel samples to build
-SYSLINK_KERNEL_SAMPLES_TO_BUILD ?= notify gateMP heapBufMP heapMemMP listMP messageQ sharedRegion
-# SysLink user land samples to build
-SYSLINK_USER_SAMPLES_TO_BUILD ?= procMgr $(SYSLINK_KERNEL_SAMPLES_TO_BUILD)
-
-
 # ensure all the config ENV vars are exported, even if the definition was from this file
 export ABI
 export DSBT_SIZE

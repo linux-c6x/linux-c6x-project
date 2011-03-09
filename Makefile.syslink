@@ -1,14 +1,33 @@
 ######################### TOP LEVEL Makefile for SysLink ########################
 
-# SysLink build targets
-ifeq ($(SYSLINK_PLATFORM),C6472)
+# SysLink kernel samples to build
+SYSLINK_KERNEL_SAMPLES_TO_BUILD ?= notify gateMP heapBufMP heapMemMP listMP messageQ sharedRegion
+# SysLink user land samples to build
+SYSLINK_USER_SAMPLES_TO_BUILD ?= procMgr $(SYSLINK_KERNEL_SAMPLES_TO_BUILD)
+
+KDIR=$(LINUX_C6X_TOP_DIR)/Build/kobjs/${SYSLINK_TO_BUILD}${ENDIAN_SUFFIX}
+SYSLINK_INSTALL=syslink_${SYSLINK_TO_BUILD}${ENDIAN_SUFFIX}
+ifeq ($(SYSLINK_TO_BUILD),evmc6472)
+# SysLink build platform
 SYSLINK_PLATFORM=C6472
-KDIR=$(LINUX_C6X_TOP_DIR)/Build/kobjs/evmc6472.el
+# IPC build platform
+IPC_PLATFORM=evm6472
 else
-ifeq ($(SYSLINK_PLATFORM),C6474)
+ifeq ($(SYSLINK_TO_BUILD),evmc6474)
 SYSLINK_PLATFORM=C6474
-KDIR=$(LINUX_C6X_TOP_DIR)/Build/kobjs/evmc6474.el
+IPC_PLATFORM=evm6474
+else
+ifeq ($(SYSLINK_TO_BUILD),evmc6474-lite)
+SYSLINK_PLATFORM=C6474
+IPC_PLATFORM=evm6474
 endif
+endif
+endif
+
+ifeq ($(ENDIAN),little)
+IPC_TARGET=C64P_COFF
+else
+IPC_TARGET=C64P_COFF_big_endian
 endif
 
 syslink-help:
@@ -67,7 +86,7 @@ syslink-user:
 	@if [ "$(BUILD_USERSPACE_WITH_GCC)" = "yes" ] ; then \
 		(cd $(SYSLINK_ROOT)/ti/syslink/utils/hlos/usr/Linux; \
 		make TOOLCHAIN_PREFIX=$(CC_GNU) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
-		KDIR=$(KDIR) IPC_DIR=$(IPC_DIR)) \
+		KDIR=$(KDIR) IPC_DIR=$(IPC_DIR) ENDIAN=$(ENDIAN)) \
 	else \
 		(cd $(SYSLINK_ROOT)/ti/syslink/utils/hlos/usr/Linux; \
 		make TOOLCHAIN_PREFIX=$(CC_SDK) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
@@ -79,7 +98,7 @@ syslink-user:
 			echo building $$module_name; \
 			(cd $(SYSLINK_ROOT)/ti/syslink/samples/hlos/$$module_name/usr/Linux; \
 			make TOOLCHAIN_PREFIX=$(CC_GNU) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
-			KDIR=$(KDIR) IPC_DIR=$(IPC_DIR)) \
+			KDIR=$(KDIR) IPC_DIR=$(IPC_DIR) ENDIAN=$(ENDIAN)) \
 		else \
 			echo building $$module_name; \
 			(cd $(SYSLINK_ROOT)/ti/syslink/samples/hlos/$$module_name/usr/Linux; \
@@ -90,50 +109,43 @@ syslink-user:
 
 syslink-rtos:
 	# must match with the patters in $SYSLINK_ROOT/config.bld
-	(cd $(SYSLINK_ROOT); cp config.bld .config.bld.tmp; \
-	sed -i -e 's,var rootDirPre = "/opt/TI/",var rootDirPre = "${TI_CG6X_DIR_ROOT}/",' .config.bld.tmp; \
-	sed -i -e 's,C64P_COFF.rootDir = rootDirPre + "c6000_7.2.0B1",\
-	C64P_COFF.rootDir = rootDirPre + "${TI_CG6X_DIR_NAME}",' .config.bld.tmp;)
-	if [ "$(SYSLINK_PLATFORM)" = "C6472" ] ; then \
-		(cd $(SYSLINK_ROOT); sed -i -e 's,"ti.syslink.samples.rtos.platforms.evm6474.core0"\,,,' .config.bld.tmp; \
-		sed -i -e 's,"ti.syslink.samples.rtos.platforms.evm6474.core1"\,,,' .config.bld.tmp; \
-		sed -i -e 's,//                "ti.syslink.samples.rtos.platforms.evm6472.core0",\
-                "ti.syslink.samples.rtos.platforms.evm6472.core0",' .config.bld.tmp; \
-		sed -i -e 's,//                "ti.syslink.samples.rtos.platforms.evm6472.core1",\
-                "ti.syslink.samples.rtos.platforms.evm6472.core1",' .config.bld.tmp; \
-		sed -i -e 's,//                "ti.syslink.samples.rtos.platforms.evm6472.core2",\
-                "ti.syslink.samples.rtos.platforms.evm6472.core2",' .config.bld.tmp; \
-		sed -i -e 's,//                "ti.syslink.samples.rtos.platforms.evm6472.core3",\
-                "ti.syslink.samples.rtos.platforms.evm6472.core3",' .config.bld.tmp; \
-		sed -i -e 's,//                "ti.syslink.samples.rtos.platforms.evm6472.core4",\
-                "ti.syslink.samples.rtos.platforms.evm6472.core4",' .config.bld.tmp; )\
-	fi
-	(cd $(SYSLINK_ROOT); $(XDC_DIR)/xdc all XDCBUILDCFG="${SYSLINK_ROOT}/.config.bld.tmp" -PR . )
+	(cd $(SYSLINK_ROOT); IPC_PLATFORM=$(IPC_PLATFORM) IPC_TARGET=$(IPC_TARGET) $(XDC_DIR)/xdc all XDCBUILDCFG="${SYSLINK_ROOT}/config.bld" -PR . )
 
 syslink-rtos-clean:
-	(cd $(SYSLINK_ROOT); $(XDC_DIR)/xdc clean XDCBUILDCFG="${SYSLINK_ROOT}/.config.bld.tmp" -PR . ; \
-	rm -rf .config.bld.tmp; )
-	rm -rf $(PRODUCT_DIR)/syslink_$(SYSLINK_PLATFORM)/*.x64P
+	(cd $(SYSLINK_ROOT); IPC_PLATFORM=$(IPC_PLATFORM) IPC_TARGET=$(IPC_TARGET) $(XDC_DIR)/xdc clean XDCBUILDCFG="${SYSLINK_ROOT}/config.bld" -PR . ;)
+	if [ "$(ENDIAN)" == "little" ]; then \
+		rm -rf $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/*.x64P ; \
+	else \
+		rm -rf $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/*.x64Pe ; \
+	fi
 
 syslink-rtos-install:
 	[ -d $(PRODUCT_DIR) ] || echo "no product directory"
-	[ -d $(PRODUCT_DIR)/syslink_$(SYSLINK_PLATFORM) ] || mkdir -p $(PRODUCT_DIR)/syslink_$(SYSLINK_PLATFORM)
+	[ -d $(PRODUCT_DIR)/$(SYSLINK_INSTALL) ] || mkdir -p $(PRODUCT_DIR)/$(SYSLINK_INSTALL)
 	if [ "$(SYSLINK_PLATFORM)" = "C6474" ] ; then \
-		(cd $(SYSLINK_ROOT); cp `find . -name *c6474*x64P` $(PRODUCT_DIR)/syslink_$(SYSLINK_PLATFORM)/; ) \
+		if [ "$(ENDIAN)" == "little" ]; then \
+			(cd $(SYSLINK_ROOT); cp `find . -name *c6474*x64P` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/; ) \
+		else \
+			(cd $(SYSLINK_ROOT); cp `find . -name *c6474*x64Pe` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/; ) \
+		fi \
 	else \
-		(cd $(SYSLINK_ROOT); cp `find . -name *c6472*x64P` $(PRODUCT_DIR)/syslink_$(SYSLINK_PLATFORM)/; ) \
+		if [ "$(ENDIAN)" == "little" ]; then \
+			(cd $(SYSLINK_ROOT); cp `find . -name *c6472*x64P` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/; ) \
+		else \
+			(cd $(SYSLINK_ROOT); cp `find . -name *c6472*x64Pe` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/; ) \
+		fi \
 	fi
 
 syslink-all:syslink-kernel syslink-user syslink-rtos syslink-install syslink-rtos-install
 
 syslink-install:
 	[ -d $(PRODUCT_DIR) ] || echo "no product directory"
-	[ -d $(PRODUCT_DIR)/syslink_$(SYSLINK_PLATFORM) ] || mkdir -p $(PRODUCT_DIR)/syslink_$(SYSLINK_PLATFORM)
+	[ -d $(PRODUCT_DIR)/$(SYSLINK_INSTALL) ] || mkdir -p $(PRODUCT_DIR)/$(SYSLINK_INSTALL)
 	@echo "Installing user land sample exe files"
-	cp -f $(SYSLINK_ROOT)/ti/syslink/lib/samples/*.exe $(PRODUCT_DIR)/syslink_$(SYSLINK_PLATFORM)/
+	cp -f $(SYSLINK_ROOT)/ti/syslink/lib/samples/*.exe $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/
 	@echo "Installing kernel and sample modules"
 	cp -f $(SYSLINK_ROOT)/ti/syslink/lib/modules/$(SYSLINK_PLATFORM)/*.ko \
-		 $(PRODUCT_DIR)/syslink_$(SYSLINK_PLATFORM)/
+		 $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/
 
 syslink-kernel-clean:
 
@@ -146,7 +158,7 @@ syslink-kernel-clean:
 		make ARCH=c6x CROSS_COMPILE=$(CC_SDK0) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
 		KDIR=$(KDIR) IPC_DIR=$(IPC_DIR) clean) \
 	fi
-	rm -rf $(PRODUCT_DIR)/syslink_$(SYSLINK_PLATFORM)/*.ko; \
+	rm -rf $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/*.ko; \
 
 syslink-user-clean:
 
@@ -173,6 +185,6 @@ syslink-user-clean:
 			KDIR=$(KDIR) IPC_DIR=$(IPC_DIR) clean) \
 		fi \
 	done	
-	rm -rf $(PRODUCT_DIR)/syslink_$(SYSLINK_PLATFORM)/*.exe
+	rm -rf $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/*.exe
 
 syslink-clean:syslink-kernel-clean syslink-user-clean syslink-rtos-clean
