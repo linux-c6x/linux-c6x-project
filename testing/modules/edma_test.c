@@ -338,7 +338,7 @@ int edma3_memtomemcpytest_dma(int acnt, int bcnt, int ccnt, int sync_mode,
 			      int event_queue)
 {
 	int result = 0;
-	unsigned int dma_ch = 0;
+	int dma_ch = 0;
 	int i;
 	int count;
 	unsigned int Istestpassed = 0u;
@@ -464,8 +464,8 @@ int edma3_memtomemcpytest_dma_link(int acnt, int bcnt, int ccnt, int sync_mode,
 				   int event_queue)
 {
 	int result = 0;
-	unsigned int dma_ch1 = 0;
-	unsigned int dma_ch2 = 0;
+	int dma_ch1 = 0;
+	int dma_ch2 = 0;
 	int i;
 	int count = 0;
 	unsigned int Istestpassed1 = 0u;
@@ -681,7 +681,7 @@ static int edma3_gpio_triggered_dma(int acnt, int bcnt, int ccnt, int sync_mode,
 				    int event_queue, int event_id)
 {
 	int result = 0;
-	unsigned int dma_ch = 0;
+        int dma_ch = 0;
 	int i;
 	int count;
 	unsigned int Istestpassed = 0u;

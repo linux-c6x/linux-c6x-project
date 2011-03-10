@@ -429,7 +429,7 @@ one-sdk: sdk0 one-clib
 		rsync -rlpgocv --delete $(SYSROOT_TMP_DIR)/ $(SYSROOT_DIR)/ ; \
 	else \
 		cp -a $(GNU_TOOLS_DIR)/{bin,lib,libexec,share} $(SDK_DIR) ; \
-		cp -a $(GNU_TOOLS_DIR)/$(ARCH)-uclinux/{bin,lib,share} $(SDK_DIR)/$(ARCH)-uclinux ; \
+		cp -a $(GNU_TOOLS_DIR)/$(ARCH)-uclinux/{bin,lib,share,include} $(SDK_DIR)/$(ARCH)-uclinux ; \
 		[ -d $(SYSROOT_HDR_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_HDR_DIR) ; \
 		(cd $(SDK_DIR)/bin; ls | cut -d\- -f3 | sort -u | xargs -i ln -sf $(ARCH)-uclinux-"{}" $(ARCH)-linux-"{}" ) ; \
 		(cd $(SDK_DIR)/bin; ls | cut -d\- -f3 | sort -u | xargs -i ln -sf $(ARCH)-uclinux-"{}" $(ARCH)eb-linux-"{}" ) ; \
@@ -437,7 +437,12 @@ one-sdk: sdk0 one-clib
 		if [ "$(SYSROOT_DIR)" != "$(SYSROOT_HDR_DIR)" ]; then \
 		    cp -r $(SYSROOT_DIR)/usr/include/* $(SYSROOT_HDR_DIR)/usr/include ; \
 		    rm -rf $(SYSROOT_DIR)/usr/include ; \
-		fi \
+		fi; \
+		if [ "$(ENDIAN)" == "little" ]; then \
+			cp -a $(GNU_TOOLS_DIR)/$(ARCH)-uclinux/libc/usr/lib/libstdc++.a $(SDK_DIR)/$(ARCH)-uclinux/libc/usr/lib ; \
+		else \
+			cp -a $(GNU_TOOLS_DIR)/$(ARCH)-uclinux/libc/be/usr/lib/libstdc++.a $(SDK_DIR)/$(ARCH)-uclinux/libc/be/usr/lib ; \
+		fi; \
 	fi
 
 sdk-clean:
