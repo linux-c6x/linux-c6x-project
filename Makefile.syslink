@@ -113,11 +113,6 @@ syslink-rtos:
 
 syslink-rtos-clean:
 	(cd $(SYSLINK_ROOT); IPC_PLATFORM=$(IPC_PLATFORM) IPC_TARGET=$(IPC_TARGET) $(XDC_DIR)/xdc clean XDCBUILDCFG="${SYSLINK_ROOT}/config.bld" -PR . ;)
-	if [ "$(ENDIAN)" == "little" ]; then \
-		rm -rf $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/*.x64P ; \
-	else \
-		rm -rf $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/*.x64Pe ; \
-	fi
 
 syslink-rtos-install:
 	[ -d $(PRODUCT_DIR) ] || echo "no product directory"
@@ -158,7 +153,6 @@ syslink-kernel-clean:
 		make ARCH=c6x CROSS_COMPILE=$(CC_SDK0) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
 		KDIR=$(KDIR) IPC_DIR=$(IPC_DIR) clean) \
 	fi
-	rm -rf $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/*.ko; \
 
 syslink-user-clean:
 
@@ -185,6 +179,5 @@ syslink-user-clean:
 			KDIR=$(KDIR) IPC_DIR=$(IPC_DIR) clean) \
 		fi \
 	done	
-	rm -rf $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/*.exe
 
 syslink-clean:syslink-kernel-clean syslink-user-clean syslink-rtos-clean
