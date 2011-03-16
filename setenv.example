@@ -37,7 +37,8 @@ export BUILD_USERSPACE_WITH_GCC=yes
 #
 # export EXTRA_KERNELS_TO_BUILD="dsk6455-initramfs dsk6455-romfs evmc6472-initramfs evmc6472-romfs"
 
-# Choices for config (min-root or full-root if including additional packages)
+# Choices for ROOTFS (min-root - minimum file system or full-root - if including additional
+# packages or ltp-root if including ltp test executables)
 
 export ROOTFS=min-root
 
