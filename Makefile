@@ -16,7 +16,7 @@ TOP_TARGETS = rootfs mtd rio busybox packages sdk clib kernels sdk0 clean mtd-cl
 # These sub-targets build only little-endian or big-endian
 ENDIAN_TARGETS = one-rootfs one-mtd one-rio one-busybox one-sdk one-clib one-kernels one-sdk0 \
 	one-kernels-clean one-uclibc-clean one-mtd-clean one-rio-clean one-busybox-clean min-root-clean full-root-clean one-clean \
-	one-extra-kernels one-packages one-packages-clean
+	one-extra-kernels one-packages one-packages-clean one-ltp one-ltp-clean
 
 $(TOP_TARGETS) product kernel-headers: sanity
 
@@ -65,14 +65,7 @@ BUILD_KERNEL_WITH_GCC ?=
 BUILD_USERSPACE_WITH_GCC ?=
 BUILD_STATIC_BBOX ?= yes
 ROOTFS ?= min-root
-BUILD_TESTS ?=
 DEPMOD	?= /sbin/depmod
-
-# SysLink kernel samples to build
-SYSLINK_KERNEL_SAMPLES_TO_BUILD ?= notify gateMP heapBufMP heapMemMP listMP messageQ sharedRegion
-# SysLink user land samples to build
-SYSLINK_USER_SAMPLES_TO_BUILD ?= procMgr $(SYSLINK_KERNEL_SAMPLES_TO_BUILD)
-
 
 # ensure all the config ENV vars are exported, even if the definition was from this file
 export ABI
@@ -225,7 +218,7 @@ kernel-sub:
 	make ARCH=$(ARCH) O=$(KOBJDIR)/ oldconfig
 	make ARCH=$(ARCH) O=$(KOBJDIR)/
 	make ARCH=$(ARCH) O=$(KOBJDIR)/ DEPMOD=$(DEPMOD) INSTALL_MOD_PATH=$(MOD_DIR) modules_install
-	if [ "$(BUILD_TESTS)" == "yes" ]; then \
+	if [ "$(ROOTFS)" == "ltp-root" ]; then \
 		mkdir -p $(KTESTOBJDIR) ; \
 		cp -r $(TESTMOD_SRC)/* $(KTESTOBJDIR) ; \
 		make ARCH=$(ARCH) O=$(KOBJDIR)/ M=$(KTESTOBJDIR) DEPMOD=$(DEPMOD) \
@@ -244,6 +237,18 @@ kernel-headers-sub:
 		make -C $(LINUX_C6X_KERNEL_DIR) ARCH=$(ARCH) CROSS_COMPILE=$(CC_SDK0) \
 		        INSTALL_HDR_PATH=$(KHDR_DIR) O=$(KOBJDIR) headers_install ; \
 	fi
+
+one-ltp:
+	[ -d $(BLD)/ltp$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/ltp$(ENDIAN_SUFFIX)
+	if [ "$(BUILD_USERSPACE_WITH_GCC)" == "yes" ] ; then \
+		(cd $(PRJ)/testing/ltp; make TOP_DIR=${TOP} ENDIAN=${ENDIAN} GCC=true all);\
+	else \
+		(cd $(PRJ)/testing/ltp; make TOP_DIR=${TOP} ABI=${ABI} all);\
+	fi
+	cp $(BLD)/ltp$(ENDIAN_SUFFIX)/testdriver ${TOP}/product
+
+one-ltp-clean:
+	rm -rf $(BLD)/ltp$(ENDIAN_SUFFIX)
 
 one-clib: $(call COND_DEP, sdk0 kernel-headers)
 	[ -d $(BLD)/uClibc$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/uClibc$(ENDIAN_SUFFIX)
@@ -387,7 +392,7 @@ one-sdk0:
 	@if [ -e $(SDK0_DIR)/linux-$(ARCHe)-sdk0-prebuilt ] ; then 	\
 	    echo "using pre-built sdk0";				\
 	else	    						\
-	    if [ -d "$(TI_CG6X_DIR)" ] ; then                   \
+	    if [ "$(BUILD_KERNEL_WITH_GCC)" != "yes" ] ; then  \
 		    if [ -e $(TOOL_WRAP_DIR)/Makefile ] ; then 	\
 			cd $(TOOL_WRAP_DIR); $(MAKE) ENDIAN=$(ENDIAN) ABI=$(ABI) DSBT_SIZE=$(DSBT_SIZE) \
 				GCC_C6X_DEST=$(SDK0_DIR) ALIAS=$(ALIAS) all;	\
@@ -466,11 +471,6 @@ min-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one
 	cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
 	if [ -n $(EXTRA_ROOT_DIR) ] ; then for dir in $(EXTRA_ROOT_DIR); do cp -a $$dir/rootfs/* $(BLD)/rootfs/$@ ; done ; fi
 	if [ -e $(GDBSERVER) ] ; then cp $(GDBSERVER) $(BLD)/rootfs/$@/usr/bin ; fi
-	if [ "$(BUILD_TESTS)" == "yes" ]; then \
-		cp $(TESTING_DIR)/scripts/* $(BLD)/rootfs/$@/bin ; \
-		mkdir -p $(BLD)/rootfs/$@/opt/testing ; \
-		cp -r $(TESTING_DIR)/images $(BLD)/rootfs/$@/opt/testing ; \
-	fi
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - usr/lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	cp rootfs/min-root-devs.cpio $(BLD)/rootfs/$@.cpio
@@ -489,11 +489,28 @@ full-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, on
 	cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
 	if [ -n $(EXTRA_ROOT_DIR) ] ; then for dir in $(EXTRA_ROOT_DIR); do cp -a $$dir/rootfs/* $(BLD)/rootfs/$@ ; done ; fi
 	if [ -e $(GDBSERVER) ] ; then cp $(GDBSERVER) $(BLD)/rootfs/$@/usr/bin ; fi
-	if [ "$(BUILD_TESTS)" == "yes" ]; then \
-		cp $(TESTING_DIR)/scripts/* $(BLD)/rootfs/$@/bin ; \
-		mkdir -p $(BLD)/rootfs/$@/opt/testing ; \
-		cp -r $(TESTING_DIR)/images $(BLD)/rootfs/$@/opt/testing ; \
-	fi
+	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(BLD)/rootfs/$@; tar xf -))
+	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - usr/lib | (cd $(BLD)/rootfs/$@; tar xf -))
+	cp rootfs/min-root-devs.cpio $(BLD)/rootfs/$@.cpio
+	(cd $(BLD)/rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
+	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
+
+ltp-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one-mtd) $(call COND_DEP, one-ltp)
+	if [ -d $(BLD)/rootfs/$@ -a -e $(BLD)/rootfs/$@-marker ] ; then rm -rf $(BLD)/rootfs/$@; fi
+	mkdir -p $(BLD)/rootfs/$@; date > $(BLD)/rootfs/$@-marker
+	(cd $(BLD)/rootfs/$@; cpio -i <$(PRJ)/rootfs/min-root-skel.cpio)
+	cp -a rootfs/min-root-extra/* $(BLD)/rootfs/$@
+	cp -a $(BBOX_DIR)/* $(BLD)/rootfs/$@
+	cp -a $(MTD_DIR)/* $(BLD)/rootfs/$@
+	cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
+	if [ -n $(EXTRA_ROOT_DIR) ] ; then for dir in $(EXTRA_ROOT_DIR); do cp -a $$dir/rootfs/* $(BLD)/rootfs/$@ ; done ; fi
+	if [ -e $(GDBSERVER) ] ; then cp $(GDBSERVER) $(BLD)/rootfs/$@/usr/bin ; fi
+	cp $(TESTING_DIR)/scripts/* $(BLD)/rootfs/$@/bin
+	mkdir -p $(BLD)/rootfs/$@/opt/testing
+	cp -r $(TESTING_DIR)/images $(BLD)/rootfs/$@/opt/testing
+	cp -r $(BLD)/ltp$(ENDIAN_SUFFIX)/bin/* $(BLD)/rootfs/$@/bin 
+	cp -r $(BLD)/ltp$(ENDIAN_SUFFIX)/opt/* $(BLD)/rootfs/$@/opt
+	cp  -f $(BLD)/ltp$(ENDIAN_SUFFIX)/mnt/* $(BLD)/rootfs/$@/mnt ; \
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - usr/lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	cp rootfs/min-root-devs.cpio $(BLD)/rootfs/$@.cpio
@@ -549,7 +566,11 @@ one-full-root-clean:
 	rm -rf $(BLD)/rootfs/full-root-$(ARCHe)
 	rm -rf $(BLD)/rootfs/full-root-$(ARCHe).cpio
 
-one-clean: one-mtd-clean one-rio-clean one-busybox-clean one-clib-clean one-sdk-clean one-min-root-clean one-full-root-clean
+one-ltp-root-clean:
+	rm -rf $(BLD)/rootfs/ltp-root-$(ARCHe)
+	rm -rf $(BLD)/rootfs/ltp-root-$(ARCHe).cpio
+
+one-clean: one-mtd-clean one-rio-clean one-busybox-clean one-clib-clean one-sdk-clean one-min-root-clean one-full-root-clean one-ltp-clean one-ltp-root-clean
 	rm -rf $(MOD_DIR) $(HDR_DIR) $(BBOX_DIR)
 	rm -rf $(KOBJ_BASE)
 	make sdk0-clean

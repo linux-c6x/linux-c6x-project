@@ -37,7 +37,8 @@ export BUILD_USERSPACE_WITH_GCC=yes
 #
 # export EXTRA_KERNELS_TO_BUILD="dsk6455-initramfs dsk6455-romfs evmc6472-initramfs evmc6472-romfs"
 
-# Choices for config (min-root or full-root if including additional packages)
+# Choices for ROOTFS (min-root - minimum file system or full-root - if including additional
+# packages or ltp-root if including ltp test executables)
 
 export ROOTFS=min-root
 
@@ -81,12 +82,11 @@ export PKG_LIST="zlib net-snmp polarssl ttcp dhrystone nbench-byte tcpdump"
 
 # ********** Below this for building SysLink **********************************
 
-# SysLink target platform for build
-export SYSLINK_PLATFORM=C6474
-#export SYSLINK_PLATFORM=C6472
+# SysLink target platform to build. evmc6474 or evmc6472 or evmc6474-lite 
+export SYSLINK_TO_BUILD="evmc6474"
 
 # SysLink install directory
-export SYSLINK_ROOT=$LINUX_C6X_TOP_DIR/syslink_02_00_00_56_c6x_01_alpha2
+export SYSLINK_ROOT=$LINUX_C6X_TOP_DIR/syslink_02_00_00_56_c6x_02_alpha2
 
 # IPC package install directory
 export IPC_DIR=$LINUX_C6X_TOP_DIR/ipc_1_22_00_19
@@ -100,7 +100,4 @@ export BIOS_DIR=$LINUX_C6X_TOP_DIR/bios_6_31_00_18
 export XDC_DIR=$LINUX_C6X_TOP_DIR/xdctools_3_20_05_76
 
 # CGT folders used in config.bld
-export TI_CG6X_DIR_ROOT=$(dirname $TI_CG6X_DIR)
-export TI_CG6X_DIR_NAME=$(basename $TI_CG6X_DIR)
-
 export XDCPATH="$BIOS_DIR/packages;$IPC_DIR/packages"
