@@ -74,6 +74,13 @@ $(INSTPFX_SRC)/Makefile.defs:
 
 
 install:
+	mkdir -p ${INSTPFX}/bin
+	mkdir -p ${INSTPFX}/opt 
+	mkdir -p ${INSTPFX}/mnt
+
+	if [ ! -d ${INSTPFX}/mnt/out.iso ] ; then \
+		$(LTP_TOP)/bin/fsmk ${INSTPFX}/mnt/out.iso ; \
+	fi;
 	(cd ${INSTPFX_SRC}; PFX=${PFX} CFLAGS="${CFLAGS}" LDFLAGS="${LDFLAGS}" \
 		AR=${AR} AS=${AS} CC=${CC} LD=${LD} NM=${NM} OBJCOPY=${OBJCOPY} \
 		RANLIB=${RANLIB} STRIP=${STRIP} UCLINUX=${UCLINUX} LTP_SRCDIR=${LTP_SRCDIR} \
@@ -82,8 +89,6 @@ install:
 	(cd ${INSTPFX_SRC}; cp sandbox/sandbox ${INSTPFX}/bin; )
 	cp ${LTP_SRCDIR}/setup-ltp* ${INSTPFX}/bin
 	cp ${LTP_SRCDIR}/fs* ${INSTPFX}/bin
-	cp -f /tmp/out.iso ${INSTPFX}/mnt
-	rm -f /tmp/out.iso
 
 all: $(INSTPFX_SRC)/Makefile.defs
 	# Always start with a clean folder
@@ -92,13 +97,6 @@ all: $(INSTPFX_SRC)/Makefile.defs
 		rm -rf "${INSTPFX_SRC}" ; \
 	fi;
 
-	mkdir -p ${INSTPFX}/bin
-	mkdir -p ${INSTPFX}/opt 
-	mkdir -p ${INSTPFX}/mnt
-
-	if [ ! -d /tmp/out.iso ] ; then \
-		$(LTP_TOP)/bin/fsmk /tmp/out.iso ; \
-	fi;
 	(cd ${INSTPFX}; tar -xvjf ${LTP_SRCDIR}/ltp-current.tar.bz2; )
 	(cd ${INSTPFX_SRC}; patch -p0 < ${LTP_SRCDIR}/ltp.patch; make autotools; )
 	(cd ${INSTPFX_SRC}; PFX=${PFX} CFLAGS="${CFLAGS}" LDFLAGS="${LDFLAGS}" \
