@@ -166,14 +166,24 @@ var argCheck = true;
 if (targetFlag == "TCI6486_USB")
 {
 	var targetConfig = "evmTCI6486.ccxml";
-	syslink_image_dir = syslink_image_dir + "evm6486\\";
+	if (endianFlag == "LE")
+	{
+		syslink_image_dir = syslink_image_dir + "evm6486.el\\";
+	} else {
+		syslink_image_dir = syslink_image_dir + "evm6486.eb\\";
+	}
 	targetConfig = syslink_target_config + targetConfig; 
 	num_bios_cores = 5;
 }
 else if (targetFlag == "TCI6488_USB")
 {
 	var targetConfig = "evmTCI6488.ccxml";
-	syslink_image_dir = syslink_image_dir + "evm6488\\";
+	if (endianFlag == "LE")
+	{
+		syslink_image_dir = syslink_image_dir + "evm6488.el\\";
+	} else {
+		syslink_image_dir = syslink_image_dir + "evm6488.eb\\";
+	}
 	targetConfig = syslink_target_config + targetConfig; 
 }
 else
@@ -287,12 +297,12 @@ if (targetFlag == "TCI6488_USB")
     	}
 } else {
 	timeout_linux_core = 45000;
-	debugSession = debugServer.openSession("*","C64XP");
-	debugSession1 = debugServer.openSession("*","C64XP_1");
-	debugSession2 = debugServer.openSession("*","C64XP_2");
-	debugSession3 = debugServer.openSession("*","C64XP_3");
-	debugSession4 = debugServer.openSession("*","C64XP_4");
-	debugSession5 = debugServer.openSession("*","C64XP_5");
+	debugSession = debugServer.openSession("*","C64XP_A");
+	debugSession1 = debugServer.openSession("*","C64XP_B");
+	debugSession2 = debugServer.openSession("*","C64XP_C");
+	debugSession3 = debugServer.openSession("*","C64XP_D");
+	debugSession4 = debugServer.openSession("*","C64XP_E");
+	debugSession5 = debugServer.openSession("*","C64XP_F");
 	if ((debugSession.getMajorISA() == 0x64) &&
             (debugSession1.getMajorISA() == 0x64) &&
             (debugSession2.getMajorISA() == 0x64) &&
@@ -390,11 +400,11 @@ if ((module_index == 2) || (module_index == 3))
 {
 	if (targetFlag == "TCI6486_USB")
 	{
-		biosProgram = biosProgram + "_c6472core";
+		biosProgram = biosProgram + "_c6472_core";
 	}
 	else
 	{
-		biosProgram = biosProgram + "_c6474core";
+		biosProgram = biosProgram + "_c6474_core";
 	}
 }
 else
@@ -419,10 +429,13 @@ if ( loadPass )
 	{
 		try
 		{
-       			loadPass = false;
-			Program = biosProgram + coreId + ".x64P";
- 
-       			script.traceWrite("Loading " + Program + "\n");
+       		loadPass = false;
+			if (endianFlag == "LE") {
+			    Program = biosProgram + coreId + ".x64P";
+                  } else {
+			    Program = biosProgram + coreId + ".x64Pe";
+       	      }
+    		      script.traceWrite("Loading " + Program + "\n");
 			print("Loading " + Program + "\n");
 			switch (coreId)
 			{

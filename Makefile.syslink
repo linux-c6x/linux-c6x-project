@@ -3,7 +3,7 @@
 # SysLink kernel samples to build
 SYSLINK_KERNEL_SAMPLES_TO_BUILD ?= notify gateMP heapBufMP heapMemMP listMP messageQ sharedRegion
 # SysLink user land samples to build
-SYSLINK_USER_SAMPLES_TO_BUILD ?= procMgr $(SYSLINK_KERNEL_SAMPLES_TO_BUILD)
+SYSLINK_USER_SAMPLES_TO_BUILD ?= common procMgr $(SYSLINK_KERNEL_SAMPLES_TO_BUILD)
 
 KDIR=$(LINUX_C6X_TOP_DIR)/Build/kobjs/${SYSLINK_TO_BUILD}${ENDIAN_SUFFIX}
 SYSLINK_INSTALL=syslink_${SYSLINK_TO_BUILD}${ENDIAN_SUFFIX}
@@ -86,11 +86,11 @@ syslink-user:
 	@if [ "$(BUILD_USERSPACE_WITH_GCC)" = "yes" ] ; then \
 		(cd $(SYSLINK_ROOT)/ti/syslink/utils/hlos/usr/Linux; \
 		make TOOLCHAIN_PREFIX=$(CC_GNU) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
-		KDIR=$(KDIR) IPC_DIR=$(IPC_DIR) ENDIAN=$(ENDIAN)) \
+		IPC_DIR=$(IPC_DIR) ENDIAN=$(ENDIAN)) \
 	else \
 		(cd $(SYSLINK_ROOT)/ti/syslink/utils/hlos/usr/Linux; \
 		make TOOLCHAIN_PREFIX=$(CC_SDK) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
-		KDIR=$(KDIR) IPC_DIR=$(IPC_DIR)) \
+		TI_COMPILER="yes" IPC_DIR=$(IPC_DIR) ENDIAN=$(ENDIAN))  \
 	fi
 
 	for module_name in $(SYSLINK_USER_SAMPLES_TO_BUILD) ; do \
@@ -98,12 +98,12 @@ syslink-user:
 			echo building $$module_name; \
 			(cd $(SYSLINK_ROOT)/ti/syslink/samples/hlos/$$module_name/usr/Linux; \
 			make TOOLCHAIN_PREFIX=$(CC_GNU) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
-			KDIR=$(KDIR) IPC_DIR=$(IPC_DIR) ENDIAN=$(ENDIAN)) \
+			IPC_DIR=$(IPC_DIR) ENDIAN=$(ENDIAN)) \
 		else \
 			echo building $$module_name; \
 			(cd $(SYSLINK_ROOT)/ti/syslink/samples/hlos/$$module_name/usr/Linux; \
 			make TOOLCHAIN_PREFIX=$(CC_SDK) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
-			TI_COMPILER="yes" KDIR=$(KDIR) IPC_DIR=$(IPC_DIR)) \
+			TI_COMPILER="yes" IPC_DIR=$(IPC_DIR) ENDIAN=$(ENDIAN)) \
 		fi \
 	done	
 
@@ -137,9 +137,12 @@ syslink-install:
 	[ -d $(PRODUCT_DIR) ] || echo "no product directory"
 	[ -d $(PRODUCT_DIR)/$(SYSLINK_INSTALL) ] || mkdir -p $(PRODUCT_DIR)/$(SYSLINK_INSTALL)
 	@echo "Installing user land sample exe files"
-	cp -f $(SYSLINK_ROOT)/ti/syslink/lib/samples/*.exe $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/
+	cp -f $(SYSLINK_ROOT)/ti/syslink/bin/$(SYSLINK_PLATFORM)/samples/*_debug $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/
+	cp -f $(SYSLINK_ROOT)/ti/syslink/bin/$(SYSLINK_PLATFORM)/samples/*_release $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/
 	@echo "Installing kernel and sample modules"
-	cp -f $(SYSLINK_ROOT)/ti/syslink/lib/modules/$(SYSLINK_PLATFORM)/*.ko \
+	cp -f $(SYSLINK_ROOT)/ti/syslink/bin/$(SYSLINK_PLATFORM)/syslink.ko \
+		 $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/
+	cp -f $(SYSLINK_ROOT)/ti/syslink/bin/$(SYSLINK_PLATFORM)/samples/*.ko \
 		 $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/
 
 syslink-kernel-clean:
@@ -147,12 +150,24 @@ syslink-kernel-clean:
 	@if [ "$(BUILD_KERNEL_WITH_GCC)" = "yes" ] ; then \
 		(cd $(SYSLINK_ROOT)/ti/syslink/utils/hlos/knl/Linux; \
 		make ARCH=c6x CROSS_COMPILE=$(CC_GNU) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
-		KDIR=$(KDIR) IPC_DIR=$(IPC_DIR) clean) \
+		KDIR=$(KDIR) IPC_DIR=$(IPC_DIR) cleanall) \
 	else \
 		(cd $(SYSLINK_ROOT)/ti/syslink/utils/hlos/knl/Linux; \
 		make ARCH=c6x CROSS_COMPILE=$(CC_SDK0) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
-		KDIR=$(KDIR) IPC_DIR=$(IPC_DIR) clean) \
+		KDIR=$(KDIR) IPC_DIR=$(IPC_DIR) cleanall) \
 	fi
+	for module_name in $(SYSLINK_KERNEL_SAMPLES_TO_BUILD) ; do \
+		echo cleaning $$module_name; \
+		if [ "$(BUILD_KERNEL_WITH_GCC)" = "yes" ] ; then \
+			(cd $(SYSLINK_ROOT)/ti/syslink/samples/hlos/$$module_name/knl/Linux; \
+			make ARCH=c6x CROSS_COMPILE=$(CC_GNU) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
+			KDIR=$(KDIR) IPC_DIR=$(IPC_DIR) cleanall) \
+		else \
+			(cd $(SYSLINK_ROOT)/ti/syslink/samples/hlos/$$module_name/knl/Linux; \
+			make ARCH=c6x CROSS_COMPILE=$(CC_SDK0) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
+			KDIR=$(KDIR) IPC_DIR=$(IPC_DIR) cleanall) \
+		fi \
+	done
 
 syslink-user-clean:
 
@@ -160,11 +175,11 @@ syslink-user-clean:
 	@if [ "$(BUILD_USERSPACE_WITH_GCC)" = "yes" ] ; then \
 		(cd $(SYSLINK_ROOT)/ti/syslink/utils/hlos/usr/Linux; \
 		make TOOLCHAIN_PREFIX=$(CC_GNU) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
-		KDIR=$(KDIR) IPC_DIR=$(IPC_DIR) clean) \
+		IPC_DIR=$(IPC_DIR) cleanall) \
 	else \
 		(cd $(SYSLINK_ROOT)/ti/syslink/utils/hlos/usr/Linux; \
 		make TOOLCHAIN_PREFIX=$(CC_SDK) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
-		KDIR=$(KDIR) IPC_DIR=$(IPC_DIR) clean) \
+		IPC_DIR=$(IPC_DIR) cleanall) \
 	fi
 
 	for module_name in $(SYSLINK_USER_SAMPLES_TO_BUILD) ; do \
@@ -172,11 +187,11 @@ syslink-user-clean:
 		if [ "$(BUILD_USERSPACE_WITH_GCC)" = "yes" ] ; then \
 			(cd $(SYSLINK_ROOT)/ti/syslink/samples/hlos/$$module_name/usr/Linux; \
 			make TOOLCHAIN_PREFIX=$(CC_GNU) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
-			KDIR=$(KDIR) IPC_DIR=$(IPC_DIR) clean) \
+			IPC_DIR=$(IPC_DIR) cleanall) \
 		else \
 			(cd $(SYSLINK_ROOT)/ti/syslink/samples/hlos/$$module_name/usr/Linux; \
 			make TOOLCHAIN_PREFIX=$(CC_SDK) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
-			KDIR=$(KDIR) IPC_DIR=$(IPC_DIR) clean) \
+			IPC_DIR=$(IPC_DIR) cleanall) \
 		fi \
 	done	
 

@@ -86,18 +86,18 @@ export PKG_LIST="zlib net-snmp polarssl ttcp dhrystone nbench-byte tcpdump"
 export SYSLINK_TO_BUILD="evmc6474"
 
 # SysLink install directory
-export SYSLINK_ROOT=$LINUX_C6X_TOP_DIR/syslink_02_00_00_56_c6x_02_alpha2
+export SYSLINK_ROOT=$LINUX_C6X_TOP_DIR/syslink
 
 # IPC package install directory
-export IPC_DIR=$LINUX_C6X_TOP_DIR/ipc_1_22_00_19
+export IPC_DIR=$LINUX_C6X_TOP_DIR/ipc_1_22_04_25/packages
 
 # ********** Below this for building SysLink rtos samples *********************
 
 # BIOS package install directory
-export BIOS_DIR=$LINUX_C6X_TOP_DIR/bios_6_31_00_18
+export BIOS_DIR=$LINUX_C6X_TOP_DIR/bios_6_31_04_27
 
 # XDC tool
-export XDC_DIR=$LINUX_C6X_TOP_DIR/xdctools_3_20_05_76
+export XDC_DIR=$LINUX_C6X_TOP_DIR/xdctools_3_20_08_88
 
 # CGT folders used in config.bld
-export XDCPATH="$BIOS_DIR/packages;$IPC_DIR/packages"
+export XDCPATH="$BIOS_DIR/packages;$IPC_DIR"
