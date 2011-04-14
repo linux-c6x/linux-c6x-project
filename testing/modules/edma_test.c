@@ -105,8 +105,13 @@ module_param(ccnt, int, S_IRUGO);
 
 #define MAX_DMA_TRANSFER_IN_BYTES   (acnt * bcnt * ccnt)
 
+#ifdef CONFIG_TMS320C66X
+#define GPIO_LINE     1
+#define GPIO_DMA_EVT  EDMA_CTLR_CHAN(EDMA1_CTLR, DMA1_GPIO_EVT1)
+#else
 #define GPIO_LINE     5
 #define GPIO_DMA_EVT  DMA_GPIO_EVT5
+#endif
 
 static struct gpio_controller *__iomem g;
 static int old_gpio_dir;
@@ -280,6 +285,7 @@ static int edma_test_init(void)
 					goto done;
 				}
 #if defined(GPIO_DMA_EVT)
+				DMA_PRINTK("Starting edma3_gpio_triggered_dma\n");
 				result = edma3_gpio_triggered_dma(acnt,
 								  bcnt,
 								  ccnt,
@@ -363,13 +369,15 @@ int edma3_memtomemcpytest_dma(int acnt, int bcnt, int ccnt, int sync_mode,
 					 DMA_BIDIRECTIONAL);
 
 	dma_ch = edma_alloc_channel(EDMA_CHANNEL_ANY, callback1, NULL,
-			event_queue);
+				    event_queue);
 	if (dma_ch < 0) {
 		DMA_PRINTK
 		    ("\nedma3_memtomemcpytest_dma: edma_alloc_channel failed for dma_ch, error:%d\n",
 		     dma_ch);
 		return dma_ch;
 	}
+
+	DMA_PRINTK("channel is %d\n", dma_ch);
 
 	param_set.opt = 0;
 	param_set.src = (unsigned)dmaphyssrc1;
