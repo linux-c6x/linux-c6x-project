@@ -5,7 +5,7 @@ LOCALVERSION = -evmc6678$(ENDIAN_SUFFIX)-$(DATE)
 # these are optional
 CONFIGPATCH =
 ifeq ($(ENDIAN),little)
-CMDLINE = console=ttyS0,115200 rw
+CMDLINE = console=ttyS0,115200 ip=dhcp root=/dev/nfs nfsroot=158.218.100.25:/opt/min-root-c6x,v3,tcp rw
 else
 CMDLINE = console=cio rw
 endif
