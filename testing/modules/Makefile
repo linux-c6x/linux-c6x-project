@@ -6,5 +6,6 @@ obj-m := board_name.o
 obj-m += edma_test.o
 
 # watchdog test helper
-obj-m += wdt_test.o
+#TODO - To be enabled when wd timer driver is added 
+#obj-m += wdt_test.o
 
