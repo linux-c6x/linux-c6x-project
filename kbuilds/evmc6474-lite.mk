@@ -6,11 +6,9 @@ DEFCONFIG = ti_evmc6474_lite_defconfig
 CONFIGPATCH =
 
 ifeq ($(ENDIAN),little)
-CMDLINE = console=hvc ip=dhcp root=/dev/nfs nfsroot=158.218.100.25:/opt/min-root-c6x rw
-#CMDLINE = console=hvc ip=dhcp root=/dev/nfs nfsroot=10.218.100.248:/opt/min-root-c6474-le rw
+CMDLINE = console=cio ip=dhcp root=/dev/nfs nfsroot=158.218.100.25:/opt/min-root-c6x rw
 else
-CMDLINE = console=hvc ip=dhcp root=/dev/nfs nfsroot=158.218.100.25:/opt/min-root-c6x-be rw
-#CMDLINE = console=hvc ip=dhcp root=/dev/nfs nfsroot=10.218.100.248:/opt/min-root-c6474-be rw
+CMDLINE = console=cio ip=dhcp root=/dev/nfs nfsroot=158.218.100.25:/opt/min-root-c6x-be rw
 endif
 
 # tack this on to name of kernel when copying vmlinux to product directory
