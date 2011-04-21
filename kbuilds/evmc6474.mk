@@ -6,7 +6,7 @@ DEFCONFIG = ti_evmc6474_defconfig
 CONFIGPATCH =
 
 ifeq ($(ENDIAN),little)
-CMDLINE = console=cio ip=dhcp root=/dev/nfs nfsroot=158.218.100.179:/local/mkaricheri/target-6678-ltp,v3,tcp rw
+CMDLINE = console=cio ip=dhcp root=/dev/nfs nfsroot=158.218.100.25:/opt/min-root-c6x,v3,tcp rw
 else
 CMDLINE = console=cio ip=dhcp root=/dev/nfs nfsroot=158.218.100.25:/opt/min-root-c6x-be,v3,tcp rw
 endif
