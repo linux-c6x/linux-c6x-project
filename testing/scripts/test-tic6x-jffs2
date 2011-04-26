@@ -92,9 +92,8 @@ case "$BOARD" in
     EVMC6678)
 	# 64MiB NAND flash. Three partitions:
 	#
-	#    "bootloader" -> 2MiB
 	#    "kernel"     -> 16MiB
-	#    "filesystem" -> 46MiB
+	#    "filesystem" -> 48MiB
 	#
 	# empty image created with:
 	#   mkfs.jffs2 -n -l --pad=0x2000000 -r empty-dir -s 512 -e 16 KiB -o image.jffs2
