@@ -88,6 +88,25 @@ case "$BOARD" in
 	MTDNAME=filesystem
 	FLASHTYPE=NAND
 	;;
+
+    EVMC6678)
+	# 64MiB NAND flash. Three partitions:
+	#
+	#    "bootloader" -> 2MiB
+	#    "kernel"     -> 16MiB
+	#    "filesystem" -> 46MiB
+	#
+	# empty image created with:
+	#   mkfs.jffs2 -n -l --pad=0x2000000 -r empty-dir -s 512 -e 16 KiB -o image.jffs2
+	#
+	#   NB: image is smaller than partition to allow room for bad blocks
+	#       when writing with nandwrite.
+	#
+	EMPTY_IMAGE=$IMAGEDIR/empty-32M-16K.jffs2
+	MTDNAME=filesystem
+	FLASHTYPE=NAND
+	;;
+
     UNKNOWN)
 	echo "Unknown board"
 	exit 1
