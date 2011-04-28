@@ -148,6 +148,9 @@ MTD_DIR = $(BLD)/rootfs/mtd-utils-$(ARCHe)
 
 RIO_SRC = $(TOP)/projects/rio-utils
 
+#install mcsdk demo here
+MCSDK_DEMO_DIR=$(TOP)/projects/c6x-linux-mcsdk-demo
+
 # install rio  here
 RIO_DIR = $(BLD)/rootfs/rio-utils-$(ARCHe)
 
@@ -334,6 +337,19 @@ one-mtd: $(call COND_DEP, one-sdk)
 	[ -d $(BLD)/mtd-utils$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/mtd-utils$(ENDIAN_SUFFIX)
 	$(SUB_MAKE) -C $(BLD)/mtd-utils$(ENDIAN_SUFFIX) CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) mtd-sub
 
+one-mcsdk-demo:
+	if [ -d $(MCSDK_DEMO_DIR) ]; then \
+	[ -d $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX) ; \
+	cp -a $(MCSDK_DEMO_DIR)/* $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX) ; \
+	(cd $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) ) ; \
+	else \
+		echo "install $(MCSDK_DEMO_DIR) and re-run build"; \
+		exit; \
+	fi
+
+one-mcsdk-demo-clean:
+	rm -rf $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)
+
 ifeq ($(BUILD_USERSPACE_WITH_GCC),yes)
 MTD_LDFLAGS = -mdsbt -static
 MTD_CFLAGS = -O2 -g -mdsbt
@@ -479,6 +495,24 @@ min-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one
 	(cd $(BLD)/rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
+mcsdk-demo-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one-mtd) $(call COND_DEP, one-mcsdk-demo) 
+	if [ -d $(BLD)/rootfs/$@ -a -e $(BLD)/rootfs/$@-marker ] ; then rm -rf $(BLD)/rootfs/$@; fi
+	mkdir -p $(BLD)/rootfs/$@; date > $(BLD)/rootfs/$@-marker
+	(cd $(BLD)/rootfs/$@; cpio -i <$(PRJ)/rootfs/min-root-skel.cpio)
+	cp -a rootfs/min-root-extra/* $(BLD)/rootfs/$@
+	rm -rf $(BLD)/rootfs/$@/web
+	# call mcsdk demo install
+	(cd $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) INSTALL_PREFIX=$(BLD)/rootfs/$@ install )
+	cp -a $(BBOX_DIR)/* $(BLD)/rootfs/$@
+	cp -a $(MTD_DIR)/* $(BLD)/rootfs/$@
+	cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
+	if [ -n $(EXTRA_ROOT_DIR) ] ; then for dir in $(EXTRA_ROOT_DIR); do cp -a $$dir/rootfs/* $(BLD)/rootfs/$@ ; done ; fi
+	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(BLD)/rootfs/$@; tar xf -))
+	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - usr/lib | (cd $(BLD)/rootfs/$@; tar xf -))
+	cp rootfs/min-root-devs.cpio $(BLD)/rootfs/$@.cpio
+	(cd $(BLD)/rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
+	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
+
 full-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one-mtd) $(call COND_DEP, one-rio) $(call COND_DEP, one-packages)
 	if [ -d $(BLD)/rootfs/$@ -a -e $(BLD)/rootfs/$@-marker ] ; then rm -rf $(BLD)/rootfs/$@; fi
 	mkdir -p $(BLD)/rootfs/$@; date > $(BLD)/rootfs/$@-marker
@@ -572,7 +606,11 @@ one-ltp-root-clean:
 	rm -rf $(BLD)/rootfs/ltp-root-$(ARCHe)
 	rm -rf $(BLD)/rootfs/ltp-root-$(ARCHe).cpio
 
-one-clean: one-mtd-clean one-rio-clean one-busybox-clean one-clib-clean one-sdk-clean one-min-root-clean one-full-root-clean one-ltp-clean one-ltp-root-clean
+one-mcsdk-demo-root-clean:
+	rm -rf $(BLD)/rootfs/mcsdk-demo-root-$(ARCHe)
+	rm -rf $(BLD)/rootfs/mcsdk-demo-root-$(ARCHe).cpio
+
+one-clean: one-mtd-clean one-rio-clean one-busybox-clean one-clib-clean one-sdk-clean one-min-root-clean one-full-root-clean one-ltp-clean one-ltp-root-clean one-mcsdk-demo-clean one-mcsdk-demo-root-clean
 	rm -rf $(MOD_DIR) $(HDR_DIR) $(BBOX_DIR)
 	rm -rf $(KOBJ_BASE)
 	make sdk0-clean
