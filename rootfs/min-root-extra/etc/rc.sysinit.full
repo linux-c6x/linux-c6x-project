@@ -146,5 +146,10 @@ fi
 #cat /proc/mounts
 
 echo
+
+if [ -f /proc/net/tcp ]; then
+	ifconfig eth0
+fi
+
 echo "System started."
 echo
