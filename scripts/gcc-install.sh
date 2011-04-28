@@ -55,25 +55,25 @@ TOOLCHAIN_BIN_TARFILE=${UCLINUX_PREFIX}-i686-pc-linux-gnu.tar.bz2
 UCLIBC_SRC=uclibc-${GCC_REL}
 UCLIBC_SRC_TARFILE=${UCLIBC_SRC}.tar.bz2
 
-echo "Installing gcc tool chain to ${INSTALL_DIR}/c6x-4.5"
-echo "Installing uclibc source under ${INSTALL_DIR}/uclibc-ti-c6x"
+echo "Installing gcc tool chain to ${INSTALL_DIR}/gcc-c6x"
+echo "Installing uclibc source under ${INSTALL_DIR}/gcc-c6x-uclibc"
 
-if [ -d ${INSTALL_DIR}/c6x-4.5 ]; then
-	if [ -d ${INSTALL_DIR}/c6x-4.5-old ]; then
-		echo removing ${INSTALL_DIR}/c6x-4.5-old
-		rm -rf ${INSTALL_DIR}/c6x-4.5-old
+if [ -d ${INSTALL_DIR}/gcc-c6x ]; then
+	if [ -d ${INSTALL_DIR}/gcc-c6x-old ]; then
+		echo removing ${INSTALL_DIR}/gcc-c6x-old
+		rm -rf ${INSTALL_DIR}/gcc-c6x-old
 	fi
-	echo moving old tool chain to ${INSTALL_DIR}/c6x-4.5-old
-	mv -f ${INSTALL_DIR}/c6x-4.5 ${INSTALL_DIR}/c6x-4.5-old
+	echo moving old tool chain to ${INSTALL_DIR}/gcc-c6x-old
+	mv -f ${INSTALL_DIR}/gcc-c6x ${INSTALL_DIR}/gcc-c6x-old
 fi
 
-if [ -d ${INSTALL_DIR}/uclibc-ti-c6x ]; then
-	if [ -d ${INSTALL_DIR}/uclibc-ti-c6x-old ]; then
-		echo removing ${INSTALL_DIR}/uclibc-ti-c6x-old
-		rm -rf ${INSTALL_DIR}/uclibc-ti-c6x-old
+if [ -d ${INSTALL_DIR}/gcc-c6x-uclibc ]; then
+	if [ -d ${INSTALL_DIR}/gcc-c6x-uclibc-old ]; then
+		echo removing ${INSTALL_DIR}/gcc-c6x-uclibc-old
+		rm -rf ${INSTALL_DIR}/gcc-c6x-uclibc-old
 	fi
-	echo moving old uclibc source to ${INSTALL_DIR}/uclibc-ti-c6x-old
-	mv -f ${INSTALL_DIR}/uclibc-ti-c6x ${INSTALL_DIR}/uclibc-ti-c6x-old
+	echo moving old uclibc source to ${INSTALL_DIR}/gcc-c6x-uclibc-old
+	mv -f ${INSTALL_DIR}/gcc-c6x-uclibc ${INSTALL_DIR}/gcc-c6x-uclibc-old
 fi
 
 mkdir -p ${TEMPDIR}
@@ -95,8 +95,22 @@ echo Extracting ${UCLINUX_SRC_PKG_TARFILE}
 (cd ${TEMPDIR}; tar -xvjf ${UCLINUX_SRC_PKG_TARFILE})
 echo Installing gcc tool chain under ${INSTALL_DIR}
 (cd ${INSTALL_DIR}; tar -xvjf ${TEMPDIR}/${TOOLCHAIN_BIN_TARFILE})
+if [ ! -d ${INSTALL_DIR}/c6x-4.5 ]
+then
+	echo "Installation of gcc tool chain failed"
+else
+	echo "Renaming tool chain folder to gcc-c6x"
+	mv ${INSTALL_DIR}/c6x-4.5 ${INSTALL_DIR}/gcc-c6x
+fi
 echo Installing uclibc source under ${INSTALL_DIR}
 (cd ${INSTALL_DIR}; tar -xvjf ${TEMPDIR}/${UCLINUX_PREFIX}/${UCLIBC_SRC_TARFILE})
+if [ ! -d ${INSTALL_DIR}/uclibc-ti-c6x ]
+then
+	echo "Installation of gcc uclibc source failed"
+else
+	echo "Renaming uclibc folder to gcc-c6x-uclibc"
+	mv ${INSTALL_DIR}/uclibc-ti-c6x ${INSTALL_DIR}/gcc-c6x-uclibc
+fi
 echo removing the temp files at ${TEMPDIR}
 rm -rf ${TEMPDIR}
 
