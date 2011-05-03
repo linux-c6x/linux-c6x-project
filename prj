@@ -284,7 +284,7 @@ bootstrap-stage1)
     do-bootstrap-stage1 "$@"
 ;;
 bootstrap-stage2)
-    for prj in $REST_PRJ ; do
+    for prj in $ALL_PRJ ; do
         echo "****** $prj"
         (do-clone-ref $prj $REF)
     done
