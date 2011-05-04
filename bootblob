@@ -47,12 +47,12 @@ expand-vars() {
     KERNEL_START_ABS=$(($ABS_BASE + 0))
 
     val=$1
-    val=${val//%fsimage-start-off%/$(printf "%d" $FSIMAGE_START)}
-    val=${val//%fsimage-start-off-x%/$(printf "%x" $FSIMAGE_START)}
-    val=${val//%fsimage-start-abs%/$(printf "%d" $FSIMAGE_START_ABS)}
-    val=${val//%fsimage-start-abs-x%/$(printf "%x" $FSIMAGE_START_ABS)}
-    val=${val//%fsimage-size%/$(printf "%d" $FSIMAGE_SIZE)}
-    val=${val//%fsimage-size-x%/$(printf "%x" $FSIMAGE_SIZE)}
+    val=${val//\%fsimage-start-off%/$(printf "%d" $FSIMAGE_START)}
+    val=${val//\%fsimage-start-off-x%/$(printf "%x" $FSIMAGE_START)}
+    val=${val//\%fsimage-start-abs%/$(printf "%d" $FSIMAGE_START_ABS)}
+    val=${val//\%fsimage-start-abs-x%/$(printf "%x" $FSIMAGE_START_ABS)}
+    val=${val//\%fsimage-size%/$(printf "%d" $FSIMAGE_SIZE)}
+    val=${val//\%fsimage-size-x%/$(printf "%x" $FSIMAGE_SIZE)}
     echo "$val"
 }
 
