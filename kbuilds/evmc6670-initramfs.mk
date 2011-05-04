@@ -8,5 +8,5 @@ CONFIGPATCH =
 CONFIGSCRIPT = initramfs.sh
 CONFIGARGS = $(BLD)/rootfs/$(ROOTFS)-$(ARCHe) NONE
 
-CMDLINE = console=cio ip=dhcp rw
+CMDLINE = console=ttyS0,115200 ip=dhcp rw
 PRODVERSION = -1-initramfs
