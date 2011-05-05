@@ -34,6 +34,8 @@
 #define BOARD_NAME "EVMC6474L"
 #elif defined(CONFIG_ARCH_BOARD_EVM6678)
 #define BOARD_NAME "EVMC6678"
+#elif defined(CONFIG_ARCH_BOARD_EVM6670)
+#define BOARD_NAME "EVMC6670"
 #else
 #define BOARD_NAME "UNKNOWN"
 #endif

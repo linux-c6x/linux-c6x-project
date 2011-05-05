@@ -38,8 +38,11 @@ INSTALL_DIR=$(pwd)
 if [ "$2X" = "tiX" ] ; then
 GCC_TOOL_LOCATION=http://gtwmills.gt.design.ti.com/linux-c6x/received/codesourcery
 else
-GCC_TOOL_LOCATION=http://www.codesourcery.com/sgpp/lite/c6000/portal/package8272/c6x-uclinux
-GCC_TOOL_LOCATION1=http://www.codesourcery.com/sgpp/lite/c6000/portal/package8271/c6x-uclinux
+# location of old release 4.5-97 commented here
+#GCC_TOOL_LOCATION=http://www.codesourcery.com/sgpp/lite/c6000/portal/package8272/c6x-uclinux
+#GCC_TOOL_LOCATION1=http://www.codesourcery.com/sgpp/lite/c6000/portal/package8271/c6x-uclinux
+GCC_TOOL_LOCATION=https://support.codesourcery.com/GNUToolchain/package8639/c6x-uclinux
+GCC_TOOL_LOCATION1=https://support.codesourcery.com/GNUToolchain/package8638/c6x-uclinux
 fi
 
 echo "Downloading from $GCC_TOOL_LOCATION"
@@ -79,10 +82,15 @@ fi
 mkdir -p ${TEMPDIR}
 
 if [ "$2X" = "csX" ] ; then
-echo Downloading gcc tool chain binary  ${GCC_TOOL_LOCATION}/${TOOL_DIR}/${TOOLCHAIN_BIN_TARFILE}
-wget --directory-prefix=${TEMPDIR}  ${GCC_TOOL_LOCATION}/${TOOL_DIR}/${TOOLCHAIN_BIN_TARFILE}
-echo Downloading uclibc source ${GCC_TOOL_LOCATION1}/${TOOL_DIR}/${UCLINUX_SRC_PKG_TARFILE}
-wget --directory-prefix=${TEMPDIR}  ${GCC_TOOL_LOCATION1}/${TOOL_DIR}/${UCLINUX_SRC_PKG_TARFILE}
+# old release 4.5-97 wget commands commented here
+#echo Downloading gcc tool chain binary  ${GCC_TOOL_LOCATION}/${TOOL_DIR}/${TOOLCHAIN_BIN_TARFILE}
+#wget --directory-prefix=${TEMPDIR}  ${GCC_TOOL_LOCATION}/${TOOL_DIR}/${TOOLCHAIN_BIN_TARFILE}
+#echo Downloading uclibc source ${GCC_TOOL_LOCATION1}/${TOOL_DIR}/${UCLINUX_SRC_PKG_TARFILE}
+#wget --directory-prefix=${TEMPDIR}  ${GCC_TOOL_LOCATION1}/${TOOL_DIR}/${UCLINUX_SRC_PKG_TARFILE}
+echo Downloading gcc tool chain binary  ${GCC_TOOL_LOCATION}/${TOOLCHAIN_BIN_TARFILE}
+wget --directory-prefix=${TEMPDIR} --no-check-certificate ${GCC_TOOL_LOCATION}/${TOOLCHAIN_BIN_TARFILE}
+echo Downloading uclibc source ${GCC_TOOL_LOCATION1}/${UCLINUX_SRC_PKG_TARFILE}
+wget --directory-prefix=${TEMPDIR} --no-check-certificate ${GCC_TOOL_LOCATION1}/${UCLINUX_SRC_PKG_TARFILE}
 else
 echo Downloading gcc tool chain binary  ${GCC_TOOL_LOCATION}/${TOOL_DIR}/${TOOLCHAIN_BIN_TARFILE}
 wget --directory-prefix=${TEMPDIR}  ${GCC_TOOL_LOCATION}/${TOOL_DIR}/${TOOLCHAIN_BIN_TARFILE}

@@ -89,7 +89,7 @@ case "$BOARD" in
 	FLASHTYPE=NAND
 	;;
 
-    EVMC6678)
+    EVMC6678 | EVMC6670)
 	# 64MiB NAND flash. Three partitions:
 	#
 	#    "kernel"     -> 16MiB
