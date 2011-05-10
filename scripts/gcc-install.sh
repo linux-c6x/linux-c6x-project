@@ -1,48 +1,77 @@
 #!/bin/sh
 # Author - Murali Karicheri
 # used for installing gcc tool chain to the c6x-project top level
-# install tool chain to c6x-4.5-97 under pwd
-# install uclibc source to uclibc-ti-c6x under pwd
-# edit GCC_TOOL_LOCATION and GCC_TOOL_LOCATION1 for correct path to cs public directory
-# currently set to the folder corresponding to release1703
-# for installation from ti internal server, no change is needed
-# if you are behind a proxy, export http_proxy=<proxy>
+# install tool chain under $(pwd)/gcc-c6x
+# install uclibc source to $(pwd)/gcc-c6x-uclibc 
+# if you are behind a proxy, export http_proxy=<proxy> and https_proxy=<proxy>
 
 gcc_tools_install_help() {
-    echo "Usage gcc-install <release> <ti/cs>"
-    echo "Example gcc-install 4.5-97 ti - for installing from ti server"
+    echo "Usage gcc-install <release> <ti/[cs]>"
+    echo "Example gcc-install 4.5-109 - for installing specific version from cs public folder"
+    echo "Only 4.5-97 or 4.5-109 available in cs public folder"
     echo "--------------OR-------------"
-    echo "Example gcc-install 4.5-97 cs - for installing from cs public folder"
+    echo "Example gcc-install 4.5-109 ti - for installing from ti server"
 }
 
-if [ "$1X" = "X" ] ; then
+validate() {
+	if [ "$1X" = "4.5-97X" ]
+	then
+		GCC_REL=$1
+	else
+		if [ "$1X" != "4.5-109X" ]
+		then
+			echo "Only 4.5-97 or 4.5-109 available"
+			exit 0;
+		fi
+	fi
+}
+
+SERVER="cs"
+GCC_REL="4.5-109"
+
+if [ "$1X" = "X" ]
+then
  	gcc_tools_install_help	
     	exit 0;
 else
-	if [ "$2X" = "csX" ]; then
+	if [ "$2X" = "csX" ]
+	then
+		validate $1
 		echo "Installing gcc release $1 from cs public site"
 	else
-		if [ "$2X" = "tiX" ]; then
+		if [ "$2X" = "tiX" ]
+		then
     			echo "Installing gcc release $1 from ti internal server"
+			SERVER="ti"
+			GCC_REL=$1
 		else
-			gcc_tools_install_help
-			exit 0;
+			if [ "$2X" != "X" ]
+			then
+				gcc_tools_install_help
+				exit 0;
+			fi
+			validate $1
+    			echo "Installing gcc release $1 from cs public site"
 		fi
 	fi
 fi
 
-GCC_REL=$1;
 
 INSTALL_DIR=$(pwd)
 
-if [ "$2X" = "tiX" ] ; then
+if [ "$SERVER" = "ti" ]
+then
 GCC_TOOL_LOCATION=http://gtwmills.gt.design.ti.com/linux-c6x/received/codesourcery
 else
+if [ "$GCC_REL" = "4.5-97" ]
+then
 # location of old release 4.5-97 commented here
-#GCC_TOOL_LOCATION=http://www.codesourcery.com/sgpp/lite/c6000/portal/package8272/c6x-uclinux
-#GCC_TOOL_LOCATION1=http://www.codesourcery.com/sgpp/lite/c6000/portal/package8271/c6x-uclinux
+GCC_TOOL_LOCATION=http://www.codesourcery.com/sgpp/lite/c6000/portal/package8272/c6x-uclinux
+GCC_TOOL_LOCATION1=http://www.codesourcery.com/sgpp/lite/c6000/portal/package8271/c6x-uclinux
+else
 GCC_TOOL_LOCATION=https://support.codesourcery.com/GNUToolchain/package8639/c6x-uclinux
 GCC_TOOL_LOCATION1=https://support.codesourcery.com/GNUToolchain/package8638/c6x-uclinux
+fi
 fi
 
 echo "Downloading from $GCC_TOOL_LOCATION"
@@ -81,16 +110,22 @@ fi
 
 mkdir -p ${TEMPDIR}
 
-if [ "$2X" = "csX" ] ; then
-# old release 4.5-97 wget commands commented here
-#echo Downloading gcc tool chain binary  ${GCC_TOOL_LOCATION}/${TOOL_DIR}/${TOOLCHAIN_BIN_TARFILE}
-#wget --directory-prefix=${TEMPDIR}  ${GCC_TOOL_LOCATION}/${TOOL_DIR}/${TOOLCHAIN_BIN_TARFILE}
-#echo Downloading uclibc source ${GCC_TOOL_LOCATION1}/${TOOL_DIR}/${UCLINUX_SRC_PKG_TARFILE}
-#wget --directory-prefix=${TEMPDIR}  ${GCC_TOOL_LOCATION1}/${TOOL_DIR}/${UCLINUX_SRC_PKG_TARFILE}
+if [ "$SERVER" = "cs" ]
+then
+if [ "$GCC_REL" = "4.5-97" ]
+then
+# old release 4.5-97
+echo Downloading gcc tool chain binary  ${GCC_TOOL_LOCATION}/${TOOL_DIR}/${TOOLCHAIN_BIN_TARFILE}
+wget --directory-prefix=${TEMPDIR}  ${GCC_TOOL_LOCATION}/${TOOL_DIR}/${TOOLCHAIN_BIN_TARFILE}
+echo Downloading uclibc source ${GCC_TOOL_LOCATION1}/${TOOL_DIR}/${UCLINUX_SRC_PKG_TARFILE}
+wget --directory-prefix=${TEMPDIR}  ${GCC_TOOL_LOCATION1}/${TOOL_DIR}/${UCLINUX_SRC_PKG_TARFILE}
+else
+# 4.5-107
 echo Downloading gcc tool chain binary  ${GCC_TOOL_LOCATION}/${TOOLCHAIN_BIN_TARFILE}
 wget --directory-prefix=${TEMPDIR} --no-check-certificate ${GCC_TOOL_LOCATION}/${TOOLCHAIN_BIN_TARFILE}
 echo Downloading uclibc source ${GCC_TOOL_LOCATION1}/${UCLINUX_SRC_PKG_TARFILE}
 wget --directory-prefix=${TEMPDIR} --no-check-certificate ${GCC_TOOL_LOCATION1}/${UCLINUX_SRC_PKG_TARFILE}
+fi
 else
 echo Downloading gcc tool chain binary  ${GCC_TOOL_LOCATION}/${TOOL_DIR}/${TOOLCHAIN_BIN_TARFILE}
 wget --directory-prefix=${TEMPDIR}  ${GCC_TOOL_LOCATION}/${TOOL_DIR}/${TOOLCHAIN_BIN_TARFILE}
