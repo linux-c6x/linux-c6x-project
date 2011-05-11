@@ -120,7 +120,7 @@ wget --directory-prefix=${TEMPDIR}  ${GCC_TOOL_LOCATION}/${TOOL_DIR}/${TOOLCHAIN
 echo Downloading uclibc source ${GCC_TOOL_LOCATION1}/${TOOL_DIR}/${UCLINUX_SRC_PKG_TARFILE}
 wget --directory-prefix=${TEMPDIR}  ${GCC_TOOL_LOCATION1}/${TOOL_DIR}/${UCLINUX_SRC_PKG_TARFILE}
 else
-# 4.5-107
+# 4.5-109
 echo Downloading gcc tool chain binary  ${GCC_TOOL_LOCATION}/${TOOLCHAIN_BIN_TARFILE}
 wget --directory-prefix=${TEMPDIR} --no-check-certificate ${GCC_TOOL_LOCATION}/${TOOLCHAIN_BIN_TARFILE}
 echo Downloading uclibc source ${GCC_TOOL_LOCATION1}/${UCLINUX_SRC_PKG_TARFILE}
