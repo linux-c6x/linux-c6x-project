@@ -66,17 +66,22 @@ mount_dev() {
 make_static_nodes() {
     CONF=/etc/mdev_static_nodes.conf
     [ -e $CONF ] || return 0
-    grep '^[^#]' $CONF | 
-    while read type name arg1; do
-	[ "$type" -a "$name" -a ! -e "/dev/$name" -a ! -L "/dev/$name" ] || 
-	continue
-	case "$type" in
-	    L) ln -s $arg1 /dev/$name;;
-            D) mkdir -p /dev/$name ;;
-	    M) mknod -m 600 /dev/$name $arg1 ;;
-	    *) echo "`basename $CONF`: malformed line '$type $name $arg1'" ;;
+    cat <<EOF > /tmp/build_mdev
+#!/bin/sh
+while read type name arg1; do
+        [ "\$type" -a "\$name" -a ! -e "/dev/\$name" -a ! -L "/dev/\$name" ] ||
+        continue
+        case "\$type" in
+            L) ln -s \$arg1 /dev/\$name;;
+            D) mkdir -p /dev/\$name ;;
+            M) mknod -m 660 /dev/\$name \$arg1 ;;
+            *) echo "`basename \$CONF`: malformed line '\$type \$name \$arg1'" ;;
         esac
-    done
+done
+EOF
+    chmod 755 /tmp/build_mdev
+    grep '^[^#]' $CONF | /tmp/build_mdev
+    rm -f /tmp/build_mdev
 }
 
 if [ ! -x /sbin/mdev ]; then
@@ -91,7 +96,7 @@ fi
 
 mount_dev
 
-#make_static_nodes
+make_static_nodes
 
 echo "/sbin/mdev" > /proc/sys/kernel/hotplug
 /sbin/mdev -s
