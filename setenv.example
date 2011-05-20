@@ -17,6 +17,17 @@ export GNU_TOOLS_DIR=$LINUX_C6X_TOP_DIR/gcc-c6x
 #
 export KERNELS_TO_BUILD="evmc6472"
 
+# set the GCC tool chain version to use for the build.
+# example 4.5-109. This variable can be passed to the the gcc-install.sh
+# script to read this env variable and install the GCC tool chain after
+# doing a source setenv as.
+# gcc-install.sh $GCC_VERSION
+export GCC_VERSION=
+
+# set the CGT version to be used for the build. For future use when user
+# space build uses CGT. 
+export CGT_VERSION=
+
 # set to yes to build kernels with GCC
 # leave blank for kernel builds with TI tools
 export BUILD_KERNEL_WITH_GCC=yes
