@@ -140,6 +140,23 @@ handle-one-option-prj() {
     return 0
 }
 
+check-git() {
+    if $GIT_CHECKED; then
+	return
+    fi
+
+    GIT_CHECKED=true
+    if ! which git ; then 
+	echo "you don't have git in your PATH"
+	exit 2
+    fi
+
+    if git --version | grep -q [01]\.[0-6]\. ; then
+	echo "***Warning***: you are using $(git --version) and prj recomends at least 1.7"
+	FF_ONLY_OPTION=""
+    fi
+}
+
 do-bootstrap-stage1() {
     # handle options
     while handle-one-option-bootstrap $1 ; do
@@ -150,7 +167,7 @@ do-bootstrap-stage1() {
     if [ -n "$1" ] ; then REF=$1 ; fi
 
     # assure we have at least the tools we need to get the bom project
-    if ! which git ; then echo "you don't have git in your $PATH."; exit 2; fi
+    check-git
 
     # get the BOM project
     TOP="."
@@ -194,6 +211,8 @@ do-clone-ref() {
     STARTDIR=$(pwd)
     BASEDIR=$(dirname $TOP/$PRJ)
 
+    check-git
+
     # get the project, unless it exists already
     if [ -d $TOP/$PRJ/.git ] ; then
         echo "$TOP/$PRJ/.git already exists, skipping clone"
@@ -217,7 +236,7 @@ do-clone-ref() {
     refs/heads/*)
         # already a local branch of the same name, see if we can switch to it and update it
         git checkout ${FULL_REF#refs/heads/}
-        if ! git pull --ff-only $REMOTE $REF ; then
+        if ! git pull $FF_ONLY_OPTION $REMOTE $REF ; then
             git checkout $FULL_REF
         fi
         ;;
@@ -252,6 +271,9 @@ ME=$0
 MYDIR=$(dirname $0)
 STARTPWD=$PWD
 IS_BOOTSTRAP=false
+GIT_CHECKED=false
+FF_ONLY_OPTION="--ff-only"
+
 case "$(basename $0)" in
 *bootstrap) 
     IS_BOOTSTRAP=1
