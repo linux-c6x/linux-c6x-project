@@ -201,6 +201,7 @@ do-clone-ref() {
         mkdir -p $BASEDIR
         cd $BASEDIR
         git clone $BASEURL$PRJ$BOMEXT
+	cd $STARTDIR
     fi
     cd $TOP/$PRJ
 
