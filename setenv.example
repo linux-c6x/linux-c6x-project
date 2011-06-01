@@ -97,13 +97,13 @@ export PKG_LIST="zlib net-snmp polarssl ttcp dhrystone nbench-byte tcpdump iperf
 # ********** Below this for building SysLink **********************************
 
 # SysLink target platform to build. evmc6474 or evmc6472 or evmc6474-lite 
-export SYSLINK_TO_BUILD="evmc6474"
+export SYSLINK_TO_BUILD="evmc6678"
 
 # SysLink install directory
 export SYSLINK_ROOT=$LINUX_C6X_TOP_DIR/syslink
 
 # IPC package install directory
-export IPC_DIR=$LINUX_C6X_TOP_DIR/ipc_1_22_04_25/packages
+export IPC_DIR=$LINUX_C6X_TOP_DIR/ipc_1_22_05_27/packages
 
 # ********** Below this for building SysLink rtos samples *********************
 
