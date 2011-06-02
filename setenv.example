@@ -15,7 +15,7 @@ export GNU_TOOLS_DIR=$LINUX_C6X_TOP_DIR/gcc-c6x
 # any or all of the below can be included
 # export KERNELS_TO_BUILD="dsk6455 evmc6472 evmc6474 evmc6457 evmc6474-lite"
 #
-export KERNELS_TO_BUILD="evmc6472"
+export KERNELS_TO_BUILD="evmc6678"
 
 # set the GCC tool chain version to use for the build.
 # example 4.5-109. This variable can be passed to the the gcc-install.sh
