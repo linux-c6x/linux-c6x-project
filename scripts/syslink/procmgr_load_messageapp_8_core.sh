@@ -1,5 +1,5 @@
 #!/bin/sh
-echo "Beginning of MessageQ sample application run"
+echo "Beginning of MessageQ kernel test module run"
 echo "insmod syslink.ko"
 insmod syslink.ko
 echo "Loading and running slave core 1"
@@ -17,7 +17,7 @@ echo "Loading and running slave core 6"
 echo "Loading and running slave core 7"
 ./dl6x.gcc 7 messageq_c6678_core7.xe66
 echo "Running Notify User land sample application"
-./messageqapp_debug 7 1 0x817300 2 0x817300 3 0x817300 4 0x817300 5 0x817300 6 0x817300 7 0x817300 3
+./procmgrapp_debug 7 1 0x817300 2 0x817300 3 0x817300 4 0x817300 5 0x817300 6 0x817300 7 0x817300 3
 echo "rmmod syslink.ko"
 rmmod syslink.ko
-echo "MessageQ sample application run is complete"
+echo "MessageQ kernel test module run is complete"
