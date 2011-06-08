@@ -68,9 +68,10 @@
 #                         unit testing executable.                            #
 ###############################################################################
 
-TOOLPRFX         = c6x-uclinux-
-CC               = $(TOOLPRFX)gcc
-AR               = $(TOOLPRFX)ar
+INSTALL_PREFIX   ?=../..
+CROSS		?= c6x-uclinux-
+CC		= $(CROSS)gcc
+AR		= $(CROSS)ar
 
 ###############################################################################
 # Set C++ compiler to be same as C compiler.  For gcc this must be changed  
@@ -93,7 +94,6 @@ DEFAULT:
 endif
 endif
 
-ifeq (c6x-uclinux-gcc, $(CC))
 HOST_PRFX = GCC
 HOST_EXT = gcc
 #C_OPTS += -mv6400+ ## Kelvin determines HW to simulate based on base image
@@ -104,11 +104,6 @@ C_OPTS += -O2
 #C_OPTS += --abi=elfabi
 OUTPUT_FILE_OPTION = -o
 #LNK_OPTS += -dsbt --gcc --static 
-else
-DEFAULT:
-	@echo "Compiler '$(CC)' not supported"
-	@exit 1
-endif
 
 TARG_TOOL_NAME = $(TARG_TOOL_NAME_PRFX).$(HOST_EXT)
 
@@ -172,7 +167,8 @@ OBJS_UNIT += $(patsubst %.cpp,$(UNIT_OBJ_DIR)/%.obj,$(filter %.cpp, $(UNIT_FILES
 
 all: $(TARG_TOOL_NAME)
 unit: unit_$(TARG_TOOL_NAME)
-
+install:
+	cp -a dl6x.gcc $(INSTALL_PREFIX)
 ###############################################################################
 # Normal make process                                                         
 ###############################################################################

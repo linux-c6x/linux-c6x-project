@@ -350,6 +350,14 @@ one-mcsdk-demo:
 one-mcsdk-demo-clean:
 	rm -rf $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)
 
+one-elf-loader:
+# TODO currently support only C6678. So hard coded
+	[ -d $(BLD)/elf-loader$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/elf-loader$(ENDIAN_SUFFIX) ; \
+	cp -a $(TOP)/linux-c6x-project/tools/elfloader/* $(BLD)/elf-loader$(ENDIAN_SUFFIX) ; \
+	(cd $(BLD)/elf-loader$(ENDIAN_SUFFIX); make DEVICE=C6678 CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) ) ;
+one-elf-loader-clean:
+	rm -rf $(BLD)/elf-loader$(ENDIAN_SUFFIX)
+
 ifeq ($(BUILD_USERSPACE_WITH_GCC),yes)
 MTD_LDFLAGS = -mdsbt -static
 MTD_CFLAGS = -O2 -g -mdsbt
@@ -495,7 +503,7 @@ min-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one
 	(cd $(BLD)/rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
-mcsdk-demo-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one-mtd) $(call COND_DEP, one-mcsdk-demo) 
+mcsdk-demo-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one-mtd) $(call COND_DEP, one-mcsdk-demo) $(call COND_DEP, one-elf-loader)
 	if [ -d $(BLD)/rootfs/$@ -a -e $(BLD)/rootfs/$@-marker ] ; then rm -rf $(BLD)/rootfs/$@; fi
 	mkdir -p $(BLD)/rootfs/$@; date > $(BLD)/rootfs/$@-marker
 	(cd $(BLD)/rootfs/$@; cpio -i <$(PRJ)/rootfs/min-root-skel.cpio)
@@ -503,6 +511,7 @@ mcsdk-demo-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_D
 	rm -rf $(BLD)/rootfs/$@/web
 	# call mcsdk demo install
 	(cd $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) INSTALL_PREFIX=$(BLD)/rootfs/$@ install )
+	(cd $(BLD)/elf-loader$(ENDIAN_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) INSTALL_PREFIX=$(BLD)/rootfs/$@/usr/bin install )
 	cp -a $(BBOX_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(MTD_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
@@ -610,7 +619,7 @@ one-mcsdk-demo-root-clean:
 	rm -rf $(BLD)/rootfs/mcsdk-demo-root-$(ARCHe)
 	rm -rf $(BLD)/rootfs/mcsdk-demo-root-$(ARCHe).cpio
 
-one-clean: one-mtd-clean one-rio-clean one-busybox-clean one-clib-clean one-sdk-clean one-min-root-clean one-full-root-clean one-ltp-clean one-ltp-root-clean one-mcsdk-demo-clean one-mcsdk-demo-root-clean
+one-clean: one-mtd-clean one-rio-clean one-busybox-clean one-clib-clean one-sdk-clean one-min-root-clean one-full-root-clean one-ltp-clean one-ltp-root-clean one-mcsdk-demo-clean one-mcsdk-demo-root-clean one-elf-loader-clean
 	rm -rf $(MOD_DIR) $(HDR_DIR) $(BBOX_DIR)
 	rm -rf $(KOBJ_BASE)
 	make sdk0-clean
