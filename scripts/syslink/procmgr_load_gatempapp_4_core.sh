@@ -6,18 +6,17 @@ else
         LOADER=$1
 fi
 CORES="1 2 3"
-echo "Beginning of MessageQ sample application run"
+echo "Beginning of GateMP kernel test module run"
 echo "insmod syslink.ko"
 insmod syslink.ko
-
 for i in $CORES
 do
 echo "Loading and running slave core $i"
-${LOADER} $i messageq_c6670_core${i}.xe66
+${LOADER} $i gatemp_c6670_core${i}.xe66
 done
 
-echo "Running messageq User land sample application"
-./messageqapp_debug 3 1 0x817300 2 0x817300 3 0x817300 3
+echo "Running procmgr User land sample application"
+./procmgrapp_debug 3 1 0x815c00 2 0x815c00 3 0x815c00 3
 echo "rmmod syslink.ko"
 rmmod syslink.ko
-echo "MessageQ sample application run is complete"
+echo "GateMP kernel test module run is complete"
