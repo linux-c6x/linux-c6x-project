@@ -192,6 +192,28 @@ one-kernels: productdir $(call COND_DEP, sdk0)
 		fi \
 	done
 
+one-syslink:
+	if [ -d $(SYSLINK_ROOT) ] ; then \
+		for kname in $(SYSLINK_KERNEL_MODULES_TO_BUILD) ; do \
+			echo Building SysLink kernel module for $$kname ; \
+			mkdir -p $(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
+			cp -a $(SYSLINK_ROOT)/* $(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
+			if [ "$$kname" == "evmc6678" ]; then \
+			$(SUB_MAKE) syslink-all SYSLINK_TO_BUILD=evmc6678 SYSLINK_ROOT=$(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
+			fi ; \
+			if [ "$$kname" == "evmc6670" ]; then \
+			$(SUB_MAKE) syslink-all SYSLINK_TO_BUILD=evmc6670 SYSLINK_ROOT=$(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
+			fi ; \
+		done ; \
+	else \
+		echo "SysLink package not installed" ; \
+	fi ;
+
+one-syslink-clean:
+	for kname in $(SYSLINK_KERNEL_MODULES_TO_BUILD) ; do \
+	rm -rf $(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
+	done
+
 one-extra-kernels: productdir
 	for kname in $(EXTRA_KERNELS_TO_BUILD) ; do \
 		if [ "$(BUILD_KERNEL_WITH_GCC)" = "yes" ] ; then \
@@ -503,7 +525,7 @@ min-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one
 	(cd $(BLD)/rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
-mcsdk-demo-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one-mtd) $(call COND_DEP, one-mcsdk-demo) $(call COND_DEP, one-elf-loader)
+mcsdk-demo-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one-mtd) $(call COND_DEP, one-mcsdk-demo) $(call COND_DEP, one-syslink) $(call COND_DEP, one-elf-loader)
 	if [ -d $(BLD)/rootfs/$@ -a -e $(BLD)/rootfs/$@-marker ] ; then rm -rf $(BLD)/rootfs/$@; fi
 	mkdir -p $(BLD)/rootfs/$@; date > $(BLD)/rootfs/$@-marker
 	(cd $(BLD)/rootfs/$@; cpio -i <$(PRJ)/rootfs/min-root-skel.cpio)
@@ -512,6 +534,17 @@ mcsdk-demo-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_D
 	# call mcsdk demo install
 	(cd $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) INSTALL_PREFIX=$(BLD)/rootfs/$@ install )
 	(cd $(BLD)/elf-loader$(ENDIAN_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) INSTALL_PREFIX=$(BLD)/rootfs/$@/usr/bin install )
+	# Install syslink executables and modules
+	for kname in $(SYSLINK_KERNEL_MODULES_TO_BUILD) ; do \
+		mkdir -p $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
+		cp -a $(PRODUCT_DIR)/syslink_$$kname${ENDIAN_SUFFIX}/* $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
+		if [ "$$kname" == "evmc6678" ] ; then \
+			cp $(PRJ)/scripts/syslink/*_8_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
+		fi ; \
+		if [ "$$kname" == "evmc6670" ] ; then \
+			cp $(PRJ)/scripts/syslink/*_4_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
+		fi ; \
+	done
 	cp -a $(BBOX_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(MTD_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
@@ -619,7 +652,7 @@ one-mcsdk-demo-root-clean:
 	rm -rf $(BLD)/rootfs/mcsdk-demo-root-$(ARCHe)
 	rm -rf $(BLD)/rootfs/mcsdk-demo-root-$(ARCHe).cpio
 
-one-clean: one-mtd-clean one-rio-clean one-busybox-clean one-clib-clean one-sdk-clean one-min-root-clean one-full-root-clean one-ltp-clean one-ltp-root-clean one-mcsdk-demo-clean one-mcsdk-demo-root-clean one-elf-loader-clean
+one-clean: one-mtd-clean one-rio-clean one-busybox-clean one-clib-clean one-sdk-clean one-min-root-clean one-full-root-clean one-ltp-clean one-ltp-root-clean one-mcsdk-demo-clean one-mcsdk-demo-root-clean one-elf-loader-clean one-syslink-clean
 	rm -rf $(MOD_DIR) $(HDR_DIR) $(BBOX_DIR)
 	rm -rf $(KOBJ_BASE)
 	make sdk0-clean

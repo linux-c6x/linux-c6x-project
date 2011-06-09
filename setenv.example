@@ -96,22 +96,41 @@ export PKG_LIST="zlib net-snmp polarssl ttcp dhrystone nbench-byte tcpdump iperf
 
 # ********** Below this for building SysLink **********************************
 
-# SysLink target platform to build. evmc6474 or evmc6472 or evmc6474-lite 
-export SYSLINK_TO_BUILD="evmc6678"
+# List the syslink kernel modules to build. evmc6678 and evmc6670 supported
+# Use this variable when building syslink as part of mcsdk-demo-root ROOTFS
+# SysLink modules and exe files will get installed under /opt/syslink_<evm>.
+# <endian prefix> folder of the rootfs
+export SYSLINK_KERNEL_MODULES_TO_BUILD="evmc6678 evmc6670"
+
+# Set below if you are building syslink separately (than part of product build
+# with ROOTFS set to mcsdk-demo-root. SysLink modules and exe files get installed
+# under product/syslink_<evm>.<endian prefix> folder. User has to copy the
+# files manually to execute them on the target. This will become obsolete soon.
+export SYSLINK_TO_BUILD=
 
 # SysLink install directory
 export SYSLINK_ROOT=$LINUX_C6X_TOP_DIR/syslink
 
-# IPC package install directory
+# IPC package install directory. Set the IPC_DIR variable to something other than
+# default only if you want to use the IPC package from the CCS installation. In that
+# case set this to the path of the IPC package that is part of the CCS installation.
+# Otherwise, just install the IPC package under $LINUX_C6X_TOP_DIR.
+# 
 export IPC_DIR=$LINUX_C6X_TOP_DIR/ipc_1_22_05_27/packages
 
 # ********** Below this for building SysLink rtos samples *********************
 
-# BIOS package install directory
+# BIOS package install directory. Set the BIOS_DIR variable to something other than
+# default only if you want to use the BIOS package from the CCS installation. In that
+# case set this to the path of the IPC package that is part of the CCS installation.
+# Otherwise, just install the BIOS package under $LINUX_C6X_TOP_DIR.
 export BIOS_DIR=$LINUX_C6X_TOP_DIR/bios_6_31_04_27
 
-# XDC tool
+# XDC package install directory. Set the XDC_DIR variable to something other than
+# default only if you want to use the XDC package from the CCS installation. In that
+# case set this to the path of the XDC package that is part of the CCS installation.
+# Otherwise, just install the XDC package under $LINUX_C6X_TOP_DIR.
 export XDC_DIR=$LINUX_C6X_TOP_DIR/xdctools_3_20_08_88
 
-# CGT folders used in config.bld
+# CGT folders used in config.bld. Don't modify this.
 export XDCPATH="$BIOS_DIR/packages;$IPC_DIR"
