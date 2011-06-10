@@ -192,17 +192,18 @@ one-kernels: productdir $(call COND_DEP, sdk0)
 		fi \
 	done
 
+
 one-syslink:
 	if [ -d $(SYSLINK_ROOT) ] ; then \
 		for kname in $(SYSLINK_KERNEL_MODULES_TO_BUILD) ; do \
 			echo Building SysLink kernel module for $$kname ; \
 			mkdir -p $(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
 			cp -a $(SYSLINK_ROOT)/* $(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
-			if [ "$$kname" == "evmc6678" ]; then \
-			$(SUB_MAKE) syslink-all SYSLINK_TO_BUILD=evmc6678 SYSLINK_ROOT=$(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
+			if [ "$$kname" = "evmc6678" ]; then \
+			$(SUB_MAKE) syslink-demo-all SYSLINK_TO_BUILD=evmc6678 SYSLINK_ROOT=$(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
 			fi ; \
-			if [ "$$kname" == "evmc6670" ]; then \
-			$(SUB_MAKE) syslink-all SYSLINK_TO_BUILD=evmc6670 SYSLINK_ROOT=$(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
+			if [ "$$kname" = "evmc6670" ]; then \
+			$(SUB_MAKE) syslink-demo-all SYSLINK_TO_BUILD=evmc6670 SYSLINK_ROOT=$(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
 			fi ; \
 		done ; \
 	else \
@@ -537,12 +538,23 @@ mcsdk-demo-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_D
 	# Install syslink executables and modules
 	for kname in $(SYSLINK_KERNEL_MODULES_TO_BUILD) ; do \
 		mkdir -p $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
-		cp -a $(PRODUCT_DIR)/syslink_$$kname${ENDIAN_SUFFIX}/* $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
+		cp -a $(PRODUCT_DIR)/syslink_$$kname${ENDIAN_SUFFIX}/messageq* $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
+		cp -a $(PRODUCT_DIR)/syslink_$$kname${ENDIAN_SUFFIX}/notify* $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
+		cp -a $(PRODUCT_DIR)/syslink_$$kname${ENDIAN_SUFFIX}/procmgrapp_* $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
+		cp -a $(PRODUCT_DIR)/syslink_$$kname${ENDIAN_SUFFIX}/syslink.ko $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
 		if [ "$$kname" == "evmc6678" ] ; then \
-			cp $(PRJ)/scripts/syslink/*_8_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
+			cp $(PRJ)/scripts/syslink/messageq*_8_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
+			cp $(PRJ)/scripts/syslink/notify*_8_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
+			cp $(PRJ)/scripts/syslink/procmgr_load_messageqapp_8_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
+			cp $(PRJ)/scripts/syslink/procmgr_load_notifyapp_8_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
+			$(STRIP_CGT) $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX}/*.xe66 ; \
 		fi ; \
 		if [ "$$kname" == "evmc6670" ] ; then \
-			cp $(PRJ)/scripts/syslink/*_4_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
+			cp $(PRJ)/scripts/syslink/messageq*_4_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
+			cp $(PRJ)/scripts/syslink/notify*_4_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
+			cp $(PRJ)/scripts/syslink/procmgr_load_messageqapp_4_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
+			cp $(PRJ)/scripts/syslink/procmgr_load_notifyapp_4_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
+			$(STRIP_CGT) $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX}/*.xe66 ; \
 		fi ; \
 	done
 	cp -a $(BBOX_DIR)/* $(BLD)/rootfs/$@
