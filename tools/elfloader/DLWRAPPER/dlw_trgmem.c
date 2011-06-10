@@ -106,6 +106,13 @@
 #define L2_MEM_START_ADDR  0x800000
 #define L2_MEM_SIZE (512*1024) 
 #endif
+#if (DEVICE==6670)
+#define NUM_CORES   4
+#define DDR_MEM_START_ADDR  0x80000000
+#define DDR_MEM_SIZE    (512*1024*1024) 
+#define L2_MEM_START_ADDR  0x800000
+#define L2_MEM_SIZE (1024*1024) 
+#endif
 static BOOL	 need_trg_minit = TRUE;
 #endif
 
