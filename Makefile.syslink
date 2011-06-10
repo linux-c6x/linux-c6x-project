@@ -4,6 +4,7 @@
 SYSLINK_KERNEL_SAMPLES_TO_BUILD ?= notify gateMP heapBufMP heapMemMP listMP messageQ sharedRegion
 # SysLink user land samples to build
 SYSLINK_USER_SAMPLES_TO_BUILD ?= common procMgr $(SYSLINK_KERNEL_SAMPLES_TO_BUILD)
+STRIP_CGT = $(TI_CG6X_DIR)/bin/strip6x
 
 KDIR=$(LINUX_C6X_TOP_DIR)/Build/kobjs/${SYSLINK_TO_BUILD}${ENDIAN_SUFFIX}
 SYSLINK_INSTALL=syslink_${SYSLINK_TO_BUILD}${ENDIAN_SUFFIX}
@@ -142,15 +143,23 @@ syslink-user:
 syslink-rtos-ipc:
 	(cd $(SYSLINK_ROOT)/ti/syslink/ipc; IPC_PLATFORM=$(IPC_PLATFORM) IPC_TARGET=$(IPC_TARGET) $(XDC_DIR)/xdc all -PR . )
 syslink-rtos-ipc_clean:
+	(cd $(SYSLINK_ROOT)/ti/syslink/ipc; IPC_PLATFORM=$(IPC_PLATFORM) IPC_TARGET=$(IPC_TARGET) $(XDC_DIR)/xdc clean -PR . )
 syslink-rtos-platform:
 	(cd $(SYSLINK_ROOT)/ti/syslink/samples/rtos/platforms; IPC_PLATFORM=$(IPC_PLATFORM) IPC_TARGET=$(IPC_TARGET) $(XDC_DIR)/xdc all -PR . )
 syslink-rtos-platform_clean:
+	(cd $(SYSLINK_ROOT)/ti/syslink/samples/rtos/platforms; IPC_PLATFORM=$(IPC_PLATFORM) IPC_TARGET=$(IPC_TARGET) $(XDC_DIR)/xdc clean -PR . )
 syslink-rtos-notify:
 	(cd $(SYSLINK_ROOT)/ti/syslink/samples/rtos/notify; IPC_PLATFORM=$(IPC_PLATFORM) IPC_TARGET=$(IPC_TARGET) $(XDC_DIR)/xdc all )
 syslink-rtos-notify_clean:
+	(cd $(SYSLINK_ROOT)/ti/syslink/samples/rtos/notify; IPC_PLATFORM=$(IPC_PLATFORM) IPC_TARGET=$(IPC_TARGET) $(XDC_DIR)/xdc clean )
+syslink-rtos-messageq:
+	(cd $(SYSLINK_ROOT)/ti/syslink/samples/rtos/messageQ; IPC_PLATFORM=$(IPC_PLATFORM) IPC_TARGET=$(IPC_TARGET) $(XDC_DIR)/xdc all )
+syslink-rtos-messageq_clean:
+	(cd $(SYSLINK_ROOT)/ti/syslink/samples/rtos/messageQ; IPC_PLATFORM=$(IPC_PLATFORM) IPC_TARGET=$(IPC_TARGET) $(XDC_DIR)/xdc clean )
+
+syslink-rtos-demo:syslink-rtos-ipc syslink-rtos-platform syslink-rtos-notify syslink-rtos-messageq 
 
 syslink-rtos:
-	# must match with the patters in $SYSLINK_ROOT/config.bld
 	(cd $(SYSLINK_ROOT); IPC_PLATFORM=$(IPC_PLATFORM) IPC_TARGET=$(IPC_TARGET) $(XDC_DIR)/xdc all XDCBUILDCFG="${SYSLINK_ROOT}/config.bld" -PR . )
 
 syslink-rtos-clean:
@@ -171,7 +180,8 @@ syslink-rtos-install:
 	if [ "$(IPC_TARGET)" = "C66_ELF_big_endian" ]; then \
 		(cd $(SYSLINK_ROOT); cp `find . -name *xe66e` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/; ) \
 	fi
-
+	
+syslink-demo-all: syslink-kernel syslink-user syslink-rtos-demo syslink-install syslink-rtos-install
 
 syslink-all:syslink-kernel syslink-user syslink-rtos syslink-install syslink-rtos-install
 
