@@ -17,7 +17,7 @@ ${LOADER} $i heapmemmp_c6670_core${i}.xe66
 done
 
 echo "Running procmgr User land sample application"
-./procmgrapp_debug 3 1 0x815f00 2 0x815f00 3 0x815f00 3
+./procmgrapp_release 3 1 0x815f00 2 0x815f00 3 0x815f00 3
 echo "rmmod syslink.ko"
 rmmod syslink.ko
 echo "HeapMemMP kernel test module run is complete"

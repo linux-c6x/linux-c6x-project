@@ -17,7 +17,7 @@ ${LOADER} $i heapbufmp_c6670_core${i}.xe66
 done
 
 echo "Running heapbufmp User land sample application"
-./heapbufmpapp_debug 3 1 0x817180 2 0x817180 3 0x817180 3
+./heapbufmpapp_release 3 1 0x817180 2 0x817180 3 0x817180 3
 echo "rmmod syslink.ko"
 rmmod syslink.ko
 echo "HeapBufMP sample application run is complete"

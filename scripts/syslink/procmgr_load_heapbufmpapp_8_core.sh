@@ -16,7 +16,7 @@ echo "Loading and running slave core $i"
 ${LOADER} $i heapbufmp_c6678_core${i}.xe66
 done
 echo "Running procmgr User land sample application"
-./procmgrapp_debug 7 1 0x817180 2 0x817180 3 0x817180 4 0x817180 5 0x817180 6 0x817180 7 0x817180 3
+./procmgrapp_release 7 1 0x817180 2 0x817180 3 0x817180 4 0x817180 5 0x817180 6 0x817180 7 0x817180 3
 echo "rmmod syslink.ko"
 rmmod syslink.ko
 echo "HeapBufMP kernel test module run is complete"

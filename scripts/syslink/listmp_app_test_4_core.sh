@@ -17,7 +17,7 @@ ${LOADER} $i listmp_c6670_core${i}.xe66
 done
 
 echo "Running listmp User land sample application"
-./listmpapp_debug 3 1 0x815b00 2 0x815b00 3 0x815b00 3
+./listmpapp_release 3 1 0x815b00 2 0x815b00 3 0x815b00 3
 echo "rmmod syslink.ko"
 rmmod syslink.ko
 echo "ListMP sample application run is complete"

@@ -16,7 +16,7 @@ ${LOADER} $i sharedregion_c6670_core${i}.xe66
 done
 
 echo "Running sharedregion User land sample application"
-./sharedregionapp_debug 0x9FE00000 3 1 0x815080 2 0x815080 3 0x815080 3
+./sharedregionapp_release 0x9FE00000 3 1 0x815080 2 0x815080 3 0x815080 3
 echo "rmmod syslink.ko"
 rmmod syslink.ko
 echo "SharedRegion sample application run is complete"

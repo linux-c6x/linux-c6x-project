@@ -17,7 +17,7 @@ ${LOADER} $i notify_c6670_core${i}.xe66
 done
 echo "Running procmgr User land sample application"
 
-./procmgrapp_debug 3 1 0x815a80 2 0x815a80 3 0x815a80  3 
+./procmgrapp_release 3 1 0x815a80 2 0x815a80 3 0x815a80  3 
 echo "rmmod syslink.ko"
 rmmod syslink.ko
 echo "Notify sample application run is complete"

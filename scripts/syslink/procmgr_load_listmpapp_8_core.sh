@@ -17,7 +17,7 @@ ${LOADER} $i listmp_c6678_core${i}.xe66
 done
 
 echo "Running procmgr User land sample application"
-./procmgrapp_debug 7 1 0x815b00 2 0x815b00 3 0x815b00 4 0x815b00 5 0x815b00 6 0x815b00 7 0x815b00 3
+./procmgrapp_release 7 1 0x815b00 2 0x815b00 3 0x815b00 4 0x815b00 5 0x815b00 6 0x815b00 7 0x815b00 3
 echo "rmmod syslink.ko"
 rmmod syslink.ko
 echo "ListMP kernel test module run is complete"
