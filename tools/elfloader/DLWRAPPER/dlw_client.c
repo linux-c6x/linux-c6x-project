@@ -104,19 +104,6 @@ int DLIF_reset_core(int core_id)
 /*****************************************************************************/
 /* DLIF_run_core() - Boot the specified core                              */
 /*****************************************************************************/
-#if (DEVICE==6472)
-/* DSP_BOOT_ADDRx Register */
-#define BOOT_ADDR_BASE  0x2AB0204
-#define BOOT_ADDR(x)    (BOOT_ADDR_BASE + (x*0x20))
-#define BOOT_COMPLETE_ADDR  0x2AB0004
-#endif
-
-#if (DEVICE==6678)
-/* DSP_BOOT_ADDRx Register */
-#define BOOT_ADDR_BASE  0x02620040
-#define BOOT_ADDR(x)    (BOOT_ADDR_BASE + (x*4))
-#endif
-
 
 int DLIF_run_core(int core_id, unsigned int boot_addr)
 {
@@ -130,27 +117,6 @@ int DLIF_run_core(int core_id, unsigned int boot_addr)
         return -1;
     }
 
-    printf("DLIF_run_core, boot_addr = 0x%x", boot_addr);
-#if 0
-    /* TODO: update boot_addr via mcore once the support is added */
-    /* Setup the BOOT_ADDR */
-    /* boot address should be 1KB aligned */
-    if (boot_addr & 0x3ff) {
-        printf("Invalid boot addr: 0x%x must be 10bit aligned", boot_addr);
-        close(fd);
-        return -1;
-    }
-    /* Set the bootaddress register */
-    reg = (unsigned int*)BOOT_ADDR(core_id); 
-    *reg = (boot_addr >> 10); 
-
-#if 0 /* taken care by the mcore driver */
-    /* Set the bootcomplete register */
-    reg = (unsigned int*)BOOT_COMPLETE_ADDR;
-    *reg = (1 << core_id);
-#endif
-
-#endif
     sprintf(buf, "b%d %x", core_id, boot_addr); 
 
     if (write(fd, (void*)buf, strlen(buf)) != strlen(buf)) {

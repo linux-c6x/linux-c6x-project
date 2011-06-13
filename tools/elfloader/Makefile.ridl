@@ -46,10 +46,9 @@
 # OUTPUT_FILE_OPTION      Compiler specific option used to specify the        #
 #                         object file output name                             #
 # HOST_PRFX               Prefix for the object file directory                #
-# HOST_EXT                Extension for the dynamic loader executable         #
 # TARG_TOOL_NAME_PRFX     Prefix for the dynamic loader executable            #
 # TARG_TOOL_NAME          Dynamic loader name, formed from the                #
-#                         TARG_TOOL_NAME_NAME_PRFX and HOST_EXT               #
+#                         TARG_TOOL_NAME_NAME_PRFX                            #
 # OBJ_DIR                 Directory where object files are stored             #
 # UNIT_OBJ_DIR            Direcotry where object files for unit testing       #
 #                         are stored                                          #
@@ -88,14 +87,17 @@ else
 ifeq ($(DEVICE),C6678)
 C_OPTS = -DDEVICE=6678
 else
+ifeq ($(DEVICE),C6670)
+C_OPTS = -DDEVICE=6670
+else
 DEFAULT:
 	@echo "Device '$(DEVICE)' not supported"
 	@exit 1
 endif
 endif
+endif
 
 HOST_PRFX = GCC
-HOST_EXT = gcc
 #C_OPTS += -mv6400+ ## Kelvin determines HW to simulate based on base image
 C_OPTS += -O2
 #C_OPTS += -dsbt
@@ -105,7 +107,7 @@ C_OPTS += -O2
 OUTPUT_FILE_OPTION = -o
 #LNK_OPTS += -dsbt --gcc --static 
 
-TARG_TOOL_NAME = $(TARG_TOOL_NAME_PRFX).$(HOST_EXT)
+TARG_TOOL_NAME = $(TARG_TOOL_NAME_PRFX)
 
 ###############################################################################
 # List of generic modules and their files
@@ -213,6 +215,6 @@ clean:
 
 clean_host:
 	-rm -rf *$(HOST_PRFX)_LNX
-	-rm -rf *$(TARG_TOOL_NAME_PRFX).$(HOST_EXT)
+	-rm -rf *$(TARG_TOOL_NAME_PRFX)
 	
 

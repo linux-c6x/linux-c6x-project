@@ -47,7 +47,7 @@
 #
 ##############################################################################
 
-TARG_TOOL_NAME_PRFX    = dl6x
+TARG_TOOL_NAME_PRFX    = mcoreloader
 TARG_VPATH             = C60_DLOAD_DYN
 TARG_SRCFILES          = c60_elf32.h \
                          c60_dynamic.h c60_dynamic.c 
