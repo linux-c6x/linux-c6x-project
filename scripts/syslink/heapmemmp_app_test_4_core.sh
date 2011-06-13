@@ -1,7 +1,7 @@
 #!/bin/sh
 if [ "$1X" = "X" ]
 then
-        LOADER=/usr/bin/dl6x.gcc
+        LOADER=/usr/bin/mcoreloader
 else
         LOADER=$1
 fi
