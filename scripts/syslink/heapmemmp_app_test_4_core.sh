@@ -17,7 +17,7 @@ ${LOADER} $i heapmemmp_c6670_core${i}.xe66
 done
 
 echo "Running heapmemmp User land sample application"
-./heapmemmpapp_release 3 1 0x815f00 2 0x815f00 3 0x815f00 3
+./heapmemmpapp_release 3 1 0x815e80 2 0x815e80 3 0x815e80 3
 echo "rmmod syslink.ko"
 rmmod syslink.ko
 echo "HeapMemMP sample application run is complete"

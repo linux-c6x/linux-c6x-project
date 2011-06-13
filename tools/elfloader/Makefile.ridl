@@ -170,7 +170,7 @@ OBJS_UNIT += $(patsubst %.cpp,$(UNIT_OBJ_DIR)/%.obj,$(filter %.cpp, $(UNIT_FILES
 all: $(TARG_TOOL_NAME)
 unit: unit_$(TARG_TOOL_NAME)
 install:
-	cp -a dl6x.gcc $(INSTALL_PREFIX)
+	cp -a mcoreloader $(INSTALL_PREFIX)
 ###############################################################################
 # Normal make process                                                         
 ###############################################################################

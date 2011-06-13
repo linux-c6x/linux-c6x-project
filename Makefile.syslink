@@ -84,7 +84,7 @@ endif
 	if [ ! -d $(SYSLINK_ROOT) ] ; then echo "Install SysLink before build"; false ; fi
 	if [ ! -d $(IPC_DIR) ] ; then echo "Install IPC package before build"; false ; fi
 
-	@if [ "$(BUILD_KERNEL_WITH_GCC)" = "yes" ] ; then \
+	@if [ "$(BUILD_KERNEL_WITH_GCC)" == "yes" ] ; then \
 		echo "building syslink kernel module using gcc"; \
 		(cd $(SYSLINK_ROOT)/ti/syslink/utils/hlos/knl/Linux; \
 		make ARCH=c6x CROSS_COMPILE=$(CC_GNU) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
@@ -98,7 +98,7 @@ endif
 
 # build all kernel sample modules
 	for module_name in $(SYSLINK_KERNEL_SAMPLES_TO_BUILD) ; do \
-		if [ "$(BUILD_KERNEL_WITH_GCC)" = "yes" ] ; then \
+		if [ "$(BUILD_KERNEL_WITH_GCC)" == "yes" ] ; then \
 			echo building $$module_name; \
 			(cd $(SYSLINK_ROOT)/ti/syslink/samples/hlos/$$module_name/knl/Linux; \
 			make ARCH=c6x CROSS_COMPILE=$(CC_GNU) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
@@ -116,7 +116,7 @@ syslink-user:
 	if [ ! -d $(IPC_DIR) ] ; then echo "Install IPC package before build"; false ; fi
 
 	@echo "building user syslink library"
-	@if [ "$(BUILD_USERSPACE_WITH_GCC)" = "yes" ] ; then \
+	@if [ "$(BUILD_USERSPACE_WITH_GCC)" == "yes" ] ; then \
 		(cd $(SYSLINK_ROOT)/ti/syslink/utils/hlos/usr/Linux; \
 		make TOOLCHAIN_PREFIX=$(CC_GNU) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
 		IPC_DIR=$(IPC_DIR) ENDIAN=$(ENDIAN)) \
@@ -127,7 +127,7 @@ syslink-user:
 	fi
 
 	for module_name in $(SYSLINK_USER_SAMPLES_TO_BUILD) ; do \
-		if [ "$(BUILD_USERSPACE_WITH_GCC)" = "yes" ] ; then \
+		if [ "$(BUILD_USERSPACE_WITH_GCC)" == "yes" ] ; then \
 			echo building $$module_name; \
 			(cd $(SYSLINK_ROOT)/ti/syslink/samples/hlos/$$module_name/usr/Linux; \
 			make TOOLCHAIN_PREFIX=$(CC_GNU) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
@@ -168,17 +168,22 @@ syslink-rtos-clean:
 syslink-rtos-install:
 	[ -d $(PRODUCT_DIR) ] || echo "no product directory"
 	[ -d $(PRODUCT_DIR)/$(SYSLINK_INSTALL) ] || mkdir -p $(PRODUCT_DIR)/$(SYSLINK_INSTALL)
-	if [ "$(IPC_TARGET)" = "C64P_COFF" ] ; then \
-		(cd $(SYSLINK_ROOT); cp `find . -name *x64P` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/; ) \
+	mkdir -p $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/map
+	if [ "$(IPC_TARGET)" == "C64P_COFF" ] ; then \
+		(cd $(SYSLINK_ROOT); cp `find . -name *x64P` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/; \
+		 cp `find . -name  *x64.map` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/map; ) \
 	fi
-	if [ "$(IPC_TARGET)" = "C64P_COFF_big_endian" ]; then \
-		(cd $(SYSLINK_ROOT); cp `find . -name *x64Pe` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/; ) \
+	if [ "$(IPC_TARGET)" == "C64P_COFF_big_endian" ]; then \
+		(cd $(SYSLINK_ROOT); cp `find . -name *x64Pe` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/; \
+		 cp `find . -name  *x64Pe.map` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/map; ) \
 	fi
-	if [ "$(IPC_TARGET)" = "C66_ELF" ]; then \
-		(cd $(SYSLINK_ROOT); cp `find . -name *xe66` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/; ) \
+	if [ "$(IPC_TARGET)" == "C66_ELF" ]; then \
+		(cd $(SYSLINK_ROOT); cp `find . -name *xe66` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/; \
+		 cp `find . -name  *xe66.map` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/map; ) \
 	fi
-	if [ "$(IPC_TARGET)" = "C66_ELF_big_endian" ]; then \
-		(cd $(SYSLINK_ROOT); cp `find . -name *xe66e` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/; ) \
+	if [ "$(IPC_TARGET)" == "C66_ELF_big_endian" ]; then \
+		(cd $(SYSLINK_ROOT); cp `find . -name *xe66e` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/; \
+		 cp `find . -name  *xe66.map` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/map; ) \
 	fi
 	
 syslink-demo-all: syslink-kernel syslink-user syslink-rtos-demo syslink-install syslink-rtos-install
@@ -192,7 +197,7 @@ syslink-install:
 	cp -f $(SYSLINK_ROOT)/ti/syslink/bin/$(SYSLINK_PLATFORM)/samples/*_debug $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/
 	cp -f $(SYSLINK_ROOT)/ti/syslink/bin/$(SYSLINK_PLATFORM)/samples/*_release $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/
 	@echo "Installing kernel and sample modules $(SYSLINK_PLATFORM)"
-	if [ "$(SYSLINK_PLATFORM)" = "C667X" ]; then \
+	if [ "$(SYSLINK_PLATFORM)" == "C667X" ]; then \
 		cp -f $(SYSLINK_ROOT)/ti/syslink/bin/$(SYSLINK_VARIANT)/syslink.ko \
 		 	$(PRODUCT_DIR)/$(SYSLINK_INSTALL)/ ; \
 		cp -f $(SYSLINK_ROOT)/ti/syslink/bin/$(SYSLINK_VARIANT)/samples/*.ko \
@@ -207,7 +212,7 @@ syslink-install:
 
 syslink-kernel-clean:
 
-	@if [ "$(BUILD_KERNEL_WITH_GCC)" = "yes" ] ; then \
+	@if [ "$(BUILD_KERNEL_WITH_GCC)" == "yes" ] ; then \
 		(cd $(SYSLINK_ROOT)/ti/syslink/utils/hlos/knl/Linux; \
 		make ARCH=c6x CROSS_COMPILE=$(CC_GNU) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
 		KDIR=$(KDIR) IPC_DIR=$(IPC_DIR) cleanall) \
@@ -218,7 +223,7 @@ syslink-kernel-clean:
 	fi
 	for module_name in $(SYSLINK_KERNEL_SAMPLES_TO_BUILD) ; do \
 		echo cleaning $$module_name; \
-		if [ "$(BUILD_KERNEL_WITH_GCC)" = "yes" ] ; then \
+		if [ "$(BUILD_KERNEL_WITH_GCC)" == "yes" ] ; then \
 			(cd $(SYSLINK_ROOT)/ti/syslink/samples/hlos/$$module_name/knl/Linux; \
 			make ARCH=c6x CROSS_COMPILE=$(CC_GNU) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
 			KDIR=$(KDIR) IPC_DIR=$(IPC_DIR) cleanall) \
@@ -232,7 +237,7 @@ syslink-kernel-clean:
 syslink-user-clean:
 
 	@echo "cleaning user syslink library"
-	@if [ "$(BUILD_USERSPACE_WITH_GCC)" = "yes" ] ; then \
+	@if [ "$(BUILD_USERSPACE_WITH_GCC)" == "yes" ] ; then \
 		(cd $(SYSLINK_ROOT)/ti/syslink/utils/hlos/usr/Linux; \
 		make TOOLCHAIN_PREFIX=$(CC_GNU) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
 		IPC_DIR=$(IPC_DIR) cleanall) \
@@ -244,7 +249,7 @@ syslink-user-clean:
 
 	for module_name in $(SYSLINK_USER_SAMPLES_TO_BUILD) ; do \
 		echo cleaning $$module_name; \
-		if [ "$(BUILD_USERSPACE_WITH_GCC)" = "yes" ] ; then \
+		if [ "$(BUILD_USERSPACE_WITH_GCC)" == "yes" ] ; then \
 			(cd $(SYSLINK_ROOT)/ti/syslink/samples/hlos/$$module_name/usr/Linux; \
 			make TOOLCHAIN_PREFIX=$(CC_GNU) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
 			IPC_DIR=$(IPC_DIR) cleanall) \

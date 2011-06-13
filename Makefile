@@ -540,7 +540,7 @@ mcsdk-demo-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_D
 		mkdir -p $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
 		cp -a $(PRODUCT_DIR)/syslink_$$kname${ENDIAN_SUFFIX}/messageq* $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
 		cp -a $(PRODUCT_DIR)/syslink_$$kname${ENDIAN_SUFFIX}/notify* $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
-		cp -a $(PRODUCT_DIR)/syslink_$$kname${ENDIAN_SUFFIX}/procmgrapp_* $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
+		cp -a $(PRODUCT_DIR)/syslink_$$kname${ENDIAN_SUFFIX}/procmgrapp_release $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
 		cp -a $(PRODUCT_DIR)/syslink_$$kname${ENDIAN_SUFFIX}/syslink.ko $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
 		if [ "$$kname" == "evmc6678" ] ; then \
 			cp $(PRJ)/scripts/syslink/messageq*_8_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
@@ -556,6 +556,8 @@ mcsdk-demo-root-$(ARCHe): productdir $(call COND_DEP, one-busybox) $(call COND_D
 			cp $(PRJ)/scripts/syslink/procmgr_load_notifyapp_4_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
 			$(STRIP_CGT) $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX}/*.xe66 ; \
 		fi ; \
+		rm -rf $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX}/messageqapp_debug ; \
+		rm -rf $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX}/notifyapp_debug ; \
 	done
 	cp -a $(BBOX_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(MTD_DIR)/* $(BLD)/rootfs/$@

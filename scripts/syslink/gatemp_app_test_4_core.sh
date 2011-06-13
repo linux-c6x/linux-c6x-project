@@ -17,7 +17,7 @@ ${LOADER} $i gatemp_c6670_core${i}.xe66
 done
 
 echo "Running GateMP User land sample application"
-./gatempapp_release 3 1 0x815c00 2 0x815c00 3 0x815c00 3
+./gatempapp_release 3 1 0x815c80 2 0x815c80 3 0x815c80 3
 rmmod syslink.ko
 echo "GateMP sample application run is complete"
 
