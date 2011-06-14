@@ -102,10 +102,10 @@ export PKG_LIST="zlib net-snmp polarssl ttcp dhrystone nbench-byte tcpdump iperf
 # <endian prefix> folder of the rootfs
 export SYSLINK_KERNEL_MODULES_TO_BUILD="evmc6678 evmc6670"
 
-# Set below if you are building syslink separately (than part of product build
-# with ROOTFS set to mcsdk-demo-root. SysLink modules and exe files get installed
-# under product/syslink_<evm>.<endian prefix> folder. User has to copy the
-# files manually to execute them on the target. This will become obsolete soon.
+# Set below if you are building syslink separately (not as part of product build).
+# SysLink modules and exe files get installed under product/syslink_<evm>.<endian
+# prefix> folder. User has to copy the files manually to execute them on the target.
+# This will become obsolete soon.
 export SYSLINK_TO_BUILD=
 
 # SysLink install directory
