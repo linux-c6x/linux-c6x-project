@@ -1405,9 +1405,11 @@ static BOOL find_dynamic_segment(DLIMP_Dynamic_Module *dyn_module,
    /* and warn the user.                                                     */
    /*------------------------------------------------------------------------*/
    dyn_module->relocatable = FALSE;
+#ifdef ORIGINAL_CODE
    DLIF_warning(DLWT_MISC, "'%s' does not have a dynamic segment; assuming " 
                            "that it is a static executable and it cannot " 
                            "be relocated.\n", dyn_module->name);
+#endif
    return FALSE;
 }
 

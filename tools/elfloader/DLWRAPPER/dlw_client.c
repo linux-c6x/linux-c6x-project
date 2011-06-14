@@ -112,15 +112,15 @@ int DLIF_run_core(int core_id, unsigned int boot_addr)
     char buf[32];
 
     fd = open(MCORE_CTRL_DEV, O_RDWR);
-    if (fd <= 0) {
-        perror("mcore control open failed");
+    if (fd < 0) {
+        perror("ERROR: mcore control open failed");
         return -1;
     }
 
     sprintf(buf, "b%d %x", core_id, boot_addr); 
 
     if (write(fd, (void*)buf, strlen(buf)) != strlen(buf)) {
-        perror("write to mcore control failed");
+        perror("ERROR: write to mcore control failed");
         close(fd);
         return -1;
     }

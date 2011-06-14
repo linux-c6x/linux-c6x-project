@@ -81,31 +81,10 @@ C++ = $(CC)
 ###############################################################################
 # Set host specific default options
 ###############################################################################
-ifeq ($(DEVICE),C6472)
-C_OPTS = -DDEVICE=6472
-else
-ifeq ($(DEVICE),C6678)
-C_OPTS = -DDEVICE=6678
-else
-ifeq ($(DEVICE),C6670)
-C_OPTS = -DDEVICE=6670
-else
-DEFAULT:
-	@echo "Device '$(DEVICE)' not supported"
-	@exit 1
-endif
-endif
-endif
 
 HOST_PRFX = GCC
-#C_OPTS += -mv6400+ ## Kelvin determines HW to simulate based on base image
 C_OPTS += -O2
-#C_OPTS += -dsbt
-#C_OPTS += --gcc
-#C_OPTS += -pds67
-#C_OPTS += --abi=elfabi
 OUTPUT_FILE_OPTION = -o
-#LNK_OPTS += -dsbt --gcc --static 
 
 TARG_TOOL_NAME = $(TARG_TOOL_NAME_PRFX)
 
@@ -210,7 +189,7 @@ $(UNIT_OBJ_DIR)/.created:
 ###############################################################################
 clean:
 	-rm -rf *_LNX
-	-rm -rf *$(TARG_TOOL_NAME_PRFX).*
+	-rm -rf *$(TARG_TOOL_NAME_PRFX)
 	-rm -f runner.cpp
 
 clean_host:

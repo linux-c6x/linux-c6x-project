@@ -81,6 +81,8 @@ int main(int argc, char **argv)
     }
     printf("Started Program execution on core: %d\n", core);
 
+    DLTMM_close();
+
 error:
     fclose(fp);
     return ret;

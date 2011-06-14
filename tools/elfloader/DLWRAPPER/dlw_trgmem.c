@@ -92,27 +92,24 @@
 
 #ifndef ORIGINAL_CODE
 #define MCORE_DEV  "/proc/mcore" 
-#if (DEVICE==6472)
-#define NUM_CORES   6
-#define DDR_MEM_START_ADDR  0xE0000000
-#define DDR_MEM_SIZE    (256*1024*1024) 
-#define L2_MEM_START_ADDR  0x800000
-#define L2_MEM_SIZE 0x9800
-#endif
-#if (DEVICE==6678)
-#define NUM_CORES   8
-#define DDR_MEM_START_ADDR  0x80000000
-#define DDR_MEM_SIZE    (512*1024*1024) 
-#define L2_MEM_START_ADDR  0x800000
-#define L2_MEM_SIZE (512*1024) 
-#endif
-#if (DEVICE==6670)
-#define NUM_CORES   4
-#define DDR_MEM_START_ADDR  0x80000000
-#define DDR_MEM_SIZE    (512*1024*1024) 
-#define L2_MEM_START_ADDR  0x800000
-#define L2_MEM_SIZE (1024*1024) 
-#endif
+
+#define MAX_CORES   10
+
+/* Memory map defines */
+#define DDR_MEM_START_ADDR_C6678  0x80000000
+#define DDR_MEM_SIZE_C6678    (512*1024*1024) 
+#define L2_MEM_START_ADDR_C6678  0x800000
+#define L2_MEM_SIZE_C6678 (512*1024) 
+#define MSMC_MEM_START_ADDR_C6678  0xc000000
+#define MSMC_MEM_SIZE_C6678 (4*1024*1024) 
+
+#define DDR_MEM_START_ADDR_C6670    0x80000000
+#define DDR_MEM_SIZE_C6670  (512*1024*1024) 
+#define L2_MEM_START_ADDR_C6670 0x800000
+#define L2_MEM_SIZE_C6670   (1024*1024) 
+#define MSMC_MEM_START_ADDR_C6670  0xc000000
+#define MSMC_MEM_SIZE_C6670 (2*1024*1024) 
+
 static BOOL	 need_trg_minit = TRUE;
 #endif
 
@@ -428,42 +425,89 @@ static BOOL trg_malloc(uint32_t *req_addr, size_t size, int alignment)
 #endif /* ORIGINAL_CODE */
 
 #ifndef ORIGINAL_CODE
-static int trgmem_num_cores=0;
-int trgmem_core_sram_fds[NUM_CORES];
-int trgmem_core_ddr_fds[NUM_CORES];
+typedef struct {
+    unsigned int    ddr_start;
+    unsigned int    ddr_end;
+    unsigned int    sram_start;
+    unsigned int    sram_end;
+    unsigned int    msm_ram_start;
+    unsigned int    msm_ram_end;
+} trgmem_mem_map_t;
+
+int trgmem_num_cores=0;
+int trgmem_self_core=0;
+int trgmem_core_sram_fds[MAX_CORES];
+int trgmem_core_ddr_fds[MAX_CORES];
+int trgmem_core_msm_fds[MAX_CORES];
+trgmem_mem_map_t trgmem_mem_map;
+
+
 /*****************************************************************************/
 /* TRG_MINIT() - Initialize target memory management data structures.        */
 /*	Set up initial free list.                                            */
 /*****************************************************************************/
 static int trg_minit(void)
 {
-    int idx, fd, local_core;
-    char devstrddr[40], devstrsram[40];
+    int idx, fd;
     FILE *fp;
+    char devstrddr[40], devstrsram[40], devstrmsm[40];
     char linebuf[80];
 
-    /* Set up the memory map pointers for all cores */
-    trgmem_num_cores = NUM_CORES; /* TODO: determine the number of cores */
-    /* TODO: Determine self core-id and avoid opening ddr/sram */
-    /* Get our core number */
 
     fp = fopen("/proc/cpuinfo", "r");
+
     if (fp == NULL) {
         printf("open of /proc/cpuinfo failed.\n");
         return -1;
     } 
 
+    /* Get number of core and our core number */
     while (fgets(linebuf, 80, fp) != NULL) {
-        if (sscanf((const char *)&linebuf, "Core id:\t%d", &local_core) != 0) 
-            break;
+        sscanf((const char *)&linebuf, "Core id:\t%d", &trgmem_self_core);
+        sscanf((const char *)&linebuf, "SoC cores:\t%d", &trgmem_num_cores);
     }
 
+    /* Closing fp is causing memory corruption
+     * so commented out until root cause */
+    /* fclose(fp); */
+
+    /* Set up the memory map for the device */
+
+    /* Curently the device is determined from the number of core
+     * this is a temporary workaround
+     */
+    switch (trgmem_num_cores) {
+      case 8: /* C6678 */
+          trgmem_mem_map.ddr_start = DDR_MEM_START_ADDR_C6678;
+          trgmem_mem_map.ddr_end = DDR_MEM_START_ADDR_C6678 + DDR_MEM_SIZE_C6678;
+          trgmem_mem_map.sram_start = L2_MEM_START_ADDR_C6678;
+          trgmem_mem_map.sram_end = L2_MEM_START_ADDR_C6678 + L2_MEM_SIZE_C6678;
+          trgmem_mem_map.msm_ram_start = MSMC_MEM_START_ADDR_C6678;
+          trgmem_mem_map.msm_ram_end = MSMC_MEM_START_ADDR_C6678 + MSMC_MEM_SIZE_C6678;
+          break;
+
+      case 4: /* C6670 */
+          trgmem_mem_map.ddr_start = DDR_MEM_START_ADDR_C6670;
+          trgmem_mem_map.ddr_end = DDR_MEM_START_ADDR_C6670 + DDR_MEM_SIZE_C6670;
+          trgmem_mem_map.sram_start = L2_MEM_START_ADDR_C6670;
+          trgmem_mem_map.sram_end = L2_MEM_START_ADDR_C6670 + L2_MEM_SIZE_C6670;
+          trgmem_mem_map.msm_ram_start = MSMC_MEM_START_ADDR_C6670;
+          trgmem_mem_map.msm_ram_end = MSMC_MEM_START_ADDR_C6670 + MSMC_MEM_SIZE_C6670;
+          break;
+
+      default:
+          printf("ERROR: Couldn't determine the SoC.\n");
+          return -1;
+    }
+
+    /* Set up the mcore file descriptors for all cores */
     for (idx=0; idx<trgmem_num_cores; idx++) {
 
-        if (idx == local_core) continue;
+        if (idx == trgmem_self_core) continue;
 
         sprintf(devstrddr,"%s/%d/%s", MCORE_DEV, idx, "ddr"); 
         sprintf(devstrsram,"%s/%d/%s", MCORE_DEV, idx, "sram"); 
+        sprintf(devstrmsm,"%s/%d/%s", MCORE_DEV, idx, "msm"); 
 
         fd = open(devstrsram, O_RDWR|O_SYNC);
         if (fd < 0) {
@@ -478,6 +522,13 @@ static int trg_minit(void)
             return -1;
         }
         trgmem_core_ddr_fds[idx] = fd;
+
+        fd = open(devstrmsm, O_RDWR|O_SYNC);
+        if (fd < 0) {
+            printf("open %s failed\n", devstrmsm);
+            return -1;
+        }
+        trgmem_core_msm_fds[idx] = fd;
     }
     return 0;
 }
@@ -489,15 +540,21 @@ BOOL DLTMM_set(struct DLOAD_MEMORY_REQUEST *targ_req,
                   unsigned char value, int size)
 {
     int i, ret, offset, fd;
-    if (((unsigned int)targ_req->host_address >= DDR_MEM_START_ADDR) && 
-       ((unsigned int)targ_req->host_address < (DDR_MEM_START_ADDR + DDR_MEM_SIZE))) {
-        offset = (unsigned int)targ_req->host_address - DDR_MEM_START_ADDR; 
+
+    if (((unsigned int)targ_req->host_address >= trgmem_mem_map.sram_start) &&
+            ((unsigned int)targ_req->host_address < trgmem_mem_map.sram_end)) {
+        offset = (unsigned int)targ_req->host_address - trgmem_mem_map.sram_start; 
+        fd = trgmem_core_sram_fds[targ_req->core_id];
+    }
+    else if (((unsigned int)targ_req->host_address >= trgmem_mem_map.ddr_start) && 
+       ((unsigned int)targ_req->host_address < trgmem_mem_map.ddr_end)) {
+        offset = (unsigned int)targ_req->host_address - trgmem_mem_map.ddr_start; 
         fd = trgmem_core_ddr_fds[targ_req->core_id];
     }
-    else if (((unsigned int)targ_req->host_address >= L2_MEM_START_ADDR) &&
-            ((unsigned int)targ_req->host_address < (L2_MEM_START_ADDR + L2_MEM_SIZE))) {
-        offset = (unsigned int)targ_req->host_address - L2_MEM_START_ADDR; 
-        fd = trgmem_core_sram_fds[targ_req->core_id];
+    else if (((unsigned int)targ_req->host_address >= trgmem_mem_map.msm_ram_start) &&
+            ((unsigned int)targ_req->host_address < trgmem_mem_map.msm_ram_end)) {
+        offset = (unsigned int)targ_req->host_address - trgmem_mem_map.msm_ram_start; 
+        fd = trgmem_core_msm_fds[targ_req->core_id];
     }
     else {
       DLIF_error(DLET_TRGMEM, 
@@ -521,15 +578,21 @@ BOOL DLTMM_writefd(struct DLOAD_MEMORY_REQUEST *targ_req,
                    LOADER_FILE_DESC *fdin, int size)
 {
     int i, ret, offset, fd;
-    if (((unsigned int)targ_req->host_address >= DDR_MEM_START_ADDR) && 
-       ((unsigned int)targ_req->host_address < (DDR_MEM_START_ADDR + DDR_MEM_SIZE))) {
-        offset = (unsigned int)targ_req->host_address - DDR_MEM_START_ADDR; 
+
+    if (((unsigned int)targ_req->host_address >= trgmem_mem_map.sram_start) &&
+            ((unsigned int)targ_req->host_address < trgmem_mem_map.sram_end)) {
+        offset = (unsigned int)targ_req->host_address - trgmem_mem_map.sram_start; 
+        fd = trgmem_core_sram_fds[targ_req->core_id];
+    }
+    else if (((unsigned int)targ_req->host_address >= trgmem_mem_map.ddr_start) && 
+       ((unsigned int)targ_req->host_address < trgmem_mem_map.ddr_end)) {
+        offset = (unsigned int)targ_req->host_address - trgmem_mem_map.ddr_start; 
         fd = trgmem_core_ddr_fds[targ_req->core_id];
     }
-    else if (((unsigned int)targ_req->host_address >= L2_MEM_START_ADDR) &&
-            ((unsigned int)targ_req->host_address < (L2_MEM_START_ADDR + L2_MEM_SIZE))) {
-        offset = (unsigned int)targ_req->host_address - L2_MEM_START_ADDR; 
-        fd = trgmem_core_sram_fds[targ_req->core_id];
+    else if (((unsigned int)targ_req->host_address >= trgmem_mem_map.msm_ram_start) &&
+            ((unsigned int)targ_req->host_address < trgmem_mem_map.msm_ram_end)) {
+        offset = (unsigned int)targ_req->host_address - trgmem_mem_map.msm_ram_start; 
+        fd = trgmem_core_msm_fds[targ_req->core_id];
     }
     else {
       DLIF_error(DLET_TRGMEM, 
@@ -590,19 +653,25 @@ BOOL DLTMM_writebuf(struct DLOAD_MEMORY_REQUEST *targ_req,
                   void *buf, int size)
 {
     int i, ret, offset, fd;
-    if (((unsigned int)targ_req->host_address >= DDR_MEM_START_ADDR) && 
-       ((unsigned int)targ_req->host_address < (DDR_MEM_START_ADDR + DDR_MEM_SIZE))) {
-        offset = (unsigned int)targ_req->host_address - DDR_MEM_START_ADDR; 
+    
+    if (((unsigned int)targ_req->host_address >= trgmem_mem_map.sram_start) &&
+            ((unsigned int)targ_req->host_address < trgmem_mem_map.sram_end)) {
+        offset = (unsigned int)targ_req->host_address - trgmem_mem_map.sram_start; 
+        fd = trgmem_core_sram_fds[targ_req->core_id];
+    }
+    else if (((unsigned int)targ_req->host_address >= trgmem_mem_map.ddr_start) && 
+       ((unsigned int)targ_req->host_address < trgmem_mem_map.ddr_end)) {
+        offset = (unsigned int)targ_req->host_address - trgmem_mem_map.ddr_start; 
         fd = trgmem_core_ddr_fds[targ_req->core_id];
     }
-    else if (((unsigned int)targ_req->host_address >= L2_MEM_START_ADDR) &&
-            ((unsigned int)targ_req->host_address < (L2_MEM_START_ADDR + L2_MEM_SIZE))) {
-        offset = (unsigned int)targ_req->host_address - L2_MEM_START_ADDR; 
-        fd = trgmem_core_sram_fds[targ_req->core_id];
+    else if (((unsigned int)targ_req->host_address >= trgmem_mem_map.msm_ram_start) &&
+            ((unsigned int)targ_req->host_address < trgmem_mem_map.msm_ram_end)) {
+        offset = (unsigned int)targ_req->host_address - trgmem_mem_map.msm_ram_start; 
+        fd = trgmem_core_msm_fds[targ_req->core_id];
     }
     else {
       DLIF_error(DLET_TRGMEM, 
-                 "DLTMM_write: Invalid target address 0x%x\n", targ_req->host_address);
+                 "DLTMM_writebuf: Invalid target address 0x%x\n", targ_req->host_address);
        return FALSE;
     }
 
@@ -655,21 +724,26 @@ BOOL DLTMM_malloc(struct DLOAD_MEMORY_REQUEST *targ_req,
       need_trg_minit = FALSE;
    }
    
-   if (targ_req->core_id >= NUM_CORES) {
+   if (targ_req->core_id >= trgmem_num_cores) {
       DLIF_error(DLET_TRGMEM, 
                  "Invalid Core-Id %d\n", targ_req->core_id);
        return FALSE;
    }
 
-   if (((unsigned int)obj_desc->target_address >= DDR_MEM_START_ADDR) &&
-       ((unsigned int)obj_desc->target_address < (DDR_MEM_START_ADDR + DDR_MEM_SIZE))){
+   if (((unsigned int)obj_desc->target_address >= trgmem_mem_map.sram_start) &&
+            ((unsigned int)obj_desc->target_address < trgmem_mem_map.sram_end)) {
+       targ_req->host_address = obj_desc->target_address; 
+       targ_req->trgmem_handle = trgmem_core_sram_fds[targ_req->core_id];
+   }
+   else if (((unsigned int)obj_desc->target_address >= trgmem_mem_map.ddr_start) &&
+       ((unsigned int)obj_desc->target_address < trgmem_mem_map.ddr_end)){
        targ_req->host_address = obj_desc->target_address; 
        targ_req->trgmem_handle = trgmem_core_ddr_fds[targ_req->core_id];
    }
-   else if (((unsigned int)obj_desc->target_address >= L2_MEM_START_ADDR) &&
-            ((unsigned int)obj_desc->target_address < (L2_MEM_START_ADDR + L2_MEM_SIZE))) {
+   else if (((unsigned int)obj_desc->target_address >= trgmem_mem_map.msm_ram_start) &&
+            ((unsigned int)obj_desc->target_address < trgmem_mem_map.msm_ram_end)) {
        targ_req->host_address = obj_desc->target_address; 
-       targ_req->trgmem_handle = trgmem_core_sram_fds[targ_req->core_id];
+       targ_req->trgmem_handle = trgmem_core_msm_fds[targ_req->core_id];
    }
    else {
       DLIF_error(DLET_TRGMEM, 
@@ -768,3 +842,24 @@ void DLTMM_dump_trg_mem(uint32_t offset, uint32_t nbytes,
 }
 #endif /* ORIGINAL_CODE */
         
+
+#ifndef ORIGINAL_CODE
+DLTMM_close()
+{
+    int idx;
+
+    if (need_trg_minit == TRUE)
+        return;
+
+    /* Free the mcore file descriptors for all cores */
+    for (idx=0; idx<trgmem_num_cores; idx++) {
+        if (idx == trgmem_self_core) continue;
+        close(trgmem_core_ddr_fds[idx]);
+        close(trgmem_core_sram_fds[idx]);
+        close(trgmem_core_msm_fds[idx]);
+    }
+
+    need_trg_minit = TRUE;
+}
+#endif
+
