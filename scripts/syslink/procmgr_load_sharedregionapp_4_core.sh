@@ -13,7 +13,7 @@ insmod syslink.ko
 for i in $CORES
 do
 echo "Loading and running slave core $i"
-${LOADER} $i sharedregion_c6678_core${i}.xe66
+${LOADER} $i sharedregion_c6670_core${i}.xe66
 done
 echo "Running procmgr User land sample application"
 ./procmgrapp_release 3 1 0x815080 2 0x815080 3 0x815080 3
