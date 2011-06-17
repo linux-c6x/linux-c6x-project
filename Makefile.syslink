@@ -171,7 +171,7 @@ syslink-rtos-install:
 	mkdir -p $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/map
 	if [ "$(IPC_TARGET)" == "C64P_COFF" ] ; then \
 		(cd $(SYSLINK_ROOT); cp `find . -name *x64P` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/; \
-		 cp `find . -name  *x64.map` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/map; ) \
+		 cp `find . -name  *x64P.map` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/map; ) \
 	fi
 	if [ "$(IPC_TARGET)" == "C64P_COFF_big_endian" ]; then \
 		(cd $(SYSLINK_ROOT); cp `find . -name *x64Pe` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/; \
@@ -183,7 +183,7 @@ syslink-rtos-install:
 	fi
 	if [ "$(IPC_TARGET)" == "C66_ELF_big_endian" ]; then \
 		(cd $(SYSLINK_ROOT); cp `find . -name *xe66e` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/; \
-		 cp `find . -name  *xe66.map` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/map; ) \
+		 cp `find . -name  *xe66e.map` $(PRODUCT_DIR)/$(SYSLINK_INSTALL)/map; ) \
 	fi
 	
 syslink-demo-all: syslink-kernel syslink-user syslink-rtos-demo syslink-install syslink-rtos-install
