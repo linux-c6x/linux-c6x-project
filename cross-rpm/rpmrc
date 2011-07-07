@@ -67,6 +67,8 @@ optflags: c6x -O3 -march=c64x+ -msdata=none -frename-registers -fremove-local-st
 optflags: c6xeb -O3 -march=c64x+ -msdata=none -frename-registers -fremove-local-statics -mdsbt -mbig-endian
 optflags: c64xplus -O3 -march=c64x+ -msdata=none -frename-registers -fremove-local-statics -mdsbt
 optflags: c64xpluseb -O3 -march=c64x+ -msdata=none -frename-registers -fremove-local-statics -mdsbt -mbig-endian
+optflags: c66x -O1 -march=c674x -msdata=none -frename-registers -fremove-local-statics -mdsbt
+optflags: c66xeb -O1 -march=c674x -msdata=none -frename-registers -fremove-local-statics -mdsbt -mbig-endian
 
 #############################################################
 # Canonical arch names and numbers
@@ -127,8 +129,10 @@ arch_canon:	ppc64:	ppc64	16
 
 arch_canon:	c6x:	c6x		17
 arch_canon:	c6xeb:	c6xeb		18
-arch_canon:	c64xplus: c64xplus 	19
-arch_canon:	c64xpluseb: c64xpluseb	20
+arch_canon:	c64xplus: c6x 	        17
+arch_canon:	c64xpluseb: c6xeb	18
+arch_canon:	c66x: c6x 	        17
+arch_canon:	c66xeb: c6xeb	        18
 
 #############################################################
 # Canonical OS names and numbers
@@ -205,6 +209,11 @@ buildarchtranslate: hades: m68kmint
 buildarchtranslate: s390: s390
 buildarchtranslate: s390x: s390x
 
+buildarchtranslate: c64xplus: c6x
+buildarchtranslate: c64xpluseb: c6xeb
+buildarchtranslate: c66x: c6x
+buildarchtranslate: c66xeb: c6xeb
+
 #############################################################
 # Architecture compatibility
 
@@ -274,6 +283,8 @@ arch_compat: c6x: noarch
 arch_compat: c6xeb: noarch
 arch_compat: c64xplus: c6x noarch
 arch_compat: c64xpluseb: c6xeb noarch
+arch_compat: c66x: c6x noarch
+arch_compat: c66xeb: c6xeb noarch
 
 os_compat:   IRIX64: IRIX
 os_compat: solaris2.7: solaris2.3 solaris2.4 solaris2.5 solaris2.6
@@ -362,6 +373,8 @@ buildarch_compat: c6x: noarch
 buildarch_compat: c6xeb: noarch
 buildarch_compat: c64xplus: c6x noarch
 buildarch_compat: c64xpluseb: c6xeb noarch
+buildarch_compat: c66x: c6x noarch
+buildarch_compat: c66xeb: c6xeb noarch
 
 macrofiles: %(echo $SDK_DIR)/rpm/cross-rpm/macros.cross:%(echo $SDK_DIR)/rpm/cross-rpm/macros.%{_target}
 
