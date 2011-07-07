@@ -1,19 +1,22 @@
-diff -uNr evmc6474-1A/.config evmc6474-1B/.config
---- evmc6474-1A/.config	2010-11-05 13:44:03.000000000 +0100
-+++ evmc6474-1B/.config	2010-11-05 13:43:57.000000000 +0100
-@@ -184,7 +184,7 @@ CONFIG_PLL_TCI648X=y
- CONFIG_TIMER_TCI648X=y
- CONFIG_PIC_C64XPLUS=y
- CONFIG_GPIO_TCI648X=y
+diff -uNr evmc6474/.config evmc6474-1B/.config
+--- evmc6474/.config	2011-07-07 13:59:00.000000000 +0200
++++ evmc6474-1B/.config	2011-07-07 14:02:32.000000000 +0200
+@@ -1,7 +1,7 @@
+ #
+ # Automatically generated make config: don't edit
+ # Linux kernel version: 2.6.34
+-# Thu Jul  7 13:22:21 2011
++# Thu Jul  7 14:02:14 2011
+ #
+ CONFIG_TMS320C6X=y
+ # CONFIG_MMU is not set
+@@ -196,20 +196,16 @@
+ # CONFIG_USE_RT_TIMER is not set
+ CONFIG_TMS320C64X_GEMAC=y
+ CONFIG_SGMII=y
 -CONFIG_EDMA3=y
 +# CONFIG_EDMA3 is not set
- # CONFIG_SOC_TMS320C6455 is not set
- # CONFIG_SOC_TMS320C6457 is not set
- # CONFIG_SOC_TMS320C6472 is not set
-@@ -207,17 +207,9 @@ CONFIG_SGMII=y
- CONFIG_TMS320C64X_GEMAC=y
  # CONFIG_MCBSP is not set
- # CONFIG_MCBSP_UART is not set
 -CONFIG_RAPIDIO_TCI648X=y
 -CONFIG_RAPIDIO_DEV=y
 -CONFIG_RAPIDIO=y
@@ -23,14 +26,43 @@ diff -uNr evmc6474-1A/.config evmc6474-1B/.config
 -CONFIG_RAPIDIO_CPS_XX=y
 -CONFIG_RAPIDIO_TSI568=y
 -CONFIG_RAPIDIO_TSI500=y
+-# CONFIG_IPC is not set
 +# CONFIG_RAPIDIO_TCI648X is not set
++CONFIG_IPC=y
++CONFIG_VIRTIO_IPC=y
++CONFIG_VIRTIO=y
++CONFIG_VIRTIO_RING=y
++# CONFIG_VIRTIO_BALLOON is not set
  CONFIG_TMS320C6X_CACHES_ON=y
--CONFIG_KERNEL_RAM_BASE_ADDRESS=0x80000000
-+CONFIG_KERNEL_RAM_BASE_ADDRESS=0x82000000
+-CONFIG_PAGE_OFFSET=0x80000000
++CONFIG_PAGE_OFFSET=0x82000000
  CONFIG_CONTIGUOUS_PAGE_ALLOC=y
- # CONFIG_PGCACHE_LIMIT is not set
  # CONFIG_IDLE_LED is not set
-@@ -528,9 +520,6 @@ CONFIG_WLAN=y
+ CONFIG_SELECT_MEMORY_MODEL=y
+@@ -457,21 +453,14 @@
+ # CONFIG_BLK_DEV_XIP is not set
+ # CONFIG_CDROM_PKTCDVD is not set
+ # CONFIG_ATA_OVER_ETH is not set
++# CONFIG_VIRTIO_BLK is not set
+ CONFIG_MISC_DEVICES=y
+-# CONFIG_AD525X_DPOT is not set
+-# CONFIG_ICS932S401 is not set
+ # CONFIG_ENCLOSURE_SERVICES is not set
+-# CONFIG_ISL29003 is not set
+-# CONFIG_SENSORS_TSL2550 is not set
+-# CONFIG_DS1682 is not set
+ # CONFIG_C2PORT is not set
+ 
+ #
+ # EEPROM support
+ #
+-CONFIG_EEPROM_AT24=y
+-# CONFIG_EEPROM_LEGACY is not set
+-# CONFIG_EEPROM_MAX6875 is not set
+ # CONFIG_EEPROM_93CX6 is not set
+ 
+ #
+@@ -515,9 +504,6 @@
  # Enable WiMAX (Networking options) to see the WiMAX drivers
  #
  # CONFIG_WAN is not set
@@ -40,6 +72,104 @@ diff -uNr evmc6474-1A/.config evmc6474-1B/.config
  # CONFIG_PPP is not set
  # CONFIG_SLIP is not set
  CONFIG_NETCONSOLE=y
--- 
-1.6.0.4
-
+@@ -525,6 +511,7 @@
+ CONFIG_NETPOLL=y
+ # CONFIG_NETPOLL_TRAP is not set
+ CONFIG_NET_POLL_CONTROLLER=y
++CONFIG_VIRTIO_NET=y
+ # CONFIG_ISDN is not set
+ # CONFIG_PHONE is not set
+ 
+@@ -581,14 +568,15 @@
+ #
+ CONFIG_SERIAL_CORE=y
+ # CONFIG_SERIAL_TIMBERDALE is not set
+-# CONFIG_SERIAL_SC16IS7XX is not set
+ CONFIG_UNIX98_PTYS=y
+ # CONFIG_DEVPTS_MULTIPLE_INSTANCES is not set
+ CONFIG_LEGACY_PTYS=y
+ CONFIG_LEGACY_PTY_COUNT=256
++# CONFIG_VIRTIO_CONSOLE is not set
+ # CONFIG_IPMI_HANDLER is not set
+ CONFIG_HW_RANDOM=y
+ # CONFIG_HW_RANDOM_TIMERIOMEM is not set
++# CONFIG_HW_RANDOM_VIRTIO is not set
+ # CONFIG_RTC is not set
+ # CONFIG_GEN_RTC is not set
+ # CONFIG_R3964 is not set
+@@ -598,39 +586,7 @@
+ #
+ # CONFIG_RAW_DRIVER is not set
+ # CONFIG_TCG_TPM is not set
+-CONFIG_I2C=y
+-CONFIG_I2C_BOARDINFO=y
+-CONFIG_I2C_COMPAT=y
+-# CONFIG_I2C_CHARDEV is not set
+-CONFIG_I2C_HELPER_AUTO=y
+-
+-#
+-# I2C Hardware Bus support
+-#
+-
+-#
+-# I2C system bus drivers (mostly embedded / system-on-chip)
+-#
+-CONFIG_I2C_DAVINCI=y
+-# CONFIG_I2C_GPIO is not set
+-# CONFIG_I2C_OCORES is not set
+-# CONFIG_I2C_SIMTEC is not set
+-# CONFIG_I2C_XILINX is not set
+-
+-#
+-# External I2C/SMBus adapter drivers
+-#
+-# CONFIG_I2C_PARPORT_LIGHT is not set
+-# CONFIG_I2C_TAOS_EVM is not set
+-
+-#
+-# Other I2C/SMBus bus drivers
+-#
+-# CONFIG_I2C_PCA_PLATFORM is not set
+-# CONFIG_I2C_STUB is not set
+-# CONFIG_I2C_DEBUG_CORE is not set
+-# CONFIG_I2C_DEBUG_ALGO is not set
+-# CONFIG_I2C_DEBUG_BUS is not set
++# CONFIG_I2C is not set
+ # CONFIG_SPI is not set
+ 
+ #
+@@ -649,11 +605,6 @@
+ #
+ # I2C GPIO expanders:
+ #
+-# CONFIG_GPIO_MAX7300 is not set
+-# CONFIG_GPIO_MAX732X is not set
+-# CONFIG_GPIO_PCA953X is not set
+-# CONFIG_GPIO_PCF857X is not set
+-# CONFIG_GPIO_ADP5588 is not set
+ 
+ #
+ # PCI GPIO expanders:
+@@ -689,22 +640,9 @@
+ # Multifunction device drivers
+ #
+ # CONFIG_MFD_CORE is not set
+-# CONFIG_MFD_88PM860X is not set
+ # CONFIG_MFD_SM501 is not set
+ # CONFIG_HTC_PASIC3 is not set
+-# CONFIG_HTC_I2CPLD is not set
+-# CONFIG_TPS65010 is not set
+-# CONFIG_TWL4030_CORE is not set
+ # CONFIG_MFD_TMIO is not set
+-# CONFIG_PMIC_DA903X is not set
+-# CONFIG_PMIC_ADP5520 is not set
+-# CONFIG_MFD_MAX8925 is not set
+-# CONFIG_MFD_WM8400 is not set
+-# CONFIG_MFD_WM831X is not set
+-# CONFIG_MFD_WM8350_I2C is not set
+-# CONFIG_MFD_WM8994 is not set
+-# CONFIG_MFD_PCF50633 is not set
+-# CONFIG_AB3100_CORE is not set
+ # CONFIG_REGULATOR is not set
+ # CONFIG_MEDIA_SUPPORT is not set
+ 

@@ -1,19 +1,20 @@
-diff -uNr evmc6472-0/.config evmc6472-1/.config
---- evmc6472-0/.config	2010-11-05 17:05:48.000000000 +0100
-+++ evmc6472-1/.config	2010-11-05 17:05:54.000000000 +0100
-@@ -184,7 +184,7 @@ CONFIG_PLL_TCI648X=y
- CONFIG_TIMER_TCI648X=y
- CONFIG_PIC_C64XPLUS=y
- CONFIG_GPIO_TCI648X=y
--CONFIG_EDMA3=y
-+# CONFIG_EDMA3 is not set
- # CONFIG_SOC_TMS320C6455 is not set
- # CONFIG_SOC_TMS320C6457 is not set
- CONFIG_SOC_TMS320C6472=y
-@@ -207,17 +207,9 @@ CONFIG_ARCH_BOARD_EVM6472=y
- CONFIG_TMS320C64X_GEMAC=y
+diff -uNr ./evmc6472/.config ./evmc6472-1B/.config
+--- evmc6472/.config	2011-07-07 14:59:44.000000000 +0200
++++ evmc6472-1B/.config	2011-07-07 15:52:35.000000000 +0200
+@@ -1,7 +1,7 @@
+ #
+ # Automatically generated make config: don't edit
+ # Linux kernel version: 2.6.34
+-# Thu Jul  7 14:46:04 2011
++# Thu Jul  7 15:51:10 2011
+ #
+ CONFIG_TMS320C6X=y
+ # CONFIG_MMU is not set
+@@ -197,20 +197,17 @@
  CONFIG_TMS320C64X_GEMAC_0=y
  # CONFIG_TMS320C64X_GEMAC_1 is not set
+ CONFIG_SGMII=y
+-CONFIG_EDMA3=y
 -CONFIG_RAPIDIO_TCI648X=y
 -CONFIG_RAPIDIO_DEV=y
 -CONFIG_RAPIDIO=y
@@ -23,14 +24,23 @@ diff -uNr evmc6472-0/.config evmc6472-1/.config
 -CONFIG_RAPIDIO_CPS_XX=y
 -CONFIG_RAPIDIO_TSI568=y
 -CONFIG_RAPIDIO_TSI500=y
+-# CONFIG_IPC is not set
++# CONFIG_EDMA3 is not set
 +# CONFIG_RAPIDIO_TCI648X is not set
++CONFIG_IPC=y
++CONFIG_VIRTIO_IPC=y
++CONFIG_VIRTIO=y
++CONFIG_VIRTIO_RING=y
++# CONFIG_VIRTIO_BALLOON is not set
  CONFIG_TMS320C6X_CACHES_ON=y
--CONFIG_KERNEL_RAM_BASE_ADDRESS=0xe0000000
-+CONFIG_KERNEL_RAM_BASE_ADDRESS=0xe2000000
+-CONFIG_PAGE_OFFSET=0xe0000000
++CONFIG_PAGE_OFFSET=0xe2000000
  CONFIG_CONTIGUOUS_PAGE_ALLOC=y
- # CONFIG_PGCACHE_LIMIT is not set
- # CONFIG_IDLE_LED is not set
-@@ -442,7 +434,7 @@ CONFIG_MTD_NAND_IDS=y
++# CONFIG_IDLE_LED is not set
+ CONFIG_SELECT_MEMORY_MODEL=y
+ CONFIG_FLATMEM_MANUAL=y
+ # CONFIG_DISCONTIGMEM_MANUAL is not set
+@@ -428,7 +425,7 @@
  # CONFIG_MTD_NAND_DISKONCHIP is not set
  # CONFIG_MTD_NAND_NANDSIM is not set
  # CONFIG_MTD_NAND_PLATFORM is not set
@@ -39,18 +49,30 @@ diff -uNr evmc6472-0/.config evmc6472-1/.config
  # CONFIG_MTD_ONENAND is not set
  
  #
-@@ -482,9 +474,7 @@ CONFIG_MISC_DEVICES=y
+@@ -456,21 +453,14 @@
+ # CONFIG_BLK_DEV_XIP is not set
+ # CONFIG_CDROM_PKTCDVD is not set
+ # CONFIG_ATA_OVER_ETH is not set
++# CONFIG_VIRTIO_BLK is not set
+ CONFIG_MISC_DEVICES=y
+-# CONFIG_AD525X_DPOT is not set
+-# CONFIG_ICS932S401 is not set
+ # CONFIG_ENCLOSURE_SERVICES is not set
+-# CONFIG_ISL29003 is not set
+-# CONFIG_SENSORS_TSL2550 is not set
+-# CONFIG_DS1682 is not set
+ # CONFIG_C2PORT is not set
+ 
  #
  # EEPROM support
  #
 -CONFIG_EEPROM_AT24=y
 -# CONFIG_EEPROM_LEGACY is not set
 -# CONFIG_EEPROM_MAX6875 is not set
-+# CONFIG_EEPROM_AT24 is not set
  # CONFIG_EEPROM_93CX6 is not set
  
  #
-@@ -528,9 +518,6 @@ CONFIG_WLAN=y
+@@ -514,9 +504,6 @@
  # Enable WiMAX (Networking options) to see the WiMAX drivers
  #
  # CONFIG_WAN is not set
@@ -60,7 +82,15 @@ diff -uNr evmc6472-0/.config evmc6472-1/.config
  # CONFIG_PPP is not set
  # CONFIG_SLIP is not set
  CONFIG_NETCONSOLE=y
-@@ -593,10 +580,7 @@ CONFIG_DEVKMEM=y
+@@ -524,6 +511,7 @@
+ CONFIG_NETPOLL=y
+ # CONFIG_NETPOLL_TRAP is not set
+ CONFIG_NET_POLL_CONTROLLER=y
++CONFIG_VIRTIO_NET=y
+ # CONFIG_ISDN is not set
+ # CONFIG_PHONE is not set
+ 
+@@ -579,17 +567,16 @@
  # Non-8250 serial port support
  #
  CONFIG_SERIAL_CORE=y
@@ -71,7 +101,16 @@ diff -uNr evmc6472-0/.config evmc6472-1/.config
  CONFIG_UNIX98_PTYS=y
  # CONFIG_DEVPTS_MULTIPLE_INSTANCES is not set
  CONFIG_LEGACY_PTYS=y
-@@ -613,39 +597,7 @@ CONFIG_HW_RANDOM=y
+ CONFIG_LEGACY_PTY_COUNT=256
++# CONFIG_VIRTIO_CONSOLE is not set
+ # CONFIG_IPMI_HANDLER is not set
+ CONFIG_HW_RANDOM=y
+ # CONFIG_HW_RANDOM_TIMERIOMEM is not set
++# CONFIG_HW_RANDOM_VIRTIO is not set
+ # CONFIG_RTC is not set
+ # CONFIG_GEN_RTC is not set
+ # CONFIG_R3964 is not set
+@@ -599,39 +586,7 @@
  #
  # CONFIG_RAW_DRIVER is not set
  # CONFIG_TCG_TPM is not set
@@ -112,15 +151,28 @@ diff -uNr evmc6472-0/.config evmc6472-1/.config
  # CONFIG_SPI is not set
  
  #
-@@ -704,22 +656,11 @@ CONFIG_DAVINCI_WATCHDOG=m
+@@ -650,12 +605,6 @@
+ #
+ # I2C GPIO expanders:
+ #
+-# CONFIG_GPIO_MAX7300 is not set
+-# CONFIG_GPIO_MAX732X is not set
+-CONFIG_GPIO_PCA953X=y
+-# CONFIG_GPIO_PCA953X_IRQ is not set
+-# CONFIG_GPIO_PCF857X is not set
+-# CONFIG_GPIO_ADP5588 is not set
+ 
+ #
+ # PCI GPIO expanders:
+@@ -691,22 +640,9 @@
  # Multifunction device drivers
  #
  # CONFIG_MFD_CORE is not set
 -# CONFIG_MFD_88PM860X is not set
  # CONFIG_MFD_SM501 is not set
  # CONFIG_HTC_PASIC3 is not set
- # CONFIG_HTC_I2CPLD is not set
- # CONFIG_TPS65010 is not set
+-# CONFIG_HTC_I2CPLD is not set
+-# CONFIG_TPS65010 is not set
 -# CONFIG_TWL4030_CORE is not set
  # CONFIG_MFD_TMIO is not set
 -# CONFIG_PMIC_DA903X is not set
@@ -135,6 +187,3 @@ diff -uNr evmc6472-0/.config evmc6472-1/.config
  # CONFIG_REGULATOR is not set
  # CONFIG_MEDIA_SUPPORT is not set
  
--- 
-1.6.0.4
-
