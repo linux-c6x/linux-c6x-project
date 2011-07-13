@@ -1,0 +1,306 @@
+#! /bin/bash
+
+DATE=$(date -u +%Y%m%d)
+
+set -x
+
+# Configuration
+source build.def
+
+# for repo builds
+BUILD_NAME=$SRC_RELEASE-$DATE
+
+# for release builds
+#BUILD_NAME=$SRC_RELEASE
+
+JOB_DIR=$(pwd)
+SAUCE_DIR=$JOB_DIR/secret-sauce
+WORK_DIR=$JOB_DIR/$BUILD_NAME
+
+#get some resource definitions out of the setenv script
+source setenv.build
+
+local-prep() {
+    SYSLINK_URL=git://gtgit01.gt.design.ti.com/git/teams/linux-c6x/work1/syslink.git
+    mkdir -p local-prep
+    mkdir -p prep-resources
+    pushd local-prep
+	git clone $SYSLINK_URL syslink-$BUILD_NAME
+	cd syslink-$BUILD_NAME
+	git checkout $SRC_RELEASE
+	cd ..
+	tar czf $BUILD_NAME-syslink.src.tar.gz --exclude=".git" syslink-$BUILD_NAME
+    popd
+    mv local-prep/$BUILD_NAME-syslink.src.tar.gz prep-resources/
+}
+
+# look for special commands
+if [ "$1" == "local-prep" ]; then
+    local-prep
+    exit $?
+fi
+
+# set up machine
+# (we only need expect for the CGT installer)
+PACKAGES="build-essential git-core expect"
+if ! dpkg -l $PACKAGES; then
+    echo "installing (at least one of) the following packages: $PACKAGES"
+    sudo apt-get install -y $PACKAGES
+    echo "no" | sudo dpkg-reconfigure -f teletype dash
+else
+    echo "all following packages already installed: $PACKAGES"
+fi
+
+install_ccs() {
+    if [ "$CCS_VERSION" == "any" ]; then
+	ver_spec="*"
+    else
+	ver_spec=$CCS_VERSION
+    fi
+
+    tarball=$(echo ~/secret-sauce/setup_$ver_spec.tar.gz | awk '{print $NF; exit}')
+    if [ ! -r $tarball ]; then
+	echo "need CCS version $CCS_VERSION and did not find it nor install file $tarball"
+	exit 2
+    fi
+    ccs_setup=$(basename $tarball)
+    ccs_setup=${ccs_setup%.tar.gz}
+    scrap_dir=scrap/${ccs_setup}
+
+    rm -rf $scrap_dir
+    mkdir -p $scrap_dir
+    ccs_install_prefix=~/opt/ti
+    pushd $scrap_dir
+	tar xvzf $tarball
+	./$ccs_setup.bin --mode console <<EOF
+${ccs_install_prefix}
+EOF
+	cd ~/opt/ti/ccsv5/install_scripts/
+	sudo ./install_drivers.sh 
+    popd
+    CCS_DIR=~/opt/ti/ccsv5
+}
+
+find_existing_ccs() {
+    for base in ~/opt/ti /opt/ti ; do
+	if [ -d $base/ccsv5 ]; then
+	    this_ccs_base=$(basename $(echo $base/ccsv5/ccs_base*))
+	    this_ccs_ver=${this_ccs_base#ccs_base_}
+	    if [ "$CCS_VERSION" == "any" ] || [ "$CCS_VERSION" == "$this_ccs_ver" ]; then
+		CCS_DIR=$base/ccsv5
+		echo "found CCS version $this_ccs_ver in $CCS_DIR"
+		return 0
+	    fi
+	fi
+    done
+    return 1
+}
+
+reverse_words() {
+    output=""
+    for i in "$@"; do
+	output="$i $output"
+    done
+    echo $output
+}
+
+install_cgt() {
+    if [ "$CGT_VERSION" == "any" ]; then
+	ver_spec="*"
+    else
+	ver_spec=$CGT_VERSION
+    fi
+
+    cgt_setup=$(echo ~/secret-sauce/ti_cgt_c6000_${ver_spec}_setup_linux_x86.bin | awk '{print $NF; exit}')
+    if [ ! -r $cgt_setup ]; then
+	echo "need CGT version $CGT_VERSION and did not find it nor install file $cgt_setup"
+	exit 2
+    fi
+    this_cgt_ver=$(basename $cgt_setup)
+    this_cgt_ver=${this_cgt_ver#ti_cgt_c6000_}
+    this_cgt_ver=${this_cgt_ver%_setup_linux_x86.bin}
+    
+    chmod +x $cgt_setup
+    cgt_install_prefix=~/opt/TI/TI_CGT_C6000_${this_cgt_ver}
+    expect - <<EOF
+spawn ${cgt_setup} --mode console
+while true {
+expect {
+    "Continue?" {send "y\n"} 
+    "Press space to continue" {send " "} 
+    "Do you accept " {send "y\n"}
+    "Where do you want to install" {send "${cgt_install_prefix}\n"}
+}
+}
+EOF
+
+    CGT_DIR=$cgt_install_prefix
+    echo "installed and will use CGT version $this_cgt_ver in $CGT_DIR"
+}
+
+find_existing_cgt() {
+    for base in $CCS_DIR/tools/compiler/c6000 $(reverse_words ~/opt/{TI,ti}/TI_CGT_C6000_*) $(reverse_words /opt/{TI,ti}/TI_CGT_C6000_*) ; do
+	if [ -x $base/bin/cl6x ]; then
+	    this_cgt_ver=$($base/bin/cl6x --tool_version | awk '{ print $NF; exit }')
+	    if [ "$CGT_VERSION" == "any" ] || [ "$CGT_VERSION" == "$this_cgt_ver" ]; then
+		CGT_DIR=$base
+		echo "found CGT version $this_cgt_ver in $CGT_DIR"
+		return 0
+	    fi
+	fi
+    done
+    return 1
+}
+
+install_ipc() {
+    if [ "$IPC_VERSION" == "any" ]; then
+	ver_spec="*"
+    else
+	ver_spec=$IPC_VERSION
+    fi
+
+    ipc_setup=$(echo ~/secret-sauce/ipc_setuplinux_${ver_spec}.bin | awk '{print $NF; exit}')
+    if [ ! -r $ipc_setup ]; then
+	echo "need IPC version $IPC_VERSION and did not find it nor install file $ipc_setup"
+	exit 2
+    fi
+    this_ipc_ver=$(basename $ipc_setup)
+    this_ipc_ver=${this_ipc_ver#ipc_setuplinux_}
+    this_ipc_ver=${this_ipc_ver%.bin}
+    
+    chmod +x $ipc_setup
+    IPC_DIR=$(pwd)/ipc_${this_ipc_ver}
+    ipc_install_prefix=$(basename $IPC_DIR)
+    expect - <<EOF
+spawn ${ipc_setup} --mode console
+while true {
+expect {
+    "Continue?" {send "y\n"} 
+    "Press space to continue" {send " "} 
+    "Do you accept " {send "y\n"}
+    "Is this correct?" {send "y\n"}
+    "Is this is correct?" {send "y\n"}
+    "Where do you want to install" {send "${ipc_install_prefix}\n"}
+}
+}
+EOF
+
+    echo "installed and will use IPC version $this_ipv_ver in $IPC_DIR"
+}
+
+find_existing_ipc() {
+    for base in $(reverse_words $(pwd)/ipc_*) $(reverse_words {,~}/opt/{TI,ti}{/ccsv5,}/ipc_*) ; do
+	if [ -d $base ]; then
+	    this_ipc_ver=$(basename $base)
+	    this_ipc_ver=${this_ipc_ver#ipc_}
+	    if [ "$IPC_VERSION" == "any" ] || [ "$IPC_VERSION" == "$this_ipc_ver" ]; then
+		IPC_DIR=$base
+		echo "found IPC version $this_ipc_ver in $IPC_DIR"
+		return 0
+	    fi
+	fi
+    done
+    return 1
+}
+
+# get CCS directory
+if [ -n "$CCS_DIR" ]; then
+    echo "using predefined CCS directory: $CCS_DIR"
+elif [ "$CCS_VERSION" != "none" ]; then
+    # try to find preinstalled version of CCS
+    if ! find_existing_ccs; then
+	install_ccs
+    fi
+fi
+
+# get TI CGT directory
+if [ -n "$CGT_DIR" ]; then
+    echo "using predefined TI CGT directory: $CGT_DIR"
+elif [ -n "$CGT_VERSION" ] && [ "$CGT_VERSION" != "none" ]; then
+    if ! find_existing_cgt; then
+	install_cgt
+    fi
+fi
+
+# setup working directory
+#rm -rf $WORK_DIR || true
+mkdir -p $WORK_DIR
+cd $WORK_DIR
+
+# get BIOS IPC directory
+if [ -n "$IPC_DIR" ]; then
+    echo "using predefined TI IPC directory: $IPC_DIR"
+elif [ -n "$IPC_VERSION" ] && [ "$IPC_VERSION" != "none" ]; then
+    if ! find_existing_ipc; then
+	install_ipc
+    fi
+fi
+
+# fetch and setup the project
+wget -O bootstrap $URL
+chmod +x bootstrap
+
+./bootstrap $SRC_RELEASE
+tar xzf $JOB_DIR/prep-resources/$BUILD_NAME-syslink.src.tar.gz
+ln -sf syslink-$BUILD_NAME syslink
+
+cd linux-c6x-project
+mv setenv setenv.old
+if [ ! -z "$BUILD_CONFIG" ]; then
+    cp $JOB_DIR/$BUILD_CONFIG setenv.example
+fi
+./setup
+mv setenv setenv.part2
+cat - setenv.part2 >setenv <<EOF
+export CCS_DIR="$CCS_DIR"
+export CGT_DIR="$CGT_DIR"
+export TI_CG6X_DIR="$CGT_DIR"
+export BUILD_NAME="$BUILD_NAME"
+export REAL_IPC_DIR="$IPC_DIR"
+# syslink makefiles stupidly want a path into the middle of what ipc installs
+export IPC_DIR="$IPC_DIR/packages"
+EOF
+./setup
+source $(pwd)/setenv
+echo PWD=$(pwd)
+echo "KERNELS_TO_BUILD=$KERNELS_TO_BUILD"
+if [ -z "$GCC_TOOLCHAIN_VER" ]; then
+    export GCC_TOOLCHAIN_VER="4.5-109"
+fi
+if [ -d ../gcc-c6x ] && [ -d ../gcc-c6x-uclibc ]; then
+    echo "GCC already installed"
+else
+    echo "Installing GCC"
+    (cd ..; linux-c6x-project/scripts/gcc-install.sh $GCC_TOOLCHAIN_VER)
+fi
+
+# build it
+if make product; then 
+    echo "Build OK"
+else
+    echo "Build FAILED"; exit 2
+fi
+
+# build the bootblob
+pushd ../product
+chmod +x bootblob
+./bootblob make-image --abs-base=0x80000000 --round=0x100000 evmc6678-initramfs.el-$DATE-blob.bin vmlinux-2.6.34-evmc6678.el-$DATE-1.bin mcsdk-demo-root-c6x.cpio.gz "console=ttyS0,115200 initrd=0x%fsimage-start-abs-x%,0x%fsimage-size-x% mem=256M ip=dhcp rw"
+./bootblob make-image --abs-base=0x80000000 --round=0x100000 evmc6670-initramfs.el-$DATE-blob.bin vmlinux-2.6.34-evmc6670.el-$DATE-1.bin mcsdk-demo-root-c6x.cpio.gz "console=ttyS0,115200 initrd=0x%fsimage-start-abs-x%,0x%fsimage-size-x% mem=256M ip=dhcp rw"
+popd
+
+# package it up for release
+cp setenv ../product/setenv-$BUILD_NAME
+rm ../bootstrap
+./prj git clean -fdx
+./prj git reset --hard
+./prj git rev-parse HEAD >../src-record.txt
+cd ../..
+
+tar czf $BUILD_NAME-src.tar.gz --exclude=".git" --exclude="product" --exclude="sdk" --exclude="Build" --exclude="gcc-c6x" --exclude="gcc-c6x-uclibc" $BUILD_NAME
+tar czf $BUILD_NAME-bin.tar.gz $BUILD_NAME/src-record.txt $BUILD_NAME/product
+tar czf $BUILD_NAME-uClibc-src.tar.gz $BUILD_NAME/gcc-c6x-uclibc
+
+# package up the deliveries for tranport
+tar cvf release-bundle.tar  $BUILD_NAME-*.tar.gz
+
+

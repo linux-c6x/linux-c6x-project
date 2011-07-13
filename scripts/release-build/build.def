@@ -1,0 +1,7 @@
+# Build Definitions
+
+URL=http://linux-c6x.org/bootstrap
+BUILD_CONFIG="setenv.build"
+BUILD_TYPE="branch"
+SRC_RELEASE=master
+

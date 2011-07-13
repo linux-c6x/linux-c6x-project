@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -o pipefail
+
+SERVER_NAME=test3b
+SSH_NAME=aws-test3
+AT_END=halt
+
+./release-build local-prep
+
+virtual-server run $SERVER_NAME
+scp release-build build.def setenv*.build $SSH_NAME:.
+rsync -av secret-sauce $SSH_NAME:.
+rsync -av prep-resources $SSH_NAME:.
+ssh $SSH_NAME chmod +x release-build
+if ssh $SSH_NAME -t ./release-build  | tee ec2-build.log ; then
+    scp $SSH_NAME:release-bundle.tar .
+else
+    rc=$?
+    echo "Job Failed rc=$rc"
+fi
+
+if [ x"$AT_END" != x"nop" ]; then
+    virtual-server $AT_END $SERVER_NAME
+fi
+
+exit $rc
