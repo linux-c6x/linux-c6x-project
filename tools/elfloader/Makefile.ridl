@@ -91,7 +91,7 @@ C_OPTS += -mbig-endian
 endif
 
 ifeq ($(FLOAT),hard)
-C_OPTS += -march-c674x
+C_OPTS += -march=c674x
 endif
 
 TARG_TOOL_NAME = $(TARG_TOOL_NAME_PRFX)

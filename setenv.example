@@ -13,7 +13,10 @@ export GNU_TOOLS_DIR=$LINUX_C6X_TOP_DIR/gcc-c6x
 # Makefile.
 #
 # any or all of the below can be included
-# export KERNELS_TO_BUILD="dsk6455 evmc6472 evmc6474 evmc6457 evmc6474-lite"
+#	dsk6455 evmc6472 evmc6474 evmc6457 evmc6474-lite
+#	evmc6678 evmc6670
+# example:
+# export KERNELS_TO_BUILD="dsk6455 evmc6472"
 #
 export KERNELS_TO_BUILD="evmc6678"
 
@@ -22,44 +25,34 @@ export KERNELS_TO_BUILD="evmc6678"
 # script to read this env variable and install the GCC tool chain after
 # doing a source setenv as.
 # gcc-install.sh $GCC_VERSION
-export GCC_VERSION=
+export GCC_VERSION=4.5-121
 
 # set the CGT version to be used for the build. For future use when user
 # space build uses CGT. 
 export CGT_VERSION=
 
-# set to yes to build kernels with GCC
-# leave blank for kernel builds with TI tools
-export BUILD_KERNEL_WITH_GCC=yes
-
-# set to yes to build userspace components with GCC
-# leave blank for userspace builds with TI tools
-export BUILD_USERSPACE_WITH_GCC=yes
-
 # set to yes to install extra kernel modules and scripts used for testing
 #export BUILD_TESTS=yes
 
-# This is a space-separated list of kernels to build after everything else has built
-# This is for variants of the main kernels. Variants which have minor differences in
-# config or commandline compared to a kernel in KENRELS_TO_BUILD. This is used to 
-# test initramfs built into the kernel, for example.
-#
-# See bootblob for easier was to change the command line and to use an external initramfs
-#
-# export EXTRA_KERNELS_TO_BUILD="dsk6455-initramfs dsk6455-romfs evmc6472-initramfs evmc6472-romfs"
-
-# Choices for ROOTFS
+# Choices for ROOTFS, one or more of
 # min-root         - minimum file system
 # full-root        - min-root + additional packages such as nbench, polar ssl, etc 
 # ltp-root         - min-root + ltp test executables
 # mcsdk-demo-root  - min-root + mcsdk web control panel demo
+export ROOTFS="min-root mcsdk-demo-root"
 
-export ROOTFS=min-root
+# Choices for bootblobs to create
+# can list zero, one, or more
+# see bootblob-spec/*.mk for a list of choices
+# Note: for now you need to ensure that kernels and rootfs'es needed are specified above, 
+#       this does not yet do dependencies
+export BOOTBLOBS="evmc6678-nfs evmc6678-initramfs-min-root evmc6678-initramfs-mcsdk-demo-root"
 
-# 'little' or 'big' for single endianess. Leave blank or undefined to build
-# both endians
+# 'little', 'big', or 'both' for endianess versions to build
 export ENDIAN=little
 
+# 'soft', 'hard', or 'both' floating point ABI options 
+export FLOAT=both
 
 # These should not normaly have to be modified
 # Values are calculated from setenv values or constant
@@ -69,14 +62,6 @@ export SDK_DIR=$LINUX_C6X_TOP_DIR/sdk
 export LINUX_C6X_PROJECT_DIR=$LINUX_C6X_TOP_DIR/linux-c6x-project
 export LINUX_C6X_KERNEL_DIR=$LINUX_C6X_TOP_DIR/linux-c6x
 export SHELL=/bin/bash 
-export ABI=elf
-export DSBT_SIZE=64
-
-
-# If you are building sdk0 you must use a 3.x gcc version
-# Otherwise 3.x and 4.x should work
-#export HOSTCC=gcc-3.4
-export HOSTCC=gcc
 
 # If you need to override DEPMOD use something like below
 # This is needed for older versions of depmod like on RHEL4 and big endian c6x
@@ -100,7 +85,7 @@ export PKG_LIST="zlib net-snmp polarssl ttcp dhrystone nbench-byte tcpdump iperf
 # Use this variable when building syslink as part of mcsdk-demo-root ROOTFS
 # SysLink modules and exe files will get installed under /opt/syslink_<evm>.
 # <endian prefix> folder of the rootfs
-export SYSLINK_KERNEL_MODULES_TO_BUILD="evmc6678 evmc6670"
+export SYSLINK_KERNEL_MODULES_TO_BUILD=""
 
 # Set below if you are building syslink separately (not as part of product build).
 # SysLink modules and exe files get installed under product/syslink_<evm>.<endian

@@ -4,19 +4,24 @@
 # This is intentional not modular or distributed to keep this simple case in one place
 # Real distribution build will be done w/ bitbake
 
-all: product
+def-target: product
 
-product: rootfs extra-kernels
+all: product syslink-all 
+
+product: rootfs extra-kernels bootblobs
 
 DATE = $(shell date +'%Y%m%d')
 
-# These targets can be built little-endian and/or big-endian
-TOP_TARGETS = rootfs mtd rio busybox packages sdk clib kernels sdk0 clean mtd-clean rio-clean busybox-clean packages-clean clib-clean extra-kernels
+# These targets can be built little-endian and/or big-endian and hard or soft floating point ABI
+TOP_TARGETS = rootfs mtd rio busybox packages sdk clib kernels sdk0 clean mtd-clean rio-clean \
+	busybox-clean packages-clean clib-clean extra-kernels bootblobs elf-loader mcsdk-demo
 
-# These sub-targets build only little-endian or big-endian
+# These sub-targets build only one endian/float setting
 ENDIAN_TARGETS = one-rootfs one-mtd one-rio one-busybox one-sdk one-clib one-kernels one-sdk0 \
-	one-kernels-clean one-uclibc-clean one-mtd-clean one-rio-clean one-busybox-clean min-root-clean full-root-clean one-clean \
-	one-extra-kernels one-packages one-packages-clean one-ltp one-ltp-clean
+	one-kernels-clean one-uclibc-clean one-mtd-clean one-rio-clean one-busybox-clean \
+	min-root-clean full-root-clean one-clean \
+	one-extra-kernels one-packages one-packages-clean one-ltp one-ltp-clean \
+	one-elf-loader one-mcsdk-demo
 
 $(TOP_TARGETS) product kernel-headers: sanity
 
@@ -27,18 +32,27 @@ sanity:
 $(ENDIAN_TARGETS): endian-sanity
 
 endian-sanity:
-	@if [ -z "$(ENDIAN_SUFFIX)" ] ; then echo Must define ENDIAN for this target; exit 1; fi
+	@if [ -z "$(ENDIAN_SUFFIX)" ] || [ -z "$(FLOAT)" ] ; then echo Must define ENDIAN and FLOAT for this target; exit 1; fi
 
-# If these get called with undefined ENDIAN, build both endians
+# For these expand out to all settings of ENDIAN and FLOAT specified
 $(TOP_TARGETS):
-	if [ -z $(ENDIAN) ]; then		\
-	    $(MAKE) ENDIAN=little FLOAT=soft KERNEL_HEADERS_ENDIAN=little one-$@;	\
-	    $(MAKE) ENDIAN=big FLOAT=soft KERNEL_HEADERS_ENDIAN=little one-$@;		\
-	    $(MAKE) ENDIAN=little FLOAT=hard KERNEL_HEADERS_ENDIAN=little one-$@;	\
-	    $(MAKE) ENDIAN=big FLOAT=hard KERNEL_HEADERS_ENDIAN=little one-$@;		\
-	else					\
-	    $(MAKE) ENDIAN=$(ENDIAN) FLOAT=soft KERNEL_HEADERS_ENDIAN=$(ENDIAN) one-$@;	\
-	    $(MAKE) ENDIAN=$(ENDIAN) FLOAT=hard KERNEL_HEADERS_ENDIAN=$(ENDIAN) one-$@;	\
+	@if [ -z "$(ENDIAN)" ] || [ "$(ENDIAN)" == "both" ]; then					\
+	    if [ -z "$(FLOAT)" ] || [ "$(FLOAT)" == "both" ] ; then					\
+		$(MAKE) ENDIAN=little FLOAT=soft KERNEL_HEADERS_ENDIAN=little one-$@;		\
+		$(MAKE) ENDIAN=big FLOAT=soft KERNEL_HEADERS_ENDIAN=little one-$@;		\
+		$(MAKE) ENDIAN=little FLOAT=hard KERNEL_HEADERS_ENDIAN=little one-$@;		\
+		$(MAKE) ENDIAN=big FLOAT=hard KERNEL_HEADERS_ENDIAN=little one-$@;		\
+	    else										\
+		$(MAKE) ENDIAN=little FLOAT=$(FLOAT) KERNEL_HEADERS_ENDIAN=little one-$@;	\
+		$(MAKE) ENDIAN=big FLOAT=$(FLOAT) KERNEL_HEADERS_ENDIAN=little one-$@;		\
+	    fi											\
+	else											\
+	    if [ -z "$(FLOAT)" ] || [ "$(FLOAT)" == "both" ] ; then					\
+		$(MAKE) ENDIAN=$(ENDIAN) FLOAT=soft KERNEL_HEADERS_ENDIAN=$(ENDIAN) one-$@;	\
+		$(MAKE) ENDIAN=$(ENDIAN) FLOAT=hard KERNEL_HEADERS_ENDIAN=$(ENDIAN) one-$@;	\
+	    else										\
+		$(MAKE) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) KERNEL_HEADERS_ENDIAN=$(ENDIAN) one-$@;	\
+	    fi											\
 	fi
 
 ifeq ($(ENDIAN),little)
@@ -49,7 +63,7 @@ ifeq ($(ENDIAN),big)
 ARCHendian     = eb
 ENDIAN_SUFFIX  = .eb
 else
-ENDIAN =
+ENDIAN = 
 endif
 endif
 
@@ -77,13 +91,16 @@ RPM_CROSS_DIR=$(BLD)/packages$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)
 
 ABI           ?= elf
 DSBT_SIZE     ?= 64
-KERNELS_TO_BUILD ?= dsk6455 evm7472
+KERNELS_TO_BUILD ?= evmc6678
 EXTRA_KERNELS_TO_BUILD ?=
-BUILD_KERNEL_WITH_GCC ?=
-BUILD_USERSPACE_WITH_GCC ?=
+BUILD_KERNEL_WITH_GCC ?= yes
+BUILD_USERSPACE_WITH_GCC ?= yes
 BUILD_STATIC_BBOX ?= yes
 ROOTFS ?= min-root
 DEPMOD	?= /sbin/depmod
+BOOTBLOBS ?=
+SYSLINK_KERNEL_MODULES_TO_BUILD ?= 
+HOSTCC ?= gcc
 
 # ensure all the config ENV vars are exported, even if the definition was from this file
 export ABI
@@ -401,26 +418,27 @@ one-mtd: $(call COND_DEP, one-sdk)
 	[ -d $(BLD)/mtd-utils$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/mtd-utils$(ENDIAN_SUFFIX)
 	$(SUB_MAKE) -C $(BLD)/mtd-utils$(ENDIAN_SUFFIX) CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) mtd-sub
 
-one-mcsdk-demo:
+one-mcsdk-demo: 
 	if [ -d $(MCSDK_DEMO_DIR) ]; then \
-	[ -d $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX) ; \
-	cp -a $(MCSDK_DEMO_DIR)/* $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX) ; \
-	(cd $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) ) ; \
+	[ -d $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ] || mkdir -p $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ; \
+	cp -a $(MCSDK_DEMO_DIR)/* $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ; \
+	(cd $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)) ; \
 	else \
 		echo "install $(MCSDK_DEMO_DIR) and re-run build"; \
 		exit; \
 	fi
 
 one-mcsdk-demo-clean:
-	rm -rf $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)
+	rm -rf $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)
 
-one-elf-loader:
+one-elf-loader: $(call COND_DEP, one-sdk)
 # TODO currently support only C6678. So hard coded
-	[ -d $(BLD)/elf-loader$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/elf-loader$(ENDIAN_SUFFIX) ; \
-	cp -a $(TOP)/linux-c6x-project/tools/elfloader/* $(BLD)/elf-loader$(ENDIAN_SUFFIX) ; \
-	(cd $(BLD)/elf-loader$(ENDIAN_SUFFIX); make DEVICE=C6678 CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) ) ;
+	[ -d $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ] || mkdir -p $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ; \
+	cp -a $(TOP)/linux-c6x-project/tools/elfloader/* $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ; \
+	(cd $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX); make DEVICE=C6678 CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) ) ;
+
 one-elf-loader-clean:
-	rm -rf $(BLD)/elf-loader$(ENDIAN_SUFFIX)
+	rm -rf $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)
 
 ifeq ($(BUILD_USERSPACE_WITH_GCC),yes)
 MTD_LDFLAGS = -mdsbt -static
@@ -544,7 +562,10 @@ one-sdk: sdk0 one-clib
 sdk-clean:
 	rm -rf $(SDK_DIR)
 
-one-rootfs: $(ROOTFS)-$(ARCHef) bootblob
+one-rootfs: productdir bootblob
+	for this_rootfs in $(ROOTFS) ; do \
+		$(SUB_MAKE) $${this_rootfs}-$(ARCHef); \
+	done
 
 min-root-$(ARCHef): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one-mtd)
 	if [ -d $(BLD)/rootfs/$@ -a -e $(BLD)/rootfs/$@-marker ] ; then rm -rf $(BLD)/rootfs/$@; fi
@@ -569,8 +590,8 @@ mcsdk-demo-root-$(ARCHef): productdir $(call COND_DEP, one-busybox) $(call COND_
 	cp -a rootfs/min-root-extra/* $(BLD)/rootfs/$@
 	rm -rf $(BLD)/rootfs/$@/web
 	# call mcsdk demo install
-	(cd $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) INSTALL_PREFIX=$(BLD)/rootfs/$@ install )
-	(cd $(BLD)/elf-loader$(ENDIAN_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) INSTALL_PREFIX=$(BLD)/rootfs/$@/usr/bin install )
+	(cd $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) INSTALL_PREFIX=$(BLD)/rootfs/$@ install )
+	(cd $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) INSTALL_PREFIX=$(BLD)/rootfs/$@/usr/bin install )
 	# Install syslink executables and modules
 	for kname in $(SYSLINK_KERNEL_MODULES_TO_BUILD) ; do \
 		mkdir -p $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
@@ -645,9 +666,32 @@ ltp-root-$(ARCHef): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, on
 	(cd $(BLD)/rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
+########  Bootblob 
 bootblob: productdir
 	cp -a $(PRJ)/bootblob $(PRODUCT_DIR)/
+	chmod +x $(PRODUCT_DIR)/bootblob
 
+one-bootblobs: productdir bootblob
+	for this_blob in $(BOOTBLOBS) ; do \
+		if [ -r $(PRJ)/bootblob-specs/$${this_blob}.mk ]; then \
+			$(SUB_MAKE) -C $(PRODUCT_DIR) BOOTBLOB_FILE=$${this_blob} one-this-bootblob; \
+		else	\
+			echo "No spec to build bootblob $${this_blob}"; false; \
+		fi; \
+	done
+
+# this include and target below only make sense on the recursive makes started from the target above
+# BOOTBLOB_FILE should always be undefined for the top level make
+ifneq ($(BOOTBLOB_FILE),)
+include $(PRJ)/bootblob-specs/$(BOOTBLOB_FILE).mk
+endif
+
+.PHONY: one-this-bootblobs
+one-this-bootblob: $(BOOTBLOB_DEPENDENCIES)
+	echo Building bootblob $(BOOTBLOB_FILE)
+	$(BOOTBLOB_CMD)
+
+########  Misc and clean targets
 productdir:
 	[ -d $(PRODUCT_DIR) ] || mkdir -p $(PRODUCT_DIR)
 
