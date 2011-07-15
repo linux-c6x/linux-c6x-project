@@ -67,8 +67,8 @@ optflags: c6x -O3 -march=c64x+ -msdata=none -frename-registers -fremove-local-st
 optflags: c6xeb -O3 -march=c64x+ -msdata=none -frename-registers -fremove-local-statics -mdsbt -mbig-endian
 optflags: c64xplus -O3 -march=c64x+ -msdata=none -frename-registers -fremove-local-statics -mdsbt
 optflags: c64xpluseb -O3 -march=c64x+ -msdata=none -frename-registers -fremove-local-statics -mdsbt -mbig-endian
-optflags: c66x -O1 -march=c674x -msdata=none -frename-registers -fremove-local-statics -mdsbt
-optflags: c66xeb -O1 -march=c674x -msdata=none -frename-registers -fremove-local-statics -mdsbt -mbig-endian
+optflags: c66x -O3 -march=c674x -msdata=none -frename-registers -fremove-local-statics -mdsbt
+optflags: c66xeb -O3 -march=c674x -msdata=none -frename-registers -fremove-local-statics -mdsbt -mbig-endian
 
 #############################################################
 # Canonical arch names and numbers
