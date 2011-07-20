@@ -231,6 +231,7 @@ SUB_MAKE=$(MAKE) -f $(PRJ)/Makefile
 ONLY=
 COND_DEP=$(if $(ONLY),,$(1))
 
+########  kernels
 one-kernels: productdir $(call COND_DEP, sdk0)
 	for kname in $(KERNELS_TO_BUILD) ; do \
 		if [ "$(BUILD_KERNEL_WITH_GCC)" = "yes" ] ; then \
@@ -240,28 +241,6 @@ one-kernels: productdir $(call COND_DEP, sdk0)
 		fi \
 	done
 
-
-one-syslink:
-	if [ -d $(SYSLINK_ROOT) ] ; then \
-		for kname in $(SYSLINK_KERNEL_MODULES_TO_BUILD) ; do \
-			echo Building SysLink kernel module for $$kname ; \
-			mkdir -p $(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
-			cp -a $(SYSLINK_ROOT)/* $(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
-			if [ "$$kname" = "evmc6678" ]; then \
-			$(SUB_MAKE) syslink-demo-all SYSLINK_TO_BUILD=evmc6678 SYSLINK_ROOT=$(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
-			fi ; \
-			if [ "$$kname" = "evmc6670" ]; then \
-			$(SUB_MAKE) syslink-demo-all SYSLINK_TO_BUILD=evmc6670 SYSLINK_ROOT=$(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
-			fi ; \
-		done ; \
-	else \
-		echo "SysLink package not installed" ; \
-	fi ;
-
-one-syslink-clean:
-	for kname in $(SYSLINK_KERNEL_MODULES_TO_BUILD) ; do \
-	rm -rf $(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
-	done
 
 one-extra-kernels: productdir
 	for kname in $(EXTRA_KERNELS_TO_BUILD) ; do \
@@ -312,18 +291,15 @@ kernel-headers-sub:
 		        INSTALL_HDR_PATH=$(KHDR_DIR) O=$(KOBJDIR) headers_install ; \
 	fi
 
-one-ltp:
-	[ -d $(BLD)/ltp$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/ltp$(ENDIAN_SUFFIX)
-	if [ "$(BUILD_USERSPACE_WITH_GCC)" == "yes" ] ; then \
-		(cd $(PRJ)/testing/ltp; make TOP_DIR=${TOP} ENDIAN=${ENDIAN} GCC=true all);\
-	else \
-		(cd $(PRJ)/testing/ltp; make TOP_DIR=${TOP} ABI=${ABI} all);\
-	fi
-	cp $(BLD)/ltp$(ENDIAN_SUFFIX)/testdriver ${TOP}/product
+one-kernels-clean:
+	for kname in $(KERNELS_TO_BUILD) ; do \
+		$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_SDK0) KNAME=$$kname kernel-clean-sub ; \
+	done
 
-one-ltp-clean:
-	rm -rf $(BLD)/ltp$(ENDIAN_SUFFIX)
+kernel-clean-sub:
+	rm -rf $(KOBJDIR)
 
+########  C library
 one-clib: $(call COND_DEP, sdk0 kernel-headers)
 	[ -d $(BLD)/uClibc$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ] || mkdir -p $(BLD)/uClibc$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)
 	cp -a $(UCLIBC_SRCDIR)/* $(BLD)/uClibc$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)
@@ -370,6 +346,91 @@ clib-sub: $(BLD)/uClibc$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)/.config
 clib-sub-pthread: $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/.config
 	make
 
+one-clib-clean:
+	rm -rf $(BLD)/uClibc$(ENDIAN_SUFFIX)
+	rm -rf $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)
+
+########  SDKs
+
+# SDK0 (if used or needed) is just the compiler w/o any C libraries and 
+# is needed to build the kernel
+# SDK0 is not built if you have a prebuilt toolchain
+# Currently GCC is always precompiled 
+one-sdk0:
+	@if [ -e $(SDK0_DIR)/linux-$(ARCHe)-sdk0-prebuilt ] ; then 	\
+	    echo "using pre-built sdk0";				\
+	else	    						\
+	    if [ "$(BUILD_KERNEL_WITH_GCC)" != "yes" ] ; then  \
+		    if [ -e $(TOOL_WRAP_DIR)/Makefile ] ; then 	\
+			cd $(TOOL_WRAP_DIR); $(MAKE) ENDIAN=$(ENDIAN) ABI=$(ABI) DSBT_SIZE=$(DSBT_SIZE) \
+				GCC_C6X_DEST=$(SDK0_DIR) ALIAS=$(ALIAS) all;	\
+		    else					\
+			echo "You must install the prebuilt sdk0 or the build kit for it";	\
+			false;					\
+		fi;						\
+	    fi;							\
+	fi;							
+
+sdk0-keep:
+	@touch $(SDK0_DIR)/linux-c6x-sdk0-prebuilt
+	@touch $(SDK0_DIR)/linux-c6xeb-sdk0-prebuilt
+
+sdk0-unkeep:
+	@rm -f $(SDK0_DIR)/linux-c6x-sdk0-prebuilt
+	@rm -f $(SDK0_DIR)/linux-c6xeb-sdk0-prebuilt
+
+sdk0-clean:
+	@if [ -e $(SDK0_DIR)/linux-c6x-sdk0-prebuilt ] ; then 	\
+	    echo "using pre-built sdk0 (skip clean)";		\
+	else	    						\
+	    if [ -e $(SDK0_DIR)/bin/$(FARCH)-linux-gcc ] ; then 	\
+		rm -rf $(SDK0_DIR); 				\
+	    fi;							\
+	    if [ -e $(TOOL_WRAP_DIR)/Makefile ] ; then 		\
+		cd $(TOOL_WRAP_DIR); $(MAKE) ENDIAN=$(ENDIAN) ABI=$(ABI) GCC_C6X_DEST=$(SDK0_DIR) ALIAS=$(ALIAS) clean;	\
+	    fi;							\
+	fi							\
+
+# SDK is the toolchain plus the fundamental libraries and is needed to build the userspace components
+one-sdk: sdk0 one-clib
+	[ -e $(SYSROOT_DIR) ] || mkdir -p $(SYSROOT_DIR)
+        # Just updating with new files. Re-visit it later as needed
+	if [ "$(BUILD_USERSPACE_WITH_GCC)" != "yes" ] ; then \
+		[ -e $(SYSROOT_TMP_DIR) ] || mkdir -p $(SYSROOT_TMP_DIR) ; \
+		cp -a $(SDK0_DIR)/* $(SDK_DIR) ; \
+		[ -d $(SYSROOT_TMP_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_TMP_DIR) ; \
+		(cd $(SDK_DIR)/bin; ls c6x-* | cut -d\- -f4 | sort -u | xargs -i ln -sf $(ARCH)-elf-linux-"{}" $(ARCH)-linux-"{}" ) ; \
+		(cd $(SDK_DIR)/bin; ls c6xeb-* | cut -d\- -f4 | sort -u | xargs -i ln -sf $(ARCH)eb-elf-linux-"{}" $(ARCH)eb-linux-"{}" ) ; \
+		make -C $(BLD)/uClibc$(ENDIAN_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_TMP_DIR) install ; \
+		[ -e $(SYSROOT_TMP_DIR_THREAD) ] || mkdir -p $(SYSROOT_TMP_DIR_THREAD) ; \
+		make -C $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_TMP_DIR_THREAD) install ; \
+		mv -f $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/lib/libc.a $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/lib/libc-pthread.a ; \
+		rsync -rlpgocv --ignore-existing $(SYSROOT_TMP_DIR_THREAD)/ $(SYSROOT_TMP_DIR)/ ; \
+		rsync -rlpgocv --delete $(SYSROOT_TMP_DIR)/ $(SYSROOT_DIR)/ ; \
+	else \
+		cp -a $(GNU_TOOLS_DIR)/{bin,lib,libexec,share} $(SDK_DIR) ; \
+		cp -a $(GNU_TOOLS_DIR)/$(ARCH)-uclinux/{bin,lib,share,include} $(SDK_DIR)/$(ARCH)-uclinux ; \
+		[ -d $(SYSROOT_HDR_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_HDR_DIR) ; \
+		(cd $(SDK_DIR)/bin; ls | cut -d\- -f3 | sort -u | xargs -i ln -sf $(ARCH)-uclinux-"{}" $(ARCH)-linux-"{}" ) ; \
+		(cd $(SDK_DIR)/bin; ls | cut -d\- -f3 | sort -u | xargs -i ln -sf $(ARCH)-uclinux-"{}" $(ARCH)eb-linux-"{}" ) ; \
+		[ -d $(SYSROOT_DIR)/lib ] || mkdir -p $(SYSROOT_DIR)/lib; \
+		[ -d $(SYSROOT_DIR)/usr/lib ] || mkdir -p $(SYSROOT_DIR)/usr/lib; \
+		make -C $(BLD)/uClibc$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) CROSS=$(CC_GNU) PREFIX=$(SYSROOT_DIR) install ; \
+		if [ "$(SYSROOT_DIR)" != "$(SYSROOT_HDR_DIR)" ]; then \
+		    cp -r $(SYSROOT_DIR)/usr/include/* $(SYSROOT_HDR_DIR)/usr/include ; \
+		    rm -rf $(SYSROOT_DIR)/usr/include ; \
+		fi; \
+		cp -a $(GNU_TOOLS_DIR)/$(SYSROOT_DIR_SUBPATH)/usr/lib/libstdc++.a $(SYSROOT_DIR)/usr/lib/; \
+	fi
+
+sdk-clean:
+	rm -rf $(SDK_DIR)
+
+one-sdk-clean:
+	rm -rf $(SYSROOT_DIR)
+	[ -d $(SDK_DIR)/c6x-sysroot -o -d $(SDK_DIR)/c6xeb-sysroot ] || rm -rf $(SDK_DIR)
+
+########  Busybox
 BBOX_CONFIG = $(BLD)/busybox$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)/$(BBOX_CONFIGNAME)
 
 one-busybox:  $(call COND_DEP, one-sdk)
@@ -414,31 +475,14 @@ $(BLD)/busybox$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)/.config_done: $(CONF) $(PRJ)/Makef
 	$(BBOX_MAKE) oldconfig
 	cp $(CONF) $@
 
+one-busybox-clean:
+	rm -rf $(BLD)/busybox$(ENDIAN_SUFFIX)
+
+########  Other userspace components
+### MTD
 one-mtd: $(call COND_DEP, one-sdk)
 	[ -d $(BLD)/mtd-utils$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/mtd-utils$(ENDIAN_SUFFIX)
 	$(SUB_MAKE) -C $(BLD)/mtd-utils$(ENDIAN_SUFFIX) CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) mtd-sub
-
-one-mcsdk-demo: 
-	if [ -d $(MCSDK_DEMO_DIR) ]; then \
-	[ -d $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ] || mkdir -p $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ; \
-	cp -a $(MCSDK_DEMO_DIR)/* $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ; \
-	(cd $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)) ; \
-	else \
-		echo "install $(MCSDK_DEMO_DIR) and re-run build"; \
-		exit; \
-	fi
-
-one-mcsdk-demo-clean:
-	rm -rf $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)
-
-one-elf-loader: $(call COND_DEP, one-sdk)
-# TODO currently support only C6678. So hard coded
-	[ -d $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ] || mkdir -p $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ; \
-	cp -a $(TOP)/linux-c6x-project/tools/elfloader/* $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ; \
-	(cd $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX); make DEVICE=C6678 CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) ) ;
-
-one-elf-loader-clean:
-	rm -rf $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)
 
 ifeq ($(BUILD_USERSPACE_WITH_GCC),yes)
 MTD_LDFLAGS = -mdsbt -static
@@ -460,6 +504,34 @@ mtd-sub:
 	mkdir -p $(MTD_DIR)
 	$(MTD_MAKE) install
 
+one-mtd-clean:
+	rm -rf $(BLD)/mtd-utils$(ENDIAN_SUFFIX)
+
+### mcsdk-demo
+one-mcsdk-demo: 
+	if [ -d $(MCSDK_DEMO_DIR) ]; then \
+	[ -d $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ] || mkdir -p $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ; \
+	cp -a $(MCSDK_DEMO_DIR)/* $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ; \
+	(cd $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)) ; \
+	else \
+		echo "install $(MCSDK_DEMO_DIR) and re-run build"; \
+		exit; \
+	fi
+
+one-mcsdk-demo-clean:
+	rm -rf $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)
+
+### mcoreloader
+one-elf-loader: $(call COND_DEP, one-sdk)
+# TODO currently support only C6678. So hard coded
+	[ -d $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ] || mkdir -p $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ; \
+	cp -a $(TOP)/linux-c6x-project/tools/elfloader/* $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ; \
+	(cd $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX); make DEVICE=C6678 CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) ) ;
+
+one-elf-loader-clean:
+	rm -rf $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)
+
+### RapidIO utilities
 ifeq ($(BUILD_USERSPACE_WITH_GCC),yes)
 RIO_CFLAGS = -O3 -mdsbt
 ifneq ($(ENDIAN),little)
@@ -473,6 +545,30 @@ one-rio: $(call COND_DEP, one-sdk)
 	[ -d $(BLD)/rio-utils$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/rio-utils$(ENDIAN_SUFFIX)
 	make -f $(RIO_SRC)/Makefile -C $(RIO_SRC) CC="$(CC_SDK)gcc" EXTRA_CFLAGS="$(RIO_CFLAGS)" BUILDIR=$(BLD)/rio-utils$(ENDIAN_SUFFIX) DESTDIR=$(RIO_DIR)
 	make -f $(RIO_SRC)/Makefile -C $(RIO_SRC) CC="$(CC_SDK)gcc" EXTRA_CFLAGS="$(RIO_CFLAGS)" BUILDIR=$(BLD)/rio-utils$(ENDIAN_SUFFIX) DESTDIR=$(RIO_DIR) install
+
+one-rio-clean:
+	rm -rf $(BLD)/rio-utils$(ENDIAN_SUFFIX)
+
+### LTP
+one-ltp:
+	[ -d $(BLD)/ltp$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/ltp$(ENDIAN_SUFFIX)
+	if [ "$(BUILD_USERSPACE_WITH_GCC)" == "yes" ] ; then \
+		(cd $(PRJ)/testing/ltp; make TOP_DIR=${TOP} ENDIAN=${ENDIAN} GCC=true all);\
+	else \
+		(cd $(PRJ)/testing/ltp; make TOP_DIR=${TOP} ABI=${ABI} all);\
+	fi
+	cp $(BLD)/ltp$(ENDIAN_SUFFIX)/testdriver ${TOP}/product
+
+one-ltp-clean:
+	rm -rf $(BLD)/ltp$(ENDIAN_SUFFIX)
+
+### Packages built with cross rpm
+$(SDK_DIR)/rpm:
+	$(PRJ)/build-rpm.sh
+
+rpm-clean:
+	rm -rf $(BLD)/rpm-4.0.4
+	rm -rf $(SDK_DIR)/rpm
 
 one-packages: $(SDK_DIR)/rpm
 	@if [ "$(BUILD_USERSPACE_WITH_GCC)" != "yes" ] ; then echo "cannot build packages without GCC"; exit 1; fi
@@ -490,78 +586,35 @@ one-packages: $(SDK_DIR)/rpm
 	[ -d $(PACKAGES_DIR) ] || mkdir -p $(PACKAGES_DIR)
 	(export CROSS_ROOTDIR=$(PACKAGES_DIR) ; $(PRJ)/cross-rpm/pkg_install_linuxroot $(RPM_ARCH))
 
-$(SDK_DIR)/rpm:
-	$(PRJ)/build-rpm.sh
+one-packages-clean:
+	rm -rf $(RPM_CROSS_DIR)
 
-one-sdk0:
-	@if [ -e $(SDK0_DIR)/linux-$(ARCHe)-sdk0-prebuilt ] ; then 	\
-	    echo "using pre-built sdk0";				\
-	else	    						\
-	    if [ "$(BUILD_KERNEL_WITH_GCC)" != "yes" ] ; then  \
-		    if [ -e $(TOOL_WRAP_DIR)/Makefile ] ; then 	\
-			cd $(TOOL_WRAP_DIR); $(MAKE) ENDIAN=$(ENDIAN) ABI=$(ABI) DSBT_SIZE=$(DSBT_SIZE) \
-				GCC_C6X_DEST=$(SDK0_DIR) ALIAS=$(ALIAS) all;	\
-		    else					\
-			echo "You must install the prebuilt sdk0 or the build kit for it";	\
-			false;					\
-		fi;						\
-	    fi;							\
-	fi;							
-
-sdk0-keep:
-	@touch $(SDK0_DIR)/linux-c6x-sdk0-prebuilt
-	@touch $(SDK0_DIR)/linux-c6xeb-sdk0-prebuilt
-
-sdk0-unkeep:
-	@rm -f $(SDK0_DIR)/linux-c6x-sdk0-prebuilt
-	@rm -f $(SDK0_DIR)/linux-c6xeb-sdk0-prebuilt
-
-sdk0-clean:
-	@if [ -e $(SDK0_DIR)/linux-c6x-sdk0-prebuilt ] ; then 	\
-	    echo "using pre-built sdk0 (skip clean)";		\
-	else	    						\
-	    if [ -e $(SDK0_DIR)/bin/$(FARCH)-linux-gcc ] ; then 	\
-		rm -rf $(SDK0_DIR); 				\
-	    fi;							\
-	    if [ -e $(TOOL_WRAP_DIR)/Makefile ] ; then 		\
-		cd $(TOOL_WRAP_DIR); $(MAKE) ENDIAN=$(ENDIAN) ABI=$(ABI) GCC_C6X_DEST=$(SDK0_DIR) ALIAS=$(ALIAS) clean;	\
-	    fi;							\
-	fi							\
-
-one-sdk: sdk0 one-clib
-	[ -e $(SYSROOT_DIR) ] || mkdir -p $(SYSROOT_DIR)
-        # Just updating with new files. Re-visit it later as needed
-	if [ "$(BUILD_USERSPACE_WITH_GCC)" != "yes" ] ; then \
-		[ -e $(SYSROOT_TMP_DIR) ] || mkdir -p $(SYSROOT_TMP_DIR) ; \
-		cp -a $(SDK0_DIR)/* $(SDK_DIR) ; \
-		[ -d $(SYSROOT_TMP_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_TMP_DIR) ; \
-		(cd $(SDK_DIR)/bin; ls c6x-* | cut -d\- -f4 | sort -u | xargs -i ln -sf $(ARCH)-elf-linux-"{}" $(ARCH)-linux-"{}" ) ; \
-		(cd $(SDK_DIR)/bin; ls c6xeb-* | cut -d\- -f4 | sort -u | xargs -i ln -sf $(ARCH)eb-elf-linux-"{}" $(ARCH)eb-linux-"{}" ) ; \
-		make -C $(BLD)/uClibc$(ENDIAN_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_TMP_DIR) install ; \
-		[ -e $(SYSROOT_TMP_DIR_THREAD) ] || mkdir -p $(SYSROOT_TMP_DIR_THREAD) ; \
-		make -C $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_TMP_DIR_THREAD) install ; \
-		mv -f $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/lib/libc.a $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/lib/libc-pthread.a ; \
-		rsync -rlpgocv --ignore-existing $(SYSROOT_TMP_DIR_THREAD)/ $(SYSROOT_TMP_DIR)/ ; \
-		rsync -rlpgocv --delete $(SYSROOT_TMP_DIR)/ $(SYSROOT_DIR)/ ; \
+###  Syslink targets
+one-syslink:
+	if [ -d $(SYSLINK_ROOT) ] ; then \
+		for kname in $(SYSLINK_KERNEL_MODULES_TO_BUILD) ; do \
+			echo Building SysLink kernel module for $$kname ; \
+			mkdir -p $(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
+			cp -a $(SYSLINK_ROOT)/* $(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
+			if [ "$$kname" = "evmc6678" ]; then \
+			$(SUB_MAKE) syslink-demo-all SYSLINK_TO_BUILD=evmc6678 SYSLINK_ROOT=$(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
+			fi ; \
+			if [ "$$kname" = "evmc6670" ]; then \
+			$(SUB_MAKE) syslink-demo-all SYSLINK_TO_BUILD=evmc6670 SYSLINK_ROOT=$(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
+			fi ; \
+		done ; \
 	else \
-		cp -a $(GNU_TOOLS_DIR)/{bin,lib,libexec,share} $(SDK_DIR) ; \
-		cp -a $(GNU_TOOLS_DIR)/$(ARCH)-uclinux/{bin,lib,share,include} $(SDK_DIR)/$(ARCH)-uclinux ; \
-		[ -d $(SYSROOT_HDR_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_HDR_DIR) ; \
-		(cd $(SDK_DIR)/bin; ls | cut -d\- -f3 | sort -u | xargs -i ln -sf $(ARCH)-uclinux-"{}" $(ARCH)-linux-"{}" ) ; \
-		(cd $(SDK_DIR)/bin; ls | cut -d\- -f3 | sort -u | xargs -i ln -sf $(ARCH)-uclinux-"{}" $(ARCH)eb-linux-"{}" ) ; \
-		[ -d $(SYSROOT_DIR)/lib ] || mkdir -p $(SYSROOT_DIR)/lib; \
-		[ -d $(SYSROOT_DIR)/usr/lib ] || mkdir -p $(SYSROOT_DIR)/usr/lib; \
-		make -C $(BLD)/uClibc$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) CROSS=$(CC_GNU) PREFIX=$(SYSROOT_DIR) install ; \
-		if [ "$(SYSROOT_DIR)" != "$(SYSROOT_HDR_DIR)" ]; then \
-		    cp -r $(SYSROOT_DIR)/usr/include/* $(SYSROOT_HDR_DIR)/usr/include ; \
-		    rm -rf $(SYSROOT_DIR)/usr/include ; \
-		fi; \
-		cp -a $(GNU_TOOLS_DIR)/$(SYSROOT_DIR_SUBPATH)/usr/lib/libstdc++.a $(SYSROOT_DIR)/usr/lib/; \
-	fi
+		echo "SysLink package not installed" ; \
+	fi ;
 
-sdk-clean:
-	rm -rf $(SDK_DIR)
+one-syslink-clean:
+	for kname in $(SYSLINK_KERNEL_MODULES_TO_BUILD) ; do \
+	rm -rf $(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
+	done
 
+-include Makefile.syslink
+
+########  Root filesystems
 one-rootfs: productdir bootblob
 	for this_rootfs in $(ROOTFS) ; do \
 		$(SUB_MAKE) $${this_rootfs}-$(ARCHef); \
@@ -666,7 +719,23 @@ ltp-root-$(ARCHef): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, on
 	(cd $(BLD)/rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
-########  Bootblob 
+one-min-root-clean:
+	rm -rf $(BLD)/rootfs/min-root-$(ARCHef)
+	rm -rf $(BLD)/rootfs/min-root-$(ARCHef).cpio
+
+one-full-root-clean:
+	rm -rf $(BLD)/rootfs/full-root-$(ARCHef)
+	rm -rf $(BLD)/rootfs/full-root-$(ARCHef).cpio
+
+one-ltp-root-clean:
+	rm -rf $(BLD)/rootfs/ltp-root-$(ARCHef)
+	rm -rf $(BLD)/rootfs/ltp-root-$(ARCHef).cpio
+
+one-mcsdk-demo-root-clean:
+	rm -rf $(BLD)/rootfs/mcsdk-demo-root-$(ARCHef)
+	rm -rf $(BLD)/rootfs/mcsdk-demo-root-$(ARCHef).cpio
+
+########  Bootblobs
 bootblob: productdir
 	cp -a $(PRJ)/bootblob $(PRODUCT_DIR)/
 	chmod +x $(PRODUCT_DIR)/bootblob
@@ -691,65 +760,16 @@ one-this-bootblob: $(BOOTBLOB_DEPENDENCIES)
 	echo Building bootblob $(BOOTBLOB_FILE)
 	$(BOOTBLOB_CMD)
 
-########  Misc and clean targets
+########  Directory targets
 productdir:
 	[ -d $(PRODUCT_DIR) ] || mkdir -p $(PRODUCT_DIR)
 
 product-clean:
 	rm -rf $(PRODUCT_DIR)
 
-rpm-clean:
-	rm -rf $(BLD)/rpm-4.0.4
-	rm -rf $(SDK_DIR)/rpm
-
-kernel-clean-sub:
-	rm -rf $(KOBJDIR)
-
-one-kernels-clean:
-	for kname in $(KERNELS_TO_BUILD) ; do \
-		$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_SDK0) KNAME=$$kname kernel-clean-sub ; \
-	done
-
-one-sdk-clean:
-	rm -rf $(SYSROOT_DIR)
-	[ -d $(SDK_DIR)/c6x-sysroot -o -d $(SDK_DIR)/c6xeb-sysroot ] || rm -rf $(SDK_DIR)
-
-one-clib-clean:
-	rm -rf $(BLD)/uClibc$(ENDIAN_SUFFIX)
-	rm -rf $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)
-
-one-busybox-clean:
-	rm -rf $(BLD)/busybox$(ENDIAN_SUFFIX)
-
-one-mtd-clean:
-	rm -rf $(BLD)/mtd-utils$(ENDIAN_SUFFIX)
-
-one-rio-clean:
-	rm -rf $(BLD)/rio-utils$(ENDIAN_SUFFIX)
-
-one-packages-clean:
-	rm -rf $(RPM_CROSS_DIR)
-
-one-min-root-clean:
-	rm -rf $(BLD)/rootfs/min-root-$(ARCHef)
-	rm -rf $(BLD)/rootfs/min-root-$(ARCHef).cpio
-
-one-full-root-clean:
-	rm -rf $(BLD)/rootfs/full-root-$(ARCHef)
-	rm -rf $(BLD)/rootfs/full-root-$(ARCHef).cpio
-
-one-ltp-root-clean:
-	rm -rf $(BLD)/rootfs/ltp-root-$(ARCHef)
-	rm -rf $(BLD)/rootfs/ltp-root-$(ARCHef).cpio
-
-one-mcsdk-demo-root-clean:
-	rm -rf $(BLD)/rootfs/mcsdk-demo-root-$(ARCHef)
-	rm -rf $(BLD)/rootfs/mcsdk-demo-root-$(ARCHef).cpio
-
+########  Top level clean targets
 one-clean: one-mtd-clean one-rio-clean one-busybox-clean one-clib-clean one-sdk-clean one-min-root-clean one-full-root-clean one-ltp-clean one-ltp-root-clean one-mcsdk-demo-clean one-mcsdk-demo-root-clean one-elf-loader-clean one-syslink-clean
 	rm -rf $(MOD_DIR) $(HDR_DIR) $(BBOX_DIR)
 	rm -rf $(KOBJ_BASE)
 	make sdk0-clean
 
-# for Building SysLink
--include Makefile.syslink
