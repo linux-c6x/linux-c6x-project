@@ -82,12 +82,14 @@ FLOAT =
 endif
 endif
 
+FULL_SUFFIX=$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)
+
 PRJ=$(LINUX_C6X_PROJECT_DIR)
 TOP=$(LINUX_C6X_TOP_DIR)
 LINUX_C6X_BUILD_DIR ?= $(LINUX_C6X_TOP_DIR)/Build
 BLD=$(LINUX_C6X_TOP_DIR)/Build
 TOOL_WRAP_DIR=$(TOP)/ti-gcc-wrap/tool-wrap
-RPM_CROSS_DIR=$(BLD)/packages$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)
+RPM_CROSS_DIR=$(BLD)/packages$(FULL_SUFFIX)
 
 ABI           ?= elf
 DSBT_SIZE     ?= 64
@@ -121,10 +123,17 @@ else
 KERNEL_HEADERS_ENDIAN ?= little
 endif
 
+# asserts for supported configs in this release
+ifneq ($(BUILD_USERSPACE_WITH_GCC),yes)
+$(error only GCC supported for userspace)
+endif
+
+ifneq ($(BUILD_KERNEL_WITH_GCC),yes)
+$(error only GCC supported for kernel)
+endif
 
 ifeq ($(ABI),coff)
-ARCHabi        = coff
-EXTRA_CFLAGS=
+$(error COFF not supported (and never shall be again))
 else
 ARCHabi        = elf
 EXTRA_CFLAGS=-dsbt
@@ -172,6 +181,17 @@ UCLIBC_SRCDIR = $(TOP)/uClibc
 SYSROOT_DIR	= $(SDK_DIR)/$(FARCH)-sysroot
 endif
 BBOX_CONFIGNAME ?= busybox-1.00-full-$(ARCH).config
+
+USERSPACE_CFLAGS   = -O2 -g -mdsbt
+USERSPACE_LDFLAGS  = -mdsbt
+ifeq ($(ENDIAN),big)
+USERSPACE_CFLAGS  += -mbig-endian
+USERSPACE_LDFLAGS += -mbig-endian
+endif
+ifeq ($(ENDIAN),hard)
+USERSPACE_CFLAGS  += -march=c674x
+USERSPACE_LDFLAGS += -march=c674x
+endif
 
 ifeq ($(ENDIAN),little)
 GDBSERVER = $(GNU_TOOLS_DIR)/c6x-uclinux/libc/usr/bin/gdbserver
@@ -301,18 +321,18 @@ kernel-clean-sub:
 
 ########  C library
 one-clib: $(call COND_DEP, sdk0 kernel-headers)
-	[ -d $(BLD)/uClibc$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ] || mkdir -p $(BLD)/uClibc$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)
-	cp -a $(UCLIBC_SRCDIR)/* $(BLD)/uClibc$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)
-	$(SUB_MAKE) -C $(BLD)/uClibc$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) CROSS_COMPILE=ensure_not_used CROSS=$(CC_UCLIBC) clib-sub
+	[ -d $(BLD)/uClibc$(FULL_SUFFIX) ] || mkdir -p $(BLD)/uClibc$(FULL_SUFFIX)
+	cp -a $(UCLIBC_SRCDIR)/* $(BLD)/uClibc$(FULL_SUFFIX)
+	$(SUB_MAKE) -C $(BLD)/uClibc$(FULL_SUFFIX) CROSS_COMPILE=ensure_not_used CROSS=$(CC_UCLIBC) clib-sub
 	if [ "$(BUILD_USERSPACE_WITH_GCC)" != "yes" ] ; then \
-		[ -d $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX) ; \
-		cp -a $(UCLIBC_SRCDIR)/* $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX) ; \
-		$(SUB_MAKE) -C $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX) CROSS_COMPILE=ensure_not_used CROSS=$(CC_UCLIBC) clib-sub-pthread ; \
+		[ -d $(BLD)/uClibc-pthread$(FULL_SUFFIX) ] || mkdir -p $(BLD)/uClibc-pthread$(FULL_SUFFIX) ; \
+		cp -a $(UCLIBC_SRCDIR)/* $(BLD)/uClibc-pthread$(FULL_SUFFIX) ; \
+		$(SUB_MAKE) -C $(BLD)/uClibc-pthread$(FULL_SUFFIX) CROSS_COMPILE=ensure_not_used CROSS=$(CC_UCLIBC) clib-sub-pthread ; \
 	fi
 
 UCLIBC_CONFIG = $(PRJ)/uclibc-configs/$(UCLIBC_CONFIGNAME)
 
-$(BLD)/uClibc$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)/.config: $(UCLIBC_CONFIG)
+$(BLD)/uClibc$(FULL_SUFFIX)/.config: $(UCLIBC_CONFIG)
 	cp $(UCLIBC_CONFIG) .config
 	if [ "$(BUILD_USERSPACE_WITH_GCC)" == "yes" ] ; then \
 	    sed -i -e 's,USE_TI_C6X_COMPILER=y,# USE_TI_C6X_COMPILER is not set,' \
@@ -336,19 +356,19 @@ $(BLD)/uClibc$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)/.config: $(UCLIBC_CONFIG)
 
 UCLIBC_THR_CONFIG = $(PRJ)/uclibc-configs/$(UCLIBC_THR_CONFIGNAME)
 
-$(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/.config: $(UCLIBC_THR_CONFIG)
+$(BLD)/uClibc-pthread$(FULL_SUFFIX)/.config: $(UCLIBC_THR_CONFIG)
 	cp $(UCLIBC_THR_CONFIG) .config
 	make oldconfig
 
-clib-sub: $(BLD)/uClibc$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)/.config
+clib-sub: $(BLD)/uClibc$(FULL_SUFFIX)/.config
 	make
 
-clib-sub-pthread: $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/.config
+clib-sub-pthread: $(BLD)/uClibc-pthread$(FULL_SUFFIX)/.config
 	make
 
 one-clib-clean:
-	rm -rf $(BLD)/uClibc$(ENDIAN_SUFFIX)
-	rm -rf $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)
+	rm -rf $(BLD)/uClibc$(FULL_SUFFIX)
+	rm -rf $(BLD)/uClibc-pthread$(FULL_SUFFIX)
 
 ########  SDKs
 
@@ -401,10 +421,10 @@ one-sdk: sdk0 one-clib
 		[ -d $(SYSROOT_TMP_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_TMP_DIR) ; \
 		(cd $(SDK_DIR)/bin; ls c6x-* | cut -d\- -f4 | sort -u | xargs -i ln -sf $(ARCH)-elf-linux-"{}" $(ARCH)-linux-"{}" ) ; \
 		(cd $(SDK_DIR)/bin; ls c6xeb-* | cut -d\- -f4 | sort -u | xargs -i ln -sf $(ARCH)eb-elf-linux-"{}" $(ARCH)eb-linux-"{}" ) ; \
-		make -C $(BLD)/uClibc$(ENDIAN_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_TMP_DIR) install ; \
+		make -C $(BLD)/uClibc$(FULL_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_TMP_DIR) install ; \
 		[ -e $(SYSROOT_TMP_DIR_THREAD) ] || mkdir -p $(SYSROOT_TMP_DIR_THREAD) ; \
-		make -C $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_TMP_DIR_THREAD) install ; \
-		mv -f $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/lib/libc.a $(BLD)/uClibc-pthread$(ENDIAN_SUFFIX)/lib/libc-pthread.a ; \
+		make -C $(BLD)/uClibc-pthread$(FULL_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_TMP_DIR_THREAD) install ; \
+		mv -f $(BLD)/uClibc-pthread$(FULL_SUFFIX)/lib/libc.a $(BLD)/uClibc-pthread$(FULL_SUFFIX)/lib/libc-pthread.a ; \
 		rsync -rlpgocv --ignore-existing $(SYSROOT_TMP_DIR_THREAD)/ $(SYSROOT_TMP_DIR)/ ; \
 		rsync -rlpgocv --delete $(SYSROOT_TMP_DIR)/ $(SYSROOT_DIR)/ ; \
 	else \
@@ -415,7 +435,7 @@ one-sdk: sdk0 one-clib
 		(cd $(SDK_DIR)/bin; ls | cut -d\- -f3 | sort -u | xargs -i ln -sf $(ARCH)-uclinux-"{}" $(ARCH)eb-linux-"{}" ) ; \
 		[ -d $(SYSROOT_DIR)/lib ] || mkdir -p $(SYSROOT_DIR)/lib; \
 		[ -d $(SYSROOT_DIR)/usr/lib ] || mkdir -p $(SYSROOT_DIR)/usr/lib; \
-		make -C $(BLD)/uClibc$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) CROSS=$(CC_GNU) PREFIX=$(SYSROOT_DIR) install ; \
+		make -C $(BLD)/uClibc$(FULL_SUFFIX) CROSS=$(CC_GNU) PREFIX=$(SYSROOT_DIR) install ; \
 		if [ "$(SYSROOT_DIR)" != "$(SYSROOT_HDR_DIR)" ]; then \
 		    cp -r $(SYSROOT_DIR)/usr/include/* $(SYSROOT_HDR_DIR)/usr/include ; \
 		    rm -rf $(SYSROOT_DIR)/usr/include ; \
@@ -431,10 +451,10 @@ one-sdk-clean:
 	[ -d $(SDK_DIR)/c6x-sysroot -o -d $(SDK_DIR)/c6xeb-sysroot ] || rm -rf $(SDK_DIR)
 
 ########  Busybox
-BBOX_CONFIG = $(BLD)/busybox$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)/$(BBOX_CONFIGNAME)
+BBOX_CONFIG = $(BLD)/busybox$(FULL_SUFFIX)/$(BBOX_CONFIGNAME)
 
 one-busybox:  $(call COND_DEP, one-sdk)
-	[ -d $(BLD)/busybox$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ] || mkdir -p $(BLD)/busybox$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)
+	[ -d $(BLD)/busybox$(FULL_SUFFIX) ] || mkdir -p $(BLD)/busybox$(FULL_SUFFIX)
 	cp $(PRJ)/busybox-configs/$(BBOX_CONFIGNAME) $(BBOX_CONFIG)
 	if [ "$(BUILD_USERSPACE_WITH_GCC)" == "yes" ] ; then \
 	    sed -i -e 's,CONFIG_CROSS_COMPILER_PREFIX=*,CONFIG_CROSS_COMPILER_PREFIX="$(CC_SDK)",' \
@@ -449,7 +469,7 @@ one-busybox:  $(call COND_DEP, one-sdk)
 		   $(BBOX_CONFIG) ; \
 	    fi \
 	fi
-	$(SUB_MAKE) -C $(BLD)/busybox$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) \
+	$(SUB_MAKE) -C $(BLD)/busybox$(FULL_SUFFIX) \
 		CONF=$(BBOX_CONFIG) CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) busybox-sub ; \
 
 ifeq ($(BUILD_STATIC_BBOX),yes)
@@ -464,37 +484,28 @@ endif
 BBOX_MAKE = make ARCH=$(ARCH) CROSS_COMPILE=$(CC_SDK) KBUILD_SRC=$(TOP)/busybox \
 		-f $(TOP)/busybox/Makefile
 
-busybox-sub: $(BLD)/busybox$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)/.config_done
+busybox-sub: $(BLD)/busybox$(FULL_SUFFIX)/.config_done
 	rm -rf $(BBOX_DIR)
 	mkdir -p $(BBOX_DIR)
 	$(BBOX_MAKE) EXTRA_LDFLAGS="$(BBOX_EXTRA)"
 	$(BBOX_MAKE) EXTRA_LDFLAGS="$(BBOX_EXTRA)" CONFIG_PREFIX=$(BBOX_DIR) install
 
-$(BLD)/busybox$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)/.config_done: $(CONF) $(PRJ)/Makefile
+$(BLD)/busybox$(FULL_SUFFIX)/.config_done: $(CONF) $(PRJ)/Makefile
 	cp $(CONF) .config
 	$(BBOX_MAKE) oldconfig
 	cp $(CONF) $@
 
 one-busybox-clean:
-	rm -rf $(BLD)/busybox$(ENDIAN_SUFFIX)
+	rm -rf $(BLD)/busybox$(FULL_SUFFIX)
 
 ########  Other userspace components
 ### MTD
 one-mtd: $(call COND_DEP, one-sdk)
-	[ -d $(BLD)/mtd-utils$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/mtd-utils$(ENDIAN_SUFFIX)
-	$(SUB_MAKE) -C $(BLD)/mtd-utils$(ENDIAN_SUFFIX) CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) mtd-sub
+	[ -d $(BLD)/mtd-utils$(FULL_SUFFIX) ] || mkdir -p $(BLD)/mtd-utils$(FULL_SUFFIX)
+	$(SUB_MAKE) -C $(BLD)/mtd-utils$(FULL_SUFFIX) CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) mtd-sub
 
-ifeq ($(BUILD_USERSPACE_WITH_GCC),yes)
-MTD_LDFLAGS = -mdsbt -static
-MTD_CFLAGS = -O2 -g -mdsbt
-ifneq ($(ENDIAN),little)
-MTD_LDFLAGS += -mbig-endian
-MTD_CFLAGS += -mbig-endian
-endif
-else
-MTD_LDFLAGS = -dsbt -static
-MTD_CFLAGS = -O1 -g -dsbt
-endif
+MTD_LDFLAGS = $(USERSPACE_LDFLAGS) -static
+MTD_CFLAGS = $(USERSPACE_CFLAGS)
 
 MTD_MAKE = make -C $(MTD_SRC) CROSS=$(CC_SDK) SUBDIRS= DESTDIR=$(MTD_DIR) \
 	LDFLAGS="$(MTD_LDFLAGS)" CFLAGS="$(MTD_CFLAGS)"
@@ -505,58 +516,51 @@ mtd-sub:
 	$(MTD_MAKE) install
 
 one-mtd-clean:
-	rm -rf $(BLD)/mtd-utils$(ENDIAN_SUFFIX)
+	rm -rf $(BLD)/mtd-utils$(FULL_SUFFIX)
 
 ### mcsdk-demo
 one-mcsdk-demo: 
 	if [ -d $(MCSDK_DEMO_DIR) ]; then \
-	[ -d $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ] || mkdir -p $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ; \
-	cp -a $(MCSDK_DEMO_DIR)/* $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ; \
-	(cd $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)) ; \
+	[ -d $(BLD)/mcsdk-demo$(FULL_SUFFIX) ] || mkdir -p $(BLD)/mcsdk-demo$(FULL_SUFFIX) ; \
+	cp -a $(MCSDK_DEMO_DIR)/* $(BLD)/mcsdk-demo$(FULL_SUFFIX) ; \
+	(cd $(BLD)/mcsdk-demo$(FULL_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)) ; \
 	else \
 		echo "install $(MCSDK_DEMO_DIR) and re-run build"; \
 		exit; \
 	fi
 
 one-mcsdk-demo-clean:
-	rm -rf $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)
+	rm -rf $(BLD)/mcsdk-demo$(FULL_SUFFIX)
 
 ### mcoreloader
 one-elf-loader: $(call COND_DEP, one-sdk)
 # TODO currently support only C6678. So hard coded
-	[ -d $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ] || mkdir -p $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ; \
-	cp -a $(TOP)/linux-c6x-project/tools/elfloader/* $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ; \
-	(cd $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX); make DEVICE=C6678 CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) ) ;
+	[ -d $(BLD)/elf-loader$(FULL_SUFFIX) ] || mkdir -p $(BLD)/elf-loader$(FULL_SUFFIX) ; \
+	cp -a $(TOP)/linux-c6x-project/tools/elfloader/* $(BLD)/elf-loader$(FULL_SUFFIX) ; \
+	(cd $(BLD)/elf-loader$(FULL_SUFFIX); make DEVICE=C6678 CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) ) ;
 
 one-elf-loader-clean:
-	rm -rf $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)
+	rm -rf $(BLD)/elf-loader$(FULL_SUFFIX)
 
 ### RapidIO utilities
-ifeq ($(BUILD_USERSPACE_WITH_GCC),yes)
-RIO_CFLAGS = -O3 -mdsbt
-ifneq ($(ENDIAN),little)
-RIO_CFLAGS += -mbig-endian
-endif
-else
-RIO_CFLAGS = -dsbt
-endif
+RIO_CFLAGS = $(USERSPACE_CFLAGS)
 
 one-rio: $(call COND_DEP, one-sdk)
-	[ -d $(BLD)/rio-utils$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/rio-utils$(ENDIAN_SUFFIX)
-	make -f $(RIO_SRC)/Makefile -C $(RIO_SRC) CC="$(CC_SDK)gcc" EXTRA_CFLAGS="$(RIO_CFLAGS)" BUILDIR=$(BLD)/rio-utils$(ENDIAN_SUFFIX) DESTDIR=$(RIO_DIR)
-	make -f $(RIO_SRC)/Makefile -C $(RIO_SRC) CC="$(CC_SDK)gcc" EXTRA_CFLAGS="$(RIO_CFLAGS)" BUILDIR=$(BLD)/rio-utils$(ENDIAN_SUFFIX) DESTDIR=$(RIO_DIR) install
+	[ -d $(BLD)/rio-utils$(FULL_SUFFIX) ] || mkdir -p $(BLD)/rio-utils$(FULL_SUFFIX)
+	make -f $(RIO_SRC)/Makefile -C $(RIO_SRC) CC="$(CC_SDK)gcc" EXTRA_CFLAGS="$(RIO_CFLAGS)" BUILDIR=$(BLD)/rio-utils$(FULL_SUFFIX) DESTDIR=$(RIO_DIR)
+	make -f $(RIO_SRC)/Makefile -C $(RIO_SRC) CC="$(CC_SDK)gcc" EXTRA_CFLAGS="$(RIO_CFLAGS)" BUILDIR=$(BLD)/rio-utils$(FULL_SUFFIX) DESTDIR=$(RIO_DIR) install
 
 one-rio-clean:
-	rm -rf $(BLD)/rio-utils$(ENDIAN_SUFFIX)
+	rm -rf $(BLD)/rio-utils$(FULL_SUFFIX)
 
 ### LTP
 one-ltp:
-	[ -d $(BLD)/ltp$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ] || mkdir -p $(BLD)/ltp$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)
+	[ -d $(BLD)/ltp$(FULL_SUFFIX) ] || mkdir -p $(BLD)/ltp$(FULL_SUFFIX)
 	(cd $(PRJ)/testing/ltp; make TOP_DIR=${TOP} ENDIAN=${ENDIAN} FLOAT=${FLOAT} GCC=true all);\
-	cp $(BLD)/ltp$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)/testdriver ${TOP}/product
+	cp $(BLD)/ltp$(FULL_SUFFIX)/testdriver ${TOP}/product
 
 one-ltp-clean:
-	rm -rf $(BLD)/ltp$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)
+	rm -rf $(BLD)/ltp$(FULL_SUFFIX)
 
 ### Packages built with cross rpm
 $(SDK_DIR)/rpm:
@@ -639,8 +643,8 @@ mcsdk-demo-root-$(ARCHef): productdir $(call COND_DEP, one-busybox) $(call COND_
 	cp -a rootfs/min-root-extra/* $(BLD)/rootfs/$@
 	rm -rf $(BLD)/rootfs/$@/web
 	# call mcsdk demo install
-	(cd $(BLD)/mcsdk-demo$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) INSTALL_PREFIX=$(BLD)/rootfs/$@ install )
-	(cd $(BLD)/elf-loader$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) INSTALL_PREFIX=$(BLD)/rootfs/$@/usr/bin install )
+	(cd $(BLD)/mcsdk-demo$(FULL_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) INSTALL_PREFIX=$(BLD)/rootfs/$@ install )
+	(cd $(BLD)/elf-loader$(FULL_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) INSTALL_PREFIX=$(BLD)/rootfs/$@/usr/bin install )
 	# Install syslink executables and modules
 	for kname in $(SYSLINK_KERNEL_MODULES_TO_BUILD) ; do \
 		mkdir -p $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
@@ -706,9 +710,9 @@ ltp-root-$(ARCHef): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, on
 	cp $(TESTING_DIR)/scripts/* $(BLD)/rootfs/$@/bin
 	mkdir -p $(BLD)/rootfs/$@/opt/testing
 	cp -r $(TESTING_DIR)/images $(BLD)/rootfs/$@/opt/testing
-	cp -r $(BLD)/ltp$(ENDIAN_SUFFIX)/bin/* $(BLD)/rootfs/$@/bin 
-	cp -r $(BLD)/ltp$(ENDIAN_SUFFIX)/opt/* $(BLD)/rootfs/$@/opt
-	cp  -f $(BLD)/ltp$(ENDIAN_SUFFIX)/mnt/* $(BLD)/rootfs/$@/mnt ; \
+	cp -r $(BLD)/ltp$(FULL_SUFFIX)/bin/* $(BLD)/rootfs/$@/bin 
+	cp -r $(BLD)/ltp$(FULL_SUFFIX)/opt/* $(BLD)/rootfs/$@/opt
+	cp  -f $(BLD)/ltp$(FULL_SUFFIX)/mnt/* $(BLD)/rootfs/$@/mnt ; \
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - usr/lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	cp rootfs/min-root-devs.cpio $(BLD)/rootfs/$@.cpio
