@@ -17,10 +17,20 @@ need-args() {
     exit 2
 }
     
+assert-readable() {
+    for file in "$@" ; do
+	if [ ! -r $file ] ; then
+	    echo "Can not read file $file"
+	    exit 2
+	fi
+    done
+}
+    
 save-cmdline() {
     if [ $# -ne 2 ]; then need-args $# "bootblob or kernel image"  "cmdline save file"; fi
     IMAGE=$1
     CMDLINE_FILE=$2
+    assert-readable $IMAGE
     # get 0x400 bytes at offset 0x1000
     dd if=$IMAGE of=$CMDLINE_FILE skip=4 bs=1024 count=1
 }
@@ -28,7 +38,7 @@ save-cmdline() {
 get-cmdline() {
     if [ $# -ne 1 ]; then need-args $# "bootblob or kernel image"; fi
     IMAGE=$1
-    if [ ! -r $IMAGE ]; then echo "Can not read image file $IMAGE"; return 2; fi
+    assert-readable $IMAGE
     # get 0x400 bytes at offset 0x1000 and isolate the stuff before the first NUL character
     dd if=$IMAGE skip=4 bs=1024 count=1 2>/dev/null | xargs -0 -n 1 2>/dev/null | head -n 1
 }
@@ -38,6 +48,7 @@ set-cmdline() {
 
     IMAGE=$1
     CMDLINE=$2
+    assert-readable $IMAGE
     dd if=/dev/zero of=$IMAGE seek=4 bs=1024 count=1 conv=notrunc 2>/dev/null
     echo -n "$2" | dd  of=$IMAGE seek=4 bs=1024 count=1 conv=notrunc 2>/dev/null
 }
@@ -84,6 +95,7 @@ make-image() {
     FSIMAGE=$3
     CMDLINE=$4
 
+    assert-readable $KERNEL $FSIMAGE
     KERNEL_REAL_SIZE=$(stat -c"%s" $KERNEL)
     FS_REAL_SIZE=$(stat -c"%s" $FSIMAGE)
 
@@ -139,7 +151,7 @@ do_help() {
     echo "    %fsimage-size-x%        size of filesystem image (hex)"
     echo ""
     echo "example:"
-    echo "    ./bootblob make-image --abs-base=0xe0000000 --round=0x10000 test.blob vmlinux-xxx.bin min-root-c6x.cpio.gz \\"
+    echo "    ./bootblob make-image --abs-base=0x80000000 --round=0x100000 test.blob vmlinux-xxx.bin min-root-c6x.cpio.gz \\"
     echo "        console=cio initrd=0x%fsimage-start-abs-x%,0x%fsimage-size-x% ip=dhcp"
 }
 
