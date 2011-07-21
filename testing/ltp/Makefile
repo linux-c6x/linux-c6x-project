@@ -5,28 +5,40 @@ PFX=$(TOP_DIR)/sdk/bin
 # directory where LTP source tarball is located, if not CWD.
 LTP_TOP=$(TOP_DIR)/projects/ltp
 LTP_SRCDIR=$(LTP_TOP)/src
-ifeq ($(ENDIAN),little)
-BE=""
-INSTPFX=$(BUILD_DIR)/ltp.el
-INSTPFX_SRC=$(INSTPFX)/ltp-full-20101031
+
+ifeq ($(FLOAT),hard)
+ARCHfloat      = -hf
+FLOAT_SUFFIX   = _hardfp
+FLOAT_CFLAG    = -march=c674x
 else
-INSTPFX=$(BUILD_DIR)/ltp.eb
-INSTPFX_SRC=$(INSTPFX)/ltp-full-20101031
-BE="big"
+ARCHfloat      =
+FLOAT_SUFFIX   =
+FLOAT_CFLAG    =
 endif
 
-# Use gcc if GCC defined, otherwise assume TI compiler
-ifeq ($(GCC),"true")
-GCC=true
+ifeq ($(ENDIAN),big)
+ARCHendian     = eb
+ENDIAN_SUFFIX  = .eb
+ENDIAN_CFLAG   = -mbig-endian
+BE             = big
 else
-GCC=
+ARCHendian     = 
+ENDIAN_SUFFIX  = .el
+ENDIAN_CFLAG   =
+BE             =
+endif
+
+INSTPFX=$(BUILD_DIR)/ltp$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)
+INSTPFX_SRC=$(INSTPFX)/ltp-full-20101031
+
+# Use gcc if GCC defined, otherwise assume TI compiler
+ifneq ($(GCC),true)
+$(error only GCC supported)
 endif
 
 # Set to elf or coff.  Only needed with TI compiler
-ifeq ($(ABI),elf)
-FMT=elf
-else
-FMT=coff
+ifneq ($(ABI),elf)
+$(error only ELF supported)
 endif
 
 # Number of parallel makes to run, use /proc/cpuinfo if undefined
@@ -35,23 +47,9 @@ endif
 UCLINUX=1
 DASHJ=""
 
-CFLAGS = -DCONFIG_COLDFIRE -DHAVE_STRUCT_PTRACE_REGS
-ifeq ($(GCC), "")
-ifeq ($(ENDIAN),little)
-TARGET=c6x-${FMT}-linux
-CFLAGS += -dsbt --gcc
-LDFLAGS = -dsbt --gcc -static
-else
-TARGET = c6xeb-${FMT}-linux
-LDFLAGS = -Wl,--reread_libs -Wl,-ar -lm
-endif
-else
+CFLAGS = -DCONFIG_COLDFIRE -DHAVE_STRUCT_PTRACE_REGS $(ENDIAN_CFLAG) $(FLOAT_CFLAG)
 TARGET=c6x-uclinux
-ifeq ($(ENDIAN),big)
-CFLAGS += -mbig-endian
-endif
 LDFLAGS=$(CFLAGS)
-endif
 
 AR=${PFX}/${TARGET}-ar
 AS=${PFX}/${TARGET}-as

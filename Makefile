@@ -14,7 +14,7 @@ DATE = $(shell date +'%Y%m%d')
 
 # These targets can be built little-endian and/or big-endian and hard or soft floating point ABI
 TOP_TARGETS = rootfs mtd rio busybox packages sdk clib kernels sdk0 clean mtd-clean rio-clean \
-	busybox-clean packages-clean clib-clean extra-kernels bootblobs elf-loader mcsdk-demo
+	busybox-clean packages-clean clib-clean extra-kernels bootblobs elf-loader mcsdk-demo ltp
 
 # These sub-targets build only one endian/float setting
 ENDIAN_TARGETS = one-rootfs one-mtd one-rio one-busybox one-sdk one-clib one-kernels one-sdk0 \
@@ -551,16 +551,12 @@ one-rio-clean:
 
 ### LTP
 one-ltp:
-	[ -d $(BLD)/ltp$(ENDIAN_SUFFIX) ] || mkdir -p $(BLD)/ltp$(ENDIAN_SUFFIX)
-	if [ "$(BUILD_USERSPACE_WITH_GCC)" == "yes" ] ; then \
-		(cd $(PRJ)/testing/ltp; make TOP_DIR=${TOP} ENDIAN=${ENDIAN} GCC=true all);\
-	else \
-		(cd $(PRJ)/testing/ltp; make TOP_DIR=${TOP} ABI=${ABI} all);\
-	fi
-	cp $(BLD)/ltp$(ENDIAN_SUFFIX)/testdriver ${TOP}/product
+	[ -d $(BLD)/ltp$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX) ] || mkdir -p $(BLD)/ltp$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)
+	(cd $(PRJ)/testing/ltp; make TOP_DIR=${TOP} ENDIAN=${ENDIAN} FLOAT=${FLOAT} GCC=true all);\
+	cp $(BLD)/ltp$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)/testdriver ${TOP}/product
 
 one-ltp-clean:
-	rm -rf $(BLD)/ltp$(ENDIAN_SUFFIX)
+	rm -rf $(BLD)/ltp$(ENDIAN_SUFFIX)$(FLOAT_SUFFIX)
 
 ### Packages built with cross rpm
 $(SDK_DIR)/rpm:
