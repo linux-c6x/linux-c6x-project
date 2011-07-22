@@ -18,7 +18,7 @@ EXTRA_PRJ="projects/mtd-utils projects/rio-utils projects/packages projects/ltp 
 
 TOP=..
 REST_PRJ="$BASE_PRJ $WRAP_PRJ $EXTRA_PRJ"
-ALL_PRJ="$BOM_PRJ $REST_PRJ"
+ALL_PRJ="$BOMPRJ $REST_PRJ"
 ### INSTANCE VARS END
 
 do-help-bootstrap() {
