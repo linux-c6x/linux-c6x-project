@@ -7,10 +7,10 @@
 
 gcc_tools_install_help() {
     echo "Usage gcc-install <release> <ti/[cs]>"
-    echo "Example gcc-install 4.5-109 - for installing specific version from cs public folder"
-    echo "Only 4.5-97 or 4.5-109 available in cs public folder"
+    echo "Example gcc-install 4.5-123 - for installing specific version from cs public folder"
+    echo "Only 4.5-97, 4.5-109, 4.5-123  available in cs public folder"
     echo "--------------OR-------------"
-    echo "Example gcc-install 4.5-109 ti - for installing from ti server"
+    echo "Example gcc-install 4.5-123 ti - for installing from ti server"
 }
 
 validate() {
@@ -20,14 +20,14 @@ validate() {
 	else
 		if [ "$1X" != "4.5-109X" ]
 		then
-			echo "Only 4.5-97 or 4.5-109 available"
+			echo "Only 4.5-97, 4.5-109, 4.5-123 are available"
 			exit 0;
 		fi
 	fi
 }
 
 SERVER="cs"
-GCC_REL="4.5-109"
+GCC_REL="4.5-123"
 
 if [ "$1X" = "X" ]
 then
