@@ -94,7 +94,7 @@ export SYSLINK_KERNEL_MODULES_TO_BUILD=""
 export SYSLINK_TO_BUILD=
 
 # SysLink install directory
-export SYSLINK_ROOT=$LINUX_C6X_TOP_DIR/syslink
+export SYSLINK_ROOT=$LINUX_C6X_TOP_DIR/projects/syslink
 
 # IPC package install directory. Set the IPC_DIR variable to something other than
 # default only if you want to use the IPC package from the CCS installation. In that
