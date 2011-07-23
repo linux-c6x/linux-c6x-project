@@ -1,85 +1,71 @@
-#!/bin/sh
+#!/bin/bash
 # Author - Murali Karicheri
 # used for installing gcc tool chain to the c6x-project top level
 # install tool chain under $(pwd)/gcc-c6x
 # install uclibc source to $(pwd)/gcc-c6x-uclibc 
 # if you are behind a proxy, export http_proxy=<proxy> and https_proxy=<proxy>
 
-gcc_tools_install_help() {
-    echo "Usage gcc-install <release> <ti/[cs]>"
-    echo "Example gcc-install 4.5-123 - for installing specific version from cs public folder"
-    echo "Only 4.5-97, 4.5-109, 4.5-123  available in cs public folder"
-    echo "--------------OR-------------"
-    echo "Example gcc-install 4.5-123 ti - for installing from ti server"
-}
+PUBLIC_VERSIONS="4.5-123 4.5-109 4.5-97"
+DEFAULT_VERSION="4.5-123"
 
-validate() {
-	if [ "$1X" = "4.5-97X" ]
-	then
-		GCC_REL=$1
-	else
-		if [ "$1X" != "4.5-109X" ]
-		then
-			echo "Only 4.5-97, 4.5-109, 4.5-123 are available"
-			exit 0;
-		fi
-	fi
+gcc_tools_install_help() {
+    echo "Usage gcc-install [options] <release> <ti/[cs]>"
+    echo "options are zero or more of --help, --only-gcc, & --only-uclibc"
+    echo "Example gcc-install $DEFAULT_VERSION - for installing specific version from cs public folder"
+    echo "Only $PUBLIC_VERSIONS are available in cs public folder"
+    echo "--------------OR-------------"
+    echo "Example gcc-install $DEFAULT_VERSION ti - for installing from ti internal server"
 }
 
 SERVER="cs"
 GCC_REL="4.5-123"
+DO_BIN=true
+DO_SRC=true
 
-if [ "$1X" = "X" ]
-then
+# process options
+while true; do
+case $1 in
+--help)
  	gcc_tools_install_help	
-    	exit 0;
+    	exit 0
+;;
+--only-gcc)
+	DO_SRC=false
+	shift
+;;
+--only-uclibc)
+	DO_BIN=false
+	shift
+;;
+--*)
+	echo "unknown option $1"
+	echo "use --help for command usage"
+	exit 2
+;;
+*)
+	break
+;;
+esac
+done
+
+if [ -z "$LINUX_C6X_TOP_DIR" ]; then
+	INSTALL_DIR=$(pwd)
+	echo "warning: setenv not in effect, installing to $INSTALL_DIR"
 else
-	if [ "$2X" = "csX" ]
-	then
-		validate $1
-		echo "Installing gcc release $1 from cs public site"
-	else
-		if [ "$2X" = "tiX" ]
-		then
-    			echo "Installing gcc release $1 from ti internal server"
-			SERVER="ti"
-			GCC_REL=$1
-		else
-			if [ "$2X" != "X" ]
-			then
-				gcc_tools_install_help
-				exit 0;
-			fi
-			validate $1
-    			echo "Installing gcc release $1 from cs public site"
-		fi
-	fi
+	INSTALL_DIR=$LINUX_C6X_TOP_DIR
 fi
 
-
-INSTALL_DIR=$(pwd)
-
-if [ "$SERVER" = "ti" ]
+if [ "$1"x != ""x ]
 then
-GCC_TOOL_LOCATION=http://gtwmills.gt.design.ti.com/linux-c6x/received/codesourcery
-else
-if [ "$GCC_REL" = "4.5-97" ]
+	GCC_REL=$1
+fi
+
+if [ "$2"x != ""x ]
 then
-# location of old release 4.5-97 commented here
-GCC_TOOL_LOCATION=http://www.codesourcery.com/sgpp/lite/c6000/portal/package8272/c6x-uclinux
-GCC_TOOL_LOCATION1=http://www.codesourcery.com/sgpp/lite/c6000/portal/package8271/c6x-uclinux
-else
-GCC_TOOL_LOCATION=https://support.codesourcery.com/GNUToolchain/package8639/c6x-uclinux
-GCC_TOOL_LOCATION1=https://support.codesourcery.com/GNUToolchain/package8638/c6x-uclinux
-fi
+	SERVER=$2
 fi
 
-echo "Downloading from $GCC_TOOL_LOCATION"
-
-# download temp dir
-TEMPDIR=/tmp/gcc-c6x-${GCC_REL}
-
-# point this to the code sourcery tool chain location on local server
+# common definitions to be used or overridden below
 TOOL_DIR=c6x-${GCC_REL}-c6x-uclinux
 UCLINUX_PREFIX=c6x-${GCC_REL}-c6x-uclinux
 UCLINUX_SRC_PKG_TARFILE=${UCLINUX_PREFIX}.src.tar.bz2
@@ -87,8 +73,73 @@ TOOLCHAIN_BIN_TARFILE=${UCLINUX_PREFIX}-i686-pc-linux-gnu.tar.bz2
 UCLIBC_SRC=uclibc-${GCC_REL}
 UCLIBC_SRC_TARFILE=${UCLIBC_SRC}.tar.bz2
 
-echo "Installing gcc tool chain to ${INSTALL_DIR}/gcc-c6x"
-echo "Installing uclibc source under ${INSTALL_DIR}/gcc-c6x-uclibc"
+OLD_CS_BASE=http://www.codesourcery.com/sgpp/lite/c6000/portal
+NEW_CS_BASE=https://support.codesourcery.com/GNUToolchain/
+TI_INTERNAL_BASE=http://gtgit01.gt.design.ti.com/files/linux-c6x/received/codesourcery
+
+BIN_DIR_NAME=c6x-4.5
+UCLIBC_DIR_NAME=uclibc-ti-c6x
+
+case $GCC_REL in 
+4.5-97)
+	BIN_URL=$OLD_CS_BASE/package8272/c6x-uclinux/${TOOL_DIR}/${TOOLCHAIN_BIN_TARFILE}
+	SRC_URL=$OLD_CS_BASE/package8271/c6x-uclinux/${TOOL_DIR}/${UCLINUX_SRC_PKG_TARFILE}
+;;
+4.5-109)
+	BIN_URL=$NEW_CS_BASE/package8639/c6x-uclinux/${TOOLCHAIN_BIN_TARFILE}
+	SRC_URL=$NEW_CS_BASE/package8638/c6x-uclinux/${UCLINUX_SRC_PKG_TARFILE}
+;;
+4.5-123)
+	BIN_URL=$NEW_CS_BASE/package9077/c6x-uclinux/${TOOLCHAIN_BIN_TARFILE}
+	SRC_URL=$NEW_CS_BASE/package9076/c6x-uclinux/${UCLINUX_SRC_PKG_TARFILE}
+;;
+4.5-*)
+;;
+*)
+	# other version will probibly need adjustments to BIN_DIR_NAME at least
+	echo "GCC version $GCC_REL not handled"
+	echo "use --help for command usage"
+	exit 2
+;;
+esac
+
+case $SERVER in
+cs)
+	SERVER_DESC="cs public site"
+;;
+ti)
+	SERVER_DESC="ti internal site"
+	BIN_URL=$TI_INTERNAL_BASE/${TOOL_DIR}/${TOOLCHAIN_BIN_TARFILE}
+	SRC_URL=$TI_INTERNAL_BASE/${TOOL_DIR}/${UCLINUX_SRC_PKG_TARFILE}
+;;
+*)
+	echo "unknown site specifier $SERVER"
+	echo "use --help for command usage"
+	exit 2
+;;
+esac
+
+if [ -z "$BIN_URL" ] || [ -z "$SRC_URL" ] ; then
+	echo "$GCC_REL is not a publicly available version"
+	echo "Only $PUBLIC_VERSION are available"
+	exit 2;
+fi
+
+# download temp dir
+TEMPDIR=/tmp/gcc-c6x-${GCC_REL}
+
+echo "Installing gcc release $GCC_REL from $SERVER_DESC site";
+if $DO_BIN; then echo "Installing gcc tool chain to ${INSTALL_DIR}/gcc-c6x"; fi
+if $DO_SRC; then echo "Installing uclibc source under ${INSTALL_DIR}/gcc-c6x-uclibc"; fi
+
+# create and/or start clean
+rm -rf ${TEMPDIR}
+mkdir -p ${TEMPDIR}
+
+if $DO_BIN; then
+
+echo Downloading gcc tool chain binary  ${BIN_URL}
+wget --directory-prefix=${TEMPDIR} --no-check-certificate ${BIN_URL} || exit 2
 
 if [ -d ${INSTALL_DIR}/gcc-c6x ]; then
 	if [ -d ${INSTALL_DIR}/gcc-c6x-old ]; then
@@ -98,6 +149,27 @@ if [ -d ${INSTALL_DIR}/gcc-c6x ]; then
 	echo moving old tool chain to ${INSTALL_DIR}/gcc-c6x-old
 	mv -f ${INSTALL_DIR}/gcc-c6x ${INSTALL_DIR}/gcc-c6x-old
 fi
+
+echo Installing gcc tool chain under ${INSTALL_DIR}
+(cd ${INSTALL_DIR}; tar -xjf ${TEMPDIR}/${TOOLCHAIN_BIN_TARFILE})
+if [ ! -d ${INSTALL_DIR}/${BIN_DIR_NAME} ]
+then
+	echo "Installation of gcc tool chain failed"
+	exit 2
+else
+	echo "Renaming tool chain folder to gcc-c6x"
+	mv ${INSTALL_DIR}/${BIN_DIR_NAME} ${INSTALL_DIR}/gcc-c6x
+fi
+
+fi # end DO_BIN
+
+if $DO_SRC; then
+
+echo Downloading toolchain source ${SRC_URL}
+wget --directory-prefix=${TEMPDIR} --no-check-certificate ${SRC_URL} || exit 2
+
+echo Extracting ${UCLINUX_SRC_PKG_TARFILE}
+(cd ${TEMPDIR}; tar -xjf ${UCLINUX_SRC_PKG_TARFILE})
 
 if [ -d ${INSTALL_DIR}/gcc-c6x-uclibc ]; then
 	if [ -d ${INSTALL_DIR}/gcc-c6x-uclibc-old ]; then
