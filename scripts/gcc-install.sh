@@ -18,7 +18,7 @@ gcc_tools_install_help() {
 }
 
 SERVER="cs"
-GCC_REL="4.5-123"
+GCC_REL="not-set"
 DO_BIN=true
 DO_SRC=true
 
@@ -56,6 +56,9 @@ else
 fi
 
 if [ "$1"x != ""x ]
+	echo "you must specify a version number"
+	echo "use --help for comand usage"
+	exit 2
 then
 	GCC_REL=$1
 fi
@@ -63,6 +66,13 @@ fi
 if [ "$2"x != ""x ]
 then
 	SERVER=$2
+else
+	if [ -z "$NO_TI_MAGIC" ] ; then
+		HOSTNAME=$(hostname)
+		if [ ${HOSTNAME:%%.ti.com} != ${HOSTNAME} ] || [ -n "$TI_MAGIC" ] ; then
+			SERVER="ti"
+		fi
+	fi
 fi
 
 # common definitions to be used or overridden below
@@ -126,7 +136,7 @@ if [ -z "$BIN_URL" ] || [ -z "$SRC_URL" ] ; then
 fi
 
 # download & temp dir
-: ${DOWNLOAD_PATH=$INSTALL_PATH/downloads}"
+: ${DOWNLOAD_PATH=$INSTALL_DIR/downloads}"
 : ${DOWNLOAD_DIR=$DOWNLOAD_PATH}"
 TEMPDIR=/tmp/gcc-c6x-${GCC_REL}
 
