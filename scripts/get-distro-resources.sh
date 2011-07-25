@@ -1,17 +1,20 @@
 #! /bin/bash
 
 #set -x
+set -e
 
 distro-check() {
-    DISTRO_ID=$(lsb_release --id | awk '{ print $NR; exit }')
-    if [ "$DISTRO_ID" == "$1" ] ; then 
-        return 0
-    else 
-        return 1
-    fi
+    DISTRO_ID=$(lsb_release --id | awk '{ print $NF; exit }')
+    echo "distro == $DISTRO_ID"
+    for test_distro in "$@" ; do
+	if [ "$DISTRO_ID" == "$test_distro" ] ; then 
+		return 0
+	fi
+    done
+    return 1
 }
 
-if ! which lsb_release >/dev/null || ! which awk >/dev/null || distro-check Ubuntu || distro-check Debian ; then
+if ! which lsb_release >/dev/null || ! which awk >/dev/null || ! distro-check Ubuntu Debian ; then
     echo "This distribution is not setup for auto setup, doing basic checks ..."
     PROGRAMS="make gcc git awk perl wget"
     RC=0
