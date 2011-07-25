@@ -1,0 +1,108 @@
+# This file should be sourced (not run) into your shell to put the linux-c6x project in context
+# example:
+# /home/user/my-prj/linux-c6x-project$ source setenv
+
+# this is infrastructure boilerplate; don't edit
+SETENV_SOURCED=1
+SETENV_FILE=${BASH_SOURCE[0]}
+if [ -z "$SETENV_LOCAL_SOURCED" ]; then
+	if [ -z "$SETENV_FILE" ] ;  then echo "Your shell is not BASH, you must source .setenv.local instead" ; return 1; fi
+	SETENV_LOCAL_FILE=$(dirname $SETENV_FILE)/.setenv.local
+	if [ ! -r $SETENV_LOCAL_FILE ] ;  then echo "You have not run ./prj config yet" ; return 1; fi
+	source $SETENV_LOCAL_FILE
+fi
+
+# Choose kernels to build
+# This is a space-separated list of kernels to build. The names used are
+# used to include a kbuilds/<name>.mk makefile fragment from the top-level
+# Makefile.
+#
+# any or all of the below can be included
+#	dsk6455 evmc6472 evmc6474 evmc6457 evmc6474-lite
+#	evmc6678 evmc6670
+# example:
+# export KERNELS_TO_BUILD="dsk6455 evmc6472"
+#
+export KERNELS_TO_BUILD="evmc6472 evmc6474-lite evmc6457 dsk6455 evmc6474"
+
+# set the GCC tool chain version to use for the build.
+# This variable is used by ./prj config to find/setup the gcc resources
+export GCC_VERSION=4.5-123
+
+# set the CGT version to be used for the builds of Linux programs.
+# can be:
+# 	none	skip setup, can be used if not building CGT for linux 
+#	any	use first version found according to search rules
+#	7.2.2	any specific version
+export CGT_LINUX_VERSION=none
+
+# set to yes to install extra kernel modules and scripts used for testing
+#export BUILD_TESTS=yes
+
+# Choices for ROOTFS, one or more of
+# min-root         - minimum file system
+# full-root        - min-root + additional packages such as nbench, polar ssl, etc 
+# ltp-root         - min-root + ltp test executables
+# mcsdk-demo-root  - min-root + mcsdk web control panel demo
+export ROOTFS="min-root mcsdk-demo-root ltp-root"
+
+# Choices for bootblobs to create
+# can list zero, one, or more
+# see bootblob-spec/*.mk for a list of choices
+# Note: for now you need to ensure that kernels and rootfs'es needed are specified above, 
+#       this does not yet do dependencies
+export BOOTBLOBS=""
+
+# 'little', 'big', or 'both' for endianess versions to build
+export ENDIAN=big
+
+# 'soft', 'hard', or 'both' floating point ABI options 
+export FLOAT=soft
+
+# list of extra packages to build and install when using full-root
+export PKG_LIST="zlib net-snmp polarssl ttcp dhrystone nbench-byte tcpdump iperf openssl"
+
+# Build syslink (Linux side & examples)?
+# 'yes', 'no' (default) 
+export BUILD_SYSLINK=no
+
+# to build SYSLINK and BIOS examples, you need extra dependencies
+# each of these can be:
+# 	none	skip setup, can be used if not building BIOS examples 
+#	any	use first version found according to search rules
+#	7.2.2	any specific version
+# The easiest way to get everything you need is to install CCS
+# You will needed it to flash the bootloader on the EVMs anyway and 
+# it can help with debug
+# Since a found version of CCS is checked early in the search order
+# "any" below for the other settings probibly means "use the one from CCS"
+export CCS_VERSION=none
+export CGT_BIOS_VERSION=none
+export IPC_VERSION=none
+export XDC_VERSION=none
+export BIOS_VERSION=none
+export XDAIS_VERSION=none
+
+# ********** explicit resource paths*****************************************
+# If you do not want the ./prj config step to do the find/setup step, you 
+# can set secific paths for the external resources here
+# this is obviously machine specific and should not be used in setenv files
+# that are meant to be shared
+
+# export GCC_DIR=~/opt/c6x-4.5
+# export CGT_BIOS_DIR=~/opt/TI/TI_CGT_C6000_X.Y.Z
+# export CGT_LINUX_DIR=~/opt/TI/TI_CGT_C6000_X.A.B
+# export CCS_DIR=~/opt/ti/ccsv5
+# export BIOS_DIR=~/opt/ti/bios_w_xx_yy_zz
+# export XDC_DIR=~/opt/ti/xdctools_a_bb_cc_dd
+# export IPC_DIR=~/opt/ti/ipc_i_jj_kk_ll
+
+# a path (single for now) to check for files that need to be downloaded
+# defaults to $LINUX_C6X_TOP_DIR/downloads
+# export DOWNLOAD_PATH=~/downloads/linux-c6x
+
+# ********** define defaults ************************************************
+source $LINUX_C6X_TOP_DIR/linux-c6x-project/scripts/setenv.defaults
+
+# ********** default overrides here *****************************************
+

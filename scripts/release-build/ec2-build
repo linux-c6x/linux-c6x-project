@@ -2,8 +2,8 @@
 
 set -o pipefail
 
-SERVER_NAME=test3b
-SSH_NAME=aws-test3
+SERVER_NAME=cm-build
+SSH_NAME=cm-build
 AT_END=halt
 
 ./release-build local-prep
@@ -13,7 +13,8 @@ scp release-build build.def setenv*.build $SSH_NAME:.
 rsync -av secret-sauce $SSH_NAME:.
 rsync -av prep-resources $SSH_NAME:.
 ssh $SSH_NAME chmod +x release-build
-if ssh $SSH_NAME -t ./release-build  | tee ec2-build.log ; then
+if ssh $SSH_NAME -t ./release-build  2>&1 | tee ec2-build.raw.log ; then
+    col -b -x <ec2-build.raw.log >ec2-build.log
     scp $SSH_NAME:release-bundle.tar .
 else
     rc=$?
