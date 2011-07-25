@@ -43,8 +43,10 @@ install_ccs() {
 	./$ccs_setup.bin --mode console <<EOF
 ${ccs_install_prefix}
 EOF
-	cd ~/opt/ti/ccsv5/install_scripts/
-	sudo ./install_drivers.sh 
+	if [ "$AUTO_INSTALL" == "yes" ] ; then 
+		cd ~/opt/ti/ccsv5/install_scripts/
+		sudo ./install_drivers.sh 
+	fi
     popd
     CCS_DIR=~/opt/ti/ccsv5
 }
