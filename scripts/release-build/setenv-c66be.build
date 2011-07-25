@@ -51,7 +51,7 @@ export ROOTFS="min-root mcsdk-demo-root"
 # see bootblob-spec/*.mk for a list of choices
 # Note: for now you need to ensure that kernels and rootfs'es needed are specified above, 
 #       this does not yet do dependencies
-export BOOTBLOBS="evmc6678-nfs evmc6678-initramfs-min-root evmc6678-initramfs-mcsdk-demo-root"
+export BOOTBLOBS="evmc6678-nfs evmc6678-initramfs-min-root evmc6678-initramfs-mcsdk-demo-root evmc6670-nfs evmc6670-initramfs-min-root evmc6670-initramfs-mcsdk-demo-root"
 
 # 'little', 'big', or 'both' for endianess versions to build
 export ENDIAN=big
