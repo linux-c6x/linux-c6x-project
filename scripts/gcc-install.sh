@@ -55,11 +55,11 @@ else
 	INSTALL_DIR=$LINUX_C6X_TOP_DIR
 fi
 
-if [ "$1"x != ""x ]
+if [ -z "$1" ] ; then
 	echo "you must specify a version number"
 	echo "use --help for comand usage"
 	exit 2
-then
+else
 	GCC_REL=$1
 fi
 
@@ -69,7 +69,7 @@ then
 else
 	if [ -z "$NO_TI_MAGIC" ] ; then
 		HOSTNAME=$(hostname)
-		if [ ${HOSTNAME:%%.ti.com} != ${HOSTNAME} ] || [ -n "$TI_MAGIC" ] ; then
+		if [ ${HOSTNAME%%.ti.com} != ${HOSTNAME} ] || [ -n "$TI_MAGIC" ] ; then
 			SERVER="ti"
 		fi
 	fi
