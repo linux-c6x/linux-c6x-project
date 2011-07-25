@@ -68,7 +68,7 @@ fi
 # common definitions to be used or overridden below
 TOOL_DIR=c6x-${GCC_REL}-c6x-uclinux
 UCLINUX_PREFIX=c6x-${GCC_REL}-c6x-uclinux
-UCLINUX_SRC_PKG_TARFILE=${UCLINUX_PREFIX}.src.tar.bz2
+TOOLCHAIN_SRC_TARFILE=${UCLINUX_PREFIX}.src.tar.bz2
 TOOLCHAIN_BIN_TARFILE=${UCLINUX_PREFIX}-i686-pc-linux-gnu.tar.bz2
 UCLIBC_SRC=uclibc-${GCC_REL}
 UCLIBC_SRC_TARFILE=${UCLIBC_SRC}.tar.bz2
@@ -83,15 +83,15 @@ UCLIBC_DIR_NAME=uclibc-ti-c6x
 case $GCC_REL in 
 4.5-97)
 	BIN_URL=$OLD_CS_BASE/package8272/c6x-uclinux/${TOOL_DIR}/${TOOLCHAIN_BIN_TARFILE}
-	SRC_URL=$OLD_CS_BASE/package8271/c6x-uclinux/${TOOL_DIR}/${UCLINUX_SRC_PKG_TARFILE}
+	SRC_URL=$OLD_CS_BASE/package8271/c6x-uclinux/${TOOL_DIR}/${TOOLCHAIN_SRC_TARFILE}
 ;;
 4.5-109)
 	BIN_URL=$NEW_CS_BASE/package8639/c6x-uclinux/${TOOLCHAIN_BIN_TARFILE}
-	SRC_URL=$NEW_CS_BASE/package8638/c6x-uclinux/${UCLINUX_SRC_PKG_TARFILE}
+	SRC_URL=$NEW_CS_BASE/package8638/c6x-uclinux/${TOOLCHAIN_SRC_TARFILE}
 ;;
 4.5-123)
 	BIN_URL=$NEW_CS_BASE/package9077/c6x-uclinux/${TOOLCHAIN_BIN_TARFILE}
-	SRC_URL=$NEW_CS_BASE/package9076/c6x-uclinux/${UCLINUX_SRC_PKG_TARFILE}
+	SRC_URL=$NEW_CS_BASE/package9076/c6x-uclinux/${TOOLCHAIN_SRC_TARFILE}
 ;;
 4.5-*)
 ;;
@@ -110,7 +110,7 @@ cs)
 ti)
 	SERVER_DESC="ti internal site"
 	BIN_URL=$TI_INTERNAL_BASE/${TOOL_DIR}/${TOOLCHAIN_BIN_TARFILE}
-	SRC_URL=$TI_INTERNAL_BASE/${TOOL_DIR}/${UCLINUX_SRC_PKG_TARFILE}
+	SRC_URL=$TI_INTERNAL_BASE/${TOOL_DIR}/${TOOLCHAIN_SRC_TARFILE}
 ;;
 *)
 	echo "unknown site specifier $SERVER"
@@ -125,7 +125,9 @@ if [ -z "$BIN_URL" ] || [ -z "$SRC_URL" ] ; then
 	exit 2;
 fi
 
-# download temp dir
+# download & temp dir
+: ${DOWNLOAD_PATH=$INSTALL_PATH/downloads}"
+: ${DOWNLOAD_DIR=$DOWNLOAD_PATH}"
 TEMPDIR=/tmp/gcc-c6x-${GCC_REL}
 
 echo "Installing gcc release $GCC_REL from $SERVER_DESC site";
@@ -138,8 +140,17 @@ mkdir -p ${TEMPDIR}
 
 if $DO_BIN; then
 
-echo Downloading gcc tool chain binary  ${BIN_URL}
-wget --directory-prefix=${TEMPDIR} --no-check-certificate ${BIN_URL} || exit 2
+if [ ! -r ${DOWNLOAD_DIR}/${TOOLCHAIN_BIN_TARFILE} ] ; then
+	if [ -z "$BIN_URL" ] ; then
+		echo "$GCC_REL is not a publicly available version"
+		echo "Only $PUBLIC_VERSION are available"
+		exit 2;
+	fi
+
+	echo Downloading gcc tool chain binary  ${BIN_URL}
+	wget --directory-prefix=${TEMPDIR} --no-check-certificate ${BIN_URL} || exit 2
+	mv ${TEMPDIR}/${TOOLCHAIN_BIN_TARFILE} ${DOWNLOAD_DIR}/${TOOLCHAIN_BIN_TARFILE}
+fi
 
 if [ -d ${INSTALL_DIR}/gcc-c6x ]; then
 	if [ -d ${INSTALL_DIR}/gcc-c6x-old ]; then
@@ -151,7 +162,7 @@ if [ -d ${INSTALL_DIR}/gcc-c6x ]; then
 fi
 
 echo Installing gcc tool chain under ${INSTALL_DIR}
-(cd ${INSTALL_DIR}; tar -xjf ${TEMPDIR}/${TOOLCHAIN_BIN_TARFILE})
+(cd ${INSTALL_DIR}; tar -xjf ${DOWNLOAD_DIR}/${TOOLCHAIN_BIN_TARFILE})
 if [ ! -d ${INSTALL_DIR}/${BIN_DIR_NAME} ]
 then
 	echo "Installation of gcc tool chain failed"
@@ -165,11 +176,20 @@ fi # end DO_BIN
 
 if $DO_SRC; then
 
-echo Downloading toolchain source ${SRC_URL}
-wget --directory-prefix=${TEMPDIR} --no-check-certificate ${SRC_URL} || exit 2
+if [ ! -r ${DOWNLOAD_DIR}/${TOOLCHAIN_SRC_TARFILE} ] ; then
+	if [ -z "$SRC_URL" ] ; then
+		echo "$GCC_REL is not a publicly available version"
+		echo "Only $PUBLIC_VERSION are available"
+		exit 2;
+	fi
 
-echo Extracting ${UCLINUX_SRC_PKG_TARFILE}
-(cd ${TEMPDIR}; tar -xjf ${UCLINUX_SRC_PKG_TARFILE})
+	echo Downloading toolchain source ${SRC_URL}
+	wget --directory-prefix=${TEMPDIR} --no-check-certificate ${SRC_URL} || exit 2
+	mv ${TEMPDIR}/${TOOLCHAIN_SRC_TARFILE} ${DOWNLOAD_DIR}/${TOOLCHAIN_SRC_TARFILE}
+fi
+
+echo Extracting ${TOOLCHAIN_SRC_TARFILE}
+(cd ${TEMPDIR}; tar -xjf ${DOWNLOAD_DIR}/${TOOLCHAIN_SRC_TARFILE})
 
 if [ -d ${INSTALL_DIR}/gcc-c6x-uclibc ]; then
 	if [ -d ${INSTALL_DIR}/gcc-c6x-uclibc-old ]; then

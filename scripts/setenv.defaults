@@ -1,0 +1,59 @@
+# This file is used by setenv to defined things that don't normally need to be changed
+# Don't edit this file, instead copy the line to setenv after "default overrides" line
+
+# [Some or all of these should migrarte to default settings in the top level Makefile]
+
+export PRODUCT_DIR=$LINUX_C6X_TOP_DIR/product
+export SDK0_DIR=$LINUX_C6X_TOP_DIR/sdk0
+export SDK_DIR=$LINUX_C6X_TOP_DIR/sdk
+export LINUX_C6X_PROJECT_DIR=$LINUX_C6X_TOP_DIR/linux-c6x-project
+export LINUX_C6X_KERNEL_DIR=$LINUX_C6X_TOP_DIR/linux-c6x
+export SHELL=/bin/bash 
+
+# If you need to override DEPMOD use something like below
+# This is needed for older versions of depmod like on RHEL4 and big endian c6x
+#export DEPMOD=/my/special/stuff/depmod
+
+# project make file will manage the correct SDK choice for the right component.  
+# Here we must set a default to use for makes outside of the top level make
+export CROSS_COMPILE=$SDK_DIR/bin/c6x-linux-
+export CROSS=$CROSS_COMPILE
+
+# project make file will manage the correct setting for ARCH
+# Here we set it for direct builds of the kernel
+export ARCH=c6x 
+
+# alias old var names to new ones
+export TI_CG6X_DIR=$CGT_BIOS_DIR
+export GNU_TOOLS_DIR=$GCC_DIR
+
+# define these if not already defined
+: ${DOWNLOAD_PATH:=$LINUX_C6X_TOP_DIR/downloads}; export DOWNLOAD_PATH
+
+# ********** Below this for building SysLink **********************************
+
+# List the syslink kernel modules to build. evmc6678 and evmc6670 supported
+# Use this variable when building syslink as part of mcsdk-demo-root ROOTFS
+# SysLink modules and exe files will get installed under /opt/syslink_<evm>.
+# <endian prefix> folder of the rootfs
+# by default this is set to the same as KERNELS_TO_BUILD if BUILD_SYSLINK is yes
+#  and set to empty if BUILD_SYSLINK is no
+# export SYSLINK_KERNEL_MODULES_TO_BUILD=""
+if [ -z "$SYSLINK_KERNEL_MODULES_TO_BUILD" ] && [ "$BUILD_SYSLINK" == "yes" ] ; then
+	export SYSLINK_KERNEL_MODULES_TO_BUILD=$KERNELS_TO_BUILD
+fi
+
+# Set below if you are building syslink separately (not as part of product build).
+# SysLink modules and exe files get installed under product/syslink_<evm>.<endian
+# prefix> folder. User has to copy the files manually to execute them on the target.
+# This will become obsolete soon.
+# export SYSLINK_TO_BUILD=
+
+# SysLink install directory
+export SYSLINK_ROOT=$LINUX_C6X_TOP_DIR/projects/syslink
+
+# IPC package install directory. 
+export IPC_PACKAGES_DIR=$IPC_DIR/packages
+
+# CGT folders used in config.bld. Don't modify this.
+export XDCPATH="$BIOS_DIR/packages;$IPC_PACKAGES_DIR"

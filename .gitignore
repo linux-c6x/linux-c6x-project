@@ -4,3 +4,4 @@ setenv
 logs/
 junk/
 .prj.local
+.setenv.local

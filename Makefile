@@ -14,14 +14,15 @@ DATE = $(shell date +'%Y%m%d')
 
 # These targets can be built little-endian and/or big-endian and hard or soft floating point ABI
 TOP_TARGETS = rootfs mtd rio busybox packages sdk clib kernels sdk0 clean mtd-clean rio-clean \
-	busybox-clean packages-clean clib-clean extra-kernels bootblobs elf-loader mcsdk-demo ltp
+	busybox-clean packages-clean clib-clean extra-kernels bootblobs elf-loader mcsdk-demo ltp \
+	syslink
 
 # These sub-targets build only one endian/float setting
 ENDIAN_TARGETS = one-rootfs one-mtd one-rio one-busybox one-sdk one-clib one-kernels one-sdk0 \
 	one-kernels-clean one-uclibc-clean one-mtd-clean one-rio-clean one-busybox-clean \
 	min-root-clean full-root-clean one-clean \
 	one-extra-kernels one-packages one-packages-clean one-ltp one-ltp-clean \
-	one-elf-loader one-mcsdk-demo
+	one-elf-loader one-mcsdk-demo one-syslink
 
 $(TOP_TARGETS) product kernel-headers: sanity
 
@@ -612,7 +613,7 @@ one-syslink-clean:
 	rm -rf $(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
 	done
 
--include Makefile.syslink
+include $(PRJ)/scripts/Makefile.syslink
 
 ########  Root filesystems
 one-rootfs: productdir bootblob
@@ -737,7 +738,7 @@ one-mcsdk-demo-root-clean:
 
 ########  Bootblobs
 bootblob: productdir
-	cp -a $(PRJ)/bootblob $(PRODUCT_DIR)/
+	cp -a $(PRJ)/scripts/bootblob $(PRODUCT_DIR)/
 	chmod +x $(PRODUCT_DIR)/bootblob
 
 one-bootblobs: productdir bootblob
