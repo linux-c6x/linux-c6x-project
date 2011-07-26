@@ -79,6 +79,7 @@ make-source-tarball() {
 
 	# record reference information
 	./prj git rev-parse HEAD >../$SRC_REF/src-release.src-record
+	(cd $JOB_DIR; md5sum -b manual-dependencies/* >$WORK_DIR/$SRC_REF/manual-dependencies.md5sums)
 
 	# clean up
 	rm ../bootstrap

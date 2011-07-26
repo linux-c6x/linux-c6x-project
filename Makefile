@@ -10,7 +10,8 @@ all: product syslink-all
 
 product: rootfs extra-kernels bootblobs
 
-DATE = $(shell date +'%Y%m%d')
+DATE ?= $(shell date +'%Y%m%d')
+export DATE
 
 # These targets can be built little-endian and/or big-endian and hard or soft floating point ABI
 TOP_TARGETS = rootfs mtd rio busybox packages sdk clib kernels sdk0 clean mtd-clean rio-clean \
