@@ -23,7 +23,7 @@ fi
 # example:
 # export KERNELS_TO_BUILD="dsk6455 evmc6472"
 #
-export KERNELS_TO_BUILD="evmc6472 evmc6474-lite evmc6457 dsk6455 evmc6474"
+export KERNELS_TO_BUILD="evmc6678 evmc6670"
 
 # set the GCC tool chain version to use for the build.
 # This variable is used by ./prj config to find/setup the gcc resources
@@ -51,13 +51,13 @@ export ROOTFS="min-root mcsdk-demo-root"
 # see bootblob-spec/*.mk for a list of choices
 # Note: for now you need to ensure that kernels and rootfs'es needed are specified above, 
 #       this does not yet do dependencies
-export BOOTBLOBS=""
+export BOOTBLOBS="evmc6678-nfs evmc6678-initramfs-min-root evmc6678-initramfs-mcsdk-demo-root evmc6670-nfs evmc6670-initramfs-min-root evmc6670-initramfs-mcsdk-demo-root"
 
 # 'little', 'big', or 'both' for endianess versions to build
 export ENDIAN=little
 
 # 'soft', 'hard', or 'both' floating point ABI options 
-export FLOAT=soft
+export FLOAT=both
 
 # list of extra packages to build and install when using full-root
 export PKG_LIST="zlib net-snmp polarssl ttcp dhrystone nbench-byte tcpdump iperf openssl"

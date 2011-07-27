@@ -44,7 +44,7 @@ export CGT_LINUX_VERSION=none
 # full-root        - min-root + additional packages such as nbench, polar ssl, etc 
 # ltp-root         - min-root + ltp test executables
 # mcsdk-demo-root  - min-root + mcsdk web control panel demo
-export ROOTFS="min-root mcsdk-demo-root ltp-root"
+export ROOTFS="min-root mcsdk-demo-root"
 
 # Choices for bootblobs to create
 # can list zero, one, or more
