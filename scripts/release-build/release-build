@@ -7,8 +7,29 @@ set -e
 
 : ${RETRY:=false}
 
+# process options
+while true; do
+case $1 in
+--retry)
+ 	export RETRY=true
+	shift
+;;
+--*)
+	echo "unknown option $1"
+	exit 2
+;;
+*)
+	break
+;;
+esac
+done
+
 # Configuration
-source build.def
+if [ -n "$1" ] ; then
+    source $1
+else
+    source build.def
+fi
 
 case $BUILD_TYPE in
 branch)
@@ -44,9 +65,12 @@ rm -rf $JOB_DIR/output >/dev/null 2>&1 || true
 export OUTPUT=$JOB_DIR/output
 mkdir -p $OUTPUT
 
-if ! $RETRY ; then rm -rf $WORK_DIR >/dev/null 2>&1 ||  true; fi
+if ! $RETRY ; then 
+    echo "Removing any prior work area"
+    rm -rf $WORK_DIR >/dev/null 2>&1 ||  true
+fi
+
 mkdir -p $WORK_DIR
-cd $WORK_DIR
 
 local-prep() {
 	echo "nothing to do in this release"
@@ -100,6 +124,14 @@ one-bin-build() {
 	this_config=${this_config_file##setenv-}
 	this_config=${this_config%%.build}
 
+	THIS_REF=release-reference-$this_config-bin
+
+	rm -rf $BUILD_NAME/$THIS_REF $BUILD_NAME/product || true
+	if ! $RETRY ; then 
+	    rm -rf $BUILD_NAME/Build $BUILD_NAME/opt || true
+	fi
+	mkdir -p $WORK_DIR/$THIS_REF
+
 	cd $WORK_DIR/linux-c6x-project
 	./prj config $JOB_DIR/$this_config_file
 	source $(pwd)/setenv
@@ -114,14 +146,11 @@ one-bin-build() {
 
 	# package up this binary release
 	cd $WORK_DIR
-	THIS_REF=release-reference-$this_config-bin
-	mkdir -p $THIS_REF
 	cp $JOB_DIR/$this_config_file $THIS_REF
 	cp linux-c6x-project/.setenv.local $THIS_REF/setenv-$this_config.local
 	cp $SRC_REF/* $THIS_REF/
 	cd $WORK_DIR/..
 	tar czf $OUTPUT/$BUILD_NAME-$this_config-bin.tar.gz $BUILD_NAME/$THIS_REF $BUILD_NAME/product
-	rm -rf $BUILD_NAME/$THIS_REF $BUILD_NAME/product $BUILD_NAME/Build $BUILD_NAME/opt || true
 }
 
 # look for special commands

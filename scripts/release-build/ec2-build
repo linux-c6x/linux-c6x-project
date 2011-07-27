@@ -2,17 +2,43 @@
 
 set -o pipefail
 set -x
-set -e
+
+# -e is not safe here as it could leave EC2 machines running
+# TODO: create a subshell for all the real work and use -e in it
+#set -e
 
 # set default values if vars not already defined
 : ${SERVER_NAME:=cm-build}
 : ${SSH_NAME:=cm-build}
 : ${AT_END:=halt}
+: ${RETRY:=false}
+
+# process options
+for arg in "$@"; do
+case $1 in
+--retry)
+ 	export RETRY=true
+;;
+--)
+	break
+;;
+--*)
+	# pass all other options through
+;;
+*)
+	break
+;;
+esac
+done
+
+if [ -r ec2-server.def ] ; then
+    source ec2-server.def
+fi
 
 ./release-build local-prep
 
 virtual-server run $SERVER_NAME
-scp release-build build.def setenv*.build $SSH_NAME:.
+scp release-build build*.def setenv*.build $SSH_NAME:.
 
 if [ -d manual-dependencies ] ; then
     rsync -av manual-dependencies $SSH_NAME:.
@@ -26,12 +52,19 @@ if [ -d output ] ; then
 fi
 
 ssh $SSH_NAME chmod +x release-build
-if ssh $SSH_NAME -t ./release-build  2>&1 | tee ec2-build.raw.log ; then
-    col -b -x <ec2-build.raw.log >ec2-build.log
-    rsync -av $SSH_NAME:output .
+if ssh $SSH_NAME -t ./release-build "$@" 2>&1 | tee ec2-build.raw.log ; then
+    rc=0
+    OUTPUT_DIR=output
 else
     rc=$?
     echo "Job Failed rc=$rc"
+    OUTPUT_DIR=output_partial
+fi
+
+col -b -x <ec2-build.raw.log >ec2-build.log | true
+if ! rsync -av $SSH_NAME:output/ $OUTPUT_DIR; then
+    echo "Fetch of output failed"
+    [ $rc -eq 0 ] && rc=1
 fi
 
 if [ x"$AT_END" != x"nop" ]; then
