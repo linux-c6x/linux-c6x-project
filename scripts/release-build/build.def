@@ -3,6 +3,6 @@
 BOOTSTRAP_URL=http://linux-c6x.org/bootstrap
 BUILD_CONFIGS="setenv-c66le-no-syslink.build setenv-ltple.build setenv-c66be.build setenv-ltpbe.build setenv-c64le.build setenv-c64be.build setenv-c66le.build"
 BUILD_TYPE="branch"
-BUILD_NAME=linux-c6x-2.0-beta2-rc1
+BUILD_NAME=linux-c6x-2.0-beta2
 SRC_RELEASE=master
 
