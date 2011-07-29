@@ -60,7 +60,7 @@ export ENDIAN=little
 export FLOAT=soft
 
 # list of extra packages to build and install when using full-root
-export PKG_LIST="zlib net-snmp polarssl ttcp dhrystone nbench-byte tcpdump iperf openssl"
+export PKG_LIST="zlib net-snmp polarssl ttcp dhrystone nbench-byte tcpdump iperf openssl ethtool"
 
 # Build syslink (Linux side & examples)?
 # 'yes', 'no' (default) 
