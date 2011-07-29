@@ -566,7 +566,7 @@ one-ltp-clean:
 
 ### Packages built with cross rpm
 $(SDK_DIR)/rpm:
-	$(PRJ)/build-rpm.sh
+	$(PRJ)/cross-rpm/build-rpm.sh
 
 rpm-clean:
 	rm -rf $(BLD)/rpm-4.0.4
