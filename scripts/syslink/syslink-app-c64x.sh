@@ -3,17 +3,17 @@
 # **
 # ** Script to test SysLink user land sample applications
 # **
-# ** Run the syslinktest.js to load and run Linux and BIOS apps on DSP cores
+# ** Run the syslinktest-dss-c64x.js to load and run Linux and BIOS apps on DSP cores
 # ** Once Linux is loaded and started, immediately telnet to evm and run this script
 # ** This is required since BIOS cores to be loaded and run only after insmod syslink.
-# ** Read the reset vector displayed by the syslinktest.js script as input to this
-# ** script. Type syslink-app.sh <enter> to see the options
+# ** Read the reset vector displayed by the syslinktest-dss.js script as input to this
+# ** script. Type syslink-app-c64x.sh <enter> to see the options
 # ** Set MEM=112M in the kernel command line parameter to reserve upper 16M for SysLink
 # ***********************************************************************************************
 
 if [ "$#" != "3" ]
 then
-	echo "syslink-app <app-name> <num-slave-cores> <debug/release>"
+	echo "syslink-app-c64x.sh <app-name> <num-slave-cores> <debug/release>"
 	echo "app-names:-"
 	echo "	- procmgrapp, notifyapp, gatempapp, heapbufmpapp, heapmemmpapp, listmpapp, messageqapp, sharedregionapp"
 	echo "num-slave-cores = 5 for c6472 and 2 for c6474"

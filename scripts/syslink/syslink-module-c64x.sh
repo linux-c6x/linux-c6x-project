@@ -4,9 +4,9 @@
 # **
 # ** Script to test SysLink kernel sample modules
 # **
-# ** Run the syslinktest.js to load and run Linux and BIOS apps on DSP cores
+# ** Run the syslinktest-dss-c64x.js to load and run Linux and BIOS apps on DSP cores
 # ** Once Linux is loaded and started, immediately telnet to evm and run the
-# ** syslink-app.sh with app-name "procmgrapp" to start IPC with remote DSP
+# ** syslink-app-c644x.sh with app-name "procmgrapp" to start IPC with remote DSP
 # ** cores. This is needed before running this script which tests the kernel
 # ** module samples. Type syslink-module.sh <enter> to see the options
 # ** Set MEM=112M in the kernel command line parameter to reserve upper 16M
@@ -15,7 +15,7 @@
 
 if [ "$#" != "2" ]
 then
-	echo "syslink-app <app-name> <num-slave-cores>"
+	echo "syslink-module-c64x.sh <app-name> <num-slave-cores>"
 	echo "num-slave-cores = 5 for c6472 and 2 for c6474"
 	echo "app-names:-"
 	echo "	- notifyapp, gatempapp, heapbufmpapp, heapmemmpapp, listmpapp, messageqapp, sharedregionapp"

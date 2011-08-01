@@ -135,24 +135,14 @@ if (arguments.length > 1)
 }
 else
 {
-	print("\n  Syntax:  syslinktest.js <argument1> <argument2> <argument3>\n")
-	print("\n    argument1: <TCI6486_USB/TCI6488_USB>\n")
-	print("      TCI6486_USB - TCI6486 Emulator with USB\n")
-	print("      TCI6488_USB - TCI6488 Emulator with USB\n")
-	print("\n    argument2: <all/moduleName>\n")
-	print("\n      all - All of the modules\n")
-	print("      modulenName - notify/sharedregion/heapmemmp/gatemp/heapbufmp,listmp,messageq\n")
-	print("\n    argument3: <BE/LE>\n")
-	print("\n      BE - Big Endian\n")
-	print("      LE - Little Endian\n")
-
 	script.traceWrite("\n  Syntax:  syslinktest.js <argument1> <argument2>\n")
-	script.traceWrite("\n    argument1: <TCI6486_USB/TCI6488_USB>\n")
+	script.traceWrite("\n    argument1: <TCI6486_USB/TCI6488_USB/C6678_USB/C6670_USB>\n")
+	script.traceWrite("      C6678_USB - C6678 Emulator with USB\n")
+	script.traceWrite("      C6670_USB - C6670 Emulator with USB\n")
 	script.traceWrite("      TCI6486_USB - TCI6486 Emulator with USB\n")
 	script.traceWrite("      TCI6488_USB - TCI6488 Emulator with USB\n")
-	script.traceWrite("\n    argument2: <all/moduleName>\n")
-	script.traceWrite("\n      all - All of the modules\n")
-	script.traceWrite("      modulenName - notify/sharedregion/heapmemmp/gatemp/heapbufmp,listmp,messageq\n")
+	script.traceWrite("\n    argument2: moduleName\n")
+	script.traceWrite("      moduleName - <notify/sharedregion/heapmemmp/gatemp/heapbufmp,listmp,messageq>\n")
 	script.traceWrite("\n    argument3: <BE/LE>\n")
 	script.traceWrite("\n      BE - Big Endian\n")
 	script.traceWrite("      LE - Little Endian\n")
@@ -163,17 +153,26 @@ else
 
 var argCheck = true;
 // check arguments
-if (targetFlag == "TCI6486_USB")
+if (targetFlag == "C6678_USB")
 {
-	var targetConfig = "evmTCI6486.ccxml";
+	var targetConfig = "evm6678.ccxml";
 	if (endianFlag == "LE")
 	{
-		syslink_image_dir = syslink_image_dir + "evm6486.el\\";
+		syslink_image_dir = syslink_image_dir + "evm6678.el\\";
 	} else {
-		syslink_image_dir = syslink_image_dir + "evm6486.eb\\";
+		syslink_image_dir = syslink_image_dir + "evm6678.eb\\";
 	}
 	targetConfig = syslink_target_config + targetConfig; 
-	num_bios_cores = 5;
+} else if (targetFlag == "C6670_USB")
+{
+	var targetConfig = "evm6670.ccxml";
+	if (endianFlag == "LE")
+	{
+		syslink_image_dir = syslink_image_dir + "evm6670.el\\";
+	} else {
+		syslink_image_dir = syslink_image_dir + "evm6670.eb\\";
+	}
+	targetConfig = syslink_target_config + targetConfig; 
 }
 else if (targetFlag == "TCI6488_USB")
 {
@@ -186,7 +185,17 @@ else if (targetFlag == "TCI6488_USB")
 	}
 	targetConfig = syslink_target_config + targetConfig; 
 }
-else
+else if (targetFlag == "TCI6486_USB")
+{
+	var targetConfig = "evmTCI6486.ccxml";
+	if (endianFlag == "LE")
+	{
+		syslink_image_dir = syslink_image_dir + "evm6486.el\\";
+	} else {
+		syslink_image_dir = syslink_image_dir + "evm6486.eb\\";
+	}
+	targetConfig = syslink_target_config + targetConfig; 
+} else
 {
 	print("Invalid Target flag passed!!!")
 	script.traceWrite("Invalid Target flag passed!!!")
@@ -218,9 +227,6 @@ else if (moduleFlag == "heapbufmp")
 } else if (moduleFlag == "messageq")
 {
 	module_index = 6;
-} else if (moduleFlag == "all")
-{
-	module_index = 0;
 } else
 {
 	print("Invalid module flag passed!!!")
@@ -284,12 +290,45 @@ debugServer.setConfig(targetConfig);
 // Open the debug session
   
 var validCoreFound = false;
-if (targetFlag == "TCI6488_USB")
+if (targetFlag == "C6678_USB"){
+	debugSession0 = debugServer.openSession("*","C66xx_0");
+	debugSession1 = debugServer.openSession("*","C66xx_1");
+	debugSession2 = debugServer.openSession("*","C66xx_2");
+	debugSession3 = debugServer.openSession("*","C66xx_3");
+	debugSession4 = debugServer.openSession("*","C66xx_4");
+	debugSession5 = debugServer.openSession("*","C66xx_5");
+	debugSession6 = debugServer.openSession("*","C66xx_6");
+	debugSession7 = debugServer.openSession("*","C66xx_7");
+
+	if ((debugSession0.getMajorISA() == 0x66) &&
+            (debugSession1.getMajorISA() == 0x66) &&
+            (debugSession2.getMajorISA() == 0x66) &&
+            (debugSession3.getMajorISA() == 0x66) &&
+            (debugSession4.getMajorISA() == 0x66) &&
+            (debugSession5.getMajorISA() == 0x66) &&
+		(debugSession6.getMajorISA() == 0x66) &&
+		(debugSession7.getMajorISA() == 0x66)) 
+	{
+		validCoreFound = true;
+	}
+} else if (targetFlag == "C6670_USB"){
+	debugSession0 = debugServer.openSession("*","C66xx_0");
+	debugSession1 = debugServer.openSession("*","C66xx_1");
+	debugSession2 = debugServer.openSession("*","C66xx_2");
+	debugSession3 = debugServer.openSession("*","C66xx_3");
+	if ((debugSession0.getMajorISA() == 0x66) &&
+            (debugSession1.getMajorISA() == 0x66) &&
+            (debugSession2.getMajorISA() == 0x66) &&
+            (debugSession3.getMajorISA() == 0x66)) 
+	{
+		validCoreFound = true;
+	}
+} else if (targetFlag == "TCI6488_USB")
 {
-	debugSession = debugServer.openSession("*","C64XP_1A");
+	debugSession0 = debugServer.openSession("*","C64XP_1A");
 	debugSession1 = debugServer.openSession("*","C64XP_1B");
 	debugSession2 = debugServer.openSession("*","C64XP_1C");
-	if ((debugSession.getMajorISA() == 0x64) &&
+	if ((debugSession0.getMajorISA() == 0x64) &&
        	    (debugSession1.getMajorISA() == 0x64)&&
 	    (debugSession2.getMajorISA() == 0x64)) 
 	{
@@ -297,13 +336,13 @@ if (targetFlag == "TCI6488_USB")
     	}
 } else {
 	timeout_linux_core = 45000;
-	debugSession = debugServer.openSession("*","C64XP_A");
+	debugSession0 = debugServer.openSession("*","C64XP_A");
 	debugSession1 = debugServer.openSession("*","C64XP_B");
 	debugSession2 = debugServer.openSession("*","C64XP_C");
 	debugSession3 = debugServer.openSession("*","C64XP_D");
 	debugSession4 = debugServer.openSession("*","C64XP_E");
 	debugSession5 = debugServer.openSession("*","C64XP_F");
-	if ((debugSession.getMajorISA() == 0x64) &&
+	if ((debugSession0.getMajorISA() == 0x64) &&
             (debugSession1.getMajorISA() == 0x64) &&
             (debugSession2.getMajorISA() == 0x64) &&
             (debugSession3.getMajorISA() == 0x64) &&
@@ -317,40 +356,73 @@ if (targetFlag == "TCI6488_USB")
 // Error check on CPU type
 if (!validCoreFound)
 {
-// Requires a C64x (for now)
 	script.traceSetConsoleLevel(TraceLevel.INFO)
-	script.traceWrite("Test requires a C64x!")
+	script.traceWrite("Test requires a C66x/C64x!")
 	script.traceWrite("TEST FAILED!")
 	script.traceEnd()
 	java.lang.System.exit(1);
 }
 
 
-debugSession.target.connect();
+debugSession0.target.connect();
 debugSession1.target.connect();
 debugSession2.target.connect();
-debugSession.target.reset();
+
+if ((targetFlag == "TCI6486_USB") ||
+    (targetFlag == "C6670_USB") ||
+    (targetFlag == "C6678_USB")) {
+	debugSession3.target.connect();
+}
+
+if ((targetFlag == "TCI6486_USB") ||
+    (targetFlag == "C6678_USB")) {
+	debugSession4.target.connect();
+	debugSession5.target.connect();
+}
+if (targetFlag == "C6678_USB") {
+	debugSession6.target.connect();
+	debugSession7.target.connect();
+}
+
+if ((targetFlag == "C6670_USB") ||
+    (targetFlag == "C6678_USB")) {
+	debugSession0.expression.evaluate('GEL_AdvancedReset("System Reset")');
+} else {
+	debugSession0.target.reset();
+}
+
 debugSession1.target.reset();
 debugSession2.target.reset();
 
-var linuxSession = debugSession2;
-var linuxProgram = syslink_image_dir + "vmlinux";
-var lastBiosCore = 1;
-
-if (targetFlag == "TCI6486_USB")
-{
-	linuxSession = debugSession5;
-	lastBiosCore = 4;
-	debugSession3.target.connect();
-	debugSession4.target.connect();
-	debugSession5.target.connect();
+if ((targetFlag == "TCI6486_USB") ||
+    (targetFlag == "C6670_USB") ||
+    (targetFlag == "C6678_USB")) {
 	debugSession3.target.reset();
+}
+if ((targetFlag == "TCI6486_USB") ||
+    (targetFlag == "C6678_USB")) {
 	debugSession4.target.reset();
 	debugSession5.target.reset();
 }
 
+if (targetFlag == "C6678_USB") {
+	debugSession6.target.reset();
+	debugSession7.target.reset();
+}
+
+var linuxSession = debugSession0;
+var linuxProgram = syslink_image_dir + "vmlinux";
+
+var lastBiosCore = 2;
+if (targetFlag == "TCI6486_USB") {
+	lastBiosCore = 5;
+} else if (targetFlag == "C6670_USB") {
+	lastBiosCore = 3;
+} else if (targetFlag == "C6678_USB") {
+	lastBiosCore = 7;
+}
+
 // Reset
-  
 // Load a program
 // (ScriptingEnvironment has a concept of a working folder and for all of the APIs which take
 // path names as arguments you can either pass a relative path or an absolute path)
@@ -390,38 +462,32 @@ catch (ex)
        print("\nDEBUG: Running of Linux core is successful...\n\n");
 }
 
+print("********Linux Kernel is running. run syslink-app-c64x.sh. Type  <enter> when done*********"); 
+java.lang.System['in'].read();
+java.lang.System['in'].read();
+
 
 // Start the test
 var biosProgram = biosProgram = syslink_image_dir + module[module_index];
 
 script.traceWrite("Loading and running BIOS application for "+module[module_index]+"\n");
 
-if ((module_index == 2) || (module_index == 3))
+if (targetFlag == "C6678_USB")
 {
-	if (targetFlag == "TCI6486_USB")
-	{
-		biosProgram = biosProgram + "_c6472_core";
-	}
-	else
-	{
-		biosProgram = biosProgram + "_c6474_core";
-	}
+	biosProgram = biosProgram + "_c6678_core";
 }
-else
+else if (targetFlag == "C6670_USB")
 {
-	if (targetFlag == "TCI6486_USB")
-	{
-		//var sProgram = syslink_image_dir + module[module_index] + "_c6474_core0.x64P";
-		biosProgram = biosProgram + "_c6472_core";
-	}
-	else
-	{
-		biosProgram = biosProgram + "_c6474_core";
-	}
+	biosProgram = biosProgram + "_c6670_core";
+} else if (targetFlag == "TCI6486_USB")
+{
+	biosProgram = biosProgram + "_c6472_core";
+} else if (targetFlag == "TCI6488_USB")
+{
+	biosProgram = biosProgram + "_c6474_core";
 }
 
-var coreId = 0;
-
+var coreId = 1;
 if ( loadPass )
 {
 	var Program;
@@ -429,20 +495,30 @@ if ( loadPass )
 	{
 		try
 		{
-       		loadPass = false;
-			if (endianFlag == "LE") {
-			    Program = biosProgram + coreId + ".x64P";
-                  } else {
-			    Program = biosProgram + coreId + ".x64Pe";
-       	      }
-    		      script.traceWrite("Loading " + Program + "\n");
+       			loadPass = false;
+
+			if ((targetFlag == "C6670_USB") ||
+			    (targetFlag == "C6678_USB")) {
+
+				if (endianFlag == "LE") {
+			    		Program = biosProgram + coreId + ".xe66";
+                  		}
+				else
+				{
+			    		Program = biosProgram + coreId + ".xe66e";
+       	      	  		}
+			} else {
+				if (endianFlag == "LE") {
+			    		Program = biosProgram + coreId + ".x64P";
+				} else {
+			    		Program = biosProgram + coreId + ".x64Pe";
+				}
+			}
+
+    		      	script.traceWrite("Loading " + Program + "\n");
 			print("Loading " + Program + "\n");
 			switch (coreId)
 			{
-				case 0:
-       					debugSession.memory.loadProgram(Program);
-       					loadPass = true;
-					break;
 				case 1:
        					debugSession1.memory.loadProgram(Program);
        					loadPass = true;
@@ -460,8 +536,16 @@ if ( loadPass )
        					loadPass = true;
 					break;
 				case 5:
-       					loadPass = true;
-       					debugSession5.memory.loadProgram(Program);
+       				        debugSession5.memory.loadProgram(Program);
+					loadPass = true;
+					break;
+				case 6:
+       					debugSession6.memory.loadProgram(Program);
+					loadPass = true;
+					break;
+				case 7:
+       					debugSession7.memory.loadProgram(Program);
+					loadPass = true;
 					break;
 			}
 		}
@@ -478,7 +562,7 @@ if ( loadPass )
 	while (loadPass && (coreId <= lastBiosCore));
 }
 
-	var IpcResetVector = debugSession.symbol.getAddress("Ipc_ResetVector"); 
+var IpcResetVector = debugSession1.symbol.getAddress("Ipc_ResetVector"); 
 	print("********IpcResetVector is 0x" + Integer.toHexString(IpcResetVector) + " *********"); 
 
 if ( loadPass )
@@ -486,17 +570,6 @@ if ( loadPass )
        	debugScriptEnv.setScriptTimeout(timeout_bios_core);
 	try {
        		// Remove any and all breakpoints and run to completion
-       		debugSession.breakpoint.removeAll();
-       		debugSession.target.run();
-	}
-	catch (ex)
-	{
-       		print("\nDEBUG: Running of core0 successful...\n\n");
-	}
-
-        debugScriptEnv.setScriptTimeout(timeout_bios_core);
-
-	try {
        		debugSession1.breakpoint.removeAll();
        		debugSession1.target.run();
 	}
@@ -504,13 +577,10 @@ if ( loadPass )
 	{
        		print("\nDEBUG: Running of core1 successful...\n\n");
 	}
-}
 
-if ( loadPass && (targetFlag == "TCI6486_USB"))
-{
-       	debugScriptEnv.setScriptTimeout(timeout_bios_core);
+      debugScriptEnv.setScriptTimeout(timeout_bios_core);
+
 	try {
-       		// Remove any and all breakpoints and run to completion
        		debugSession2.breakpoint.removeAll();
        		debugSession2.target.run();
 	}
@@ -518,10 +588,14 @@ if ( loadPass && (targetFlag == "TCI6486_USB"))
 	{
        		print("\nDEBUG: Running of core2 successful...\n\n");
 	}
+}
 
-       	debugScriptEnv.setScriptTimeout(timeout_bios_core);
+if ( loadPass && ((targetFlag == "C6678_USB") ||
+     (targetFlag == "C6670_USB") ||
+     (targetFlag == "TCI6486_USB")))
+{
+      	debugScriptEnv.setScriptTimeout(timeout_bios_core);
 	try {
-       		// Remove any and all breakpoints and run to completion
        		debugSession3.breakpoint.removeAll();
        		debugSession3.target.run();
 	}
@@ -529,8 +603,12 @@ if ( loadPass && (targetFlag == "TCI6486_USB"))
 	{
        		print("\nDEBUG: Running of core3 successful...\n\n");
 	}
+}
 
-       	debugScriptEnv.setScriptTimeout(timeout_bios_core);
+if ( loadPass && ((targetFlag == "C6678_USB") ||
+		  (targetFlag == "TCI6486_USB")))
+{
+        debugScriptEnv.setScriptTimeout(timeout_bios_core);
 	try {
        		// Remove any and all breakpoints and run to completion
        		debugSession4.breakpoint.removeAll();
@@ -540,10 +618,46 @@ if ( loadPass && (targetFlag == "TCI6486_USB"))
 	{
        		print("\nDEBUG: Running of core4 successful...\n\n");
 	}
+
+        debugScriptEnv.setScriptTimeout(timeout_bios_core);
+	try {
+       		// Remove any and all breakpoints and run to completion
+       		debugSession5.breakpoint.removeAll();
+       		debugSession5.target.run();
+	}
+	catch (ex)
+	{
+       		print("\nDEBUG: Running of core5 successful...\n\n");
+	}
+}
+if ( loadPass && (targetFlag == "C6678_USB"))
+{
+	debugScriptEnv.setScriptTimeout(timeout_bios_core);
+	try {
+       		// Remove any and all breakpoints and run to completion
+       		debugSession6.breakpoint.removeAll();
+       		debugSession6.target.run();
+	}
+	catch (ex)
+	{
+       		print("\nDEBUG: Running of core6 successful...\n\n");
+	}
+
+        debugScriptEnv.setScriptTimeout(timeout_bios_core);
+	try {
+       		// Remove any and all breakpoints and run to completion
+       		debugSession7.breakpoint.removeAll();
+       		debugSession7.target.run();
+	}
+	catch (ex)
+	{
+       		print("\nDEBUG: Running of core7 successful...\n\n");
+	}
+
 }
 
 print("********IpcResetVector for " + module[module_index] + " is 0x" + Integer.toHexString(IpcResetVector) + " *********"); 
-print("Type any key once syslink test is complete");
+print("Run SysLink IPC application and Type <enter> when test is complete");
 java.lang.System['in'].read();
 
 print("Cleaning up....\n");
@@ -556,14 +670,26 @@ if (debugFlag)
        print("\nDEBUG: Logging successful...\n\n");
 }
 
-debugSession.terminate();
+debugSession0.terminate();
 debugSession1.terminate();
 debugSession2.terminate();
-if ( targetFlag == "TCI6486_USB")
+if ((targetFlag == "C6678_USB") ||
+    (targetFlag == "C6670_USB") ||
+    (targetFlag == "TCI6486_USB"))
 {
 	debugSession3.terminate();
+}
+
+if ((targetFlag == "C6678_USB") ||
+    (targetFlag == "TCI6486_USB"))
+{
 	debugSession4.terminate();
 	debugSession5.terminate();
+}
+if (targetFlag == "C6678_USB")
+{
+	debugSession6.terminate();
+	debugSession7.terminate();
 }
  
 // Close log file
