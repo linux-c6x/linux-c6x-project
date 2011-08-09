@@ -5,6 +5,9 @@ then
 else
         LOADER=$1
 fi
+# IPC Reset Vector. configured in rtos application cfg file
+IRV=0x800000
+
 CORES="1 2 3 4 5 6 7"
 echo "Beginning of MessageQ sample application run"
 echo "insmod syslink.ko"
@@ -17,7 +20,7 @@ ${LOADER} $i /opt/syslink_evmc6678.el/messageq_c6678_core${i}.xe66
 done
 
 echo "Running messageq User land sample application"
-/opt/syslink_evmc6678.el/messageqapp_release 7 1 0x817300 2 0x817300 3 0x817300 4 0x817300 5 0x817300 6 0x817300 7 0x817300 3
+/opt/syslink_evmc6678.el/messageqapp_release 7 1 $IRV 2 $IRV 3 $IRV 4 $IRV 5 $IRV 6 $IRV 7 $IRV 3
 echo "rmmod syslink.ko"
 rmmod /opt/syslink_evmc6678.el/syslink.ko
 echo "MessageQ sample application run is complete"

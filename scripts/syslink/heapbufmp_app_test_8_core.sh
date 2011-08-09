@@ -6,6 +6,9 @@ else
         LOADER=$1
 fi
 CORES="1 2 3 4 5 6 7"
+# IPC Reset Vector. configured in rtos application cfg file
+IRV=0x800000
+
 echo "Beginning of HeapBufMP sample application run"
 echo "insmod syslink.ko"
 insmod syslink.ko
@@ -17,7 +20,7 @@ ${LOADER} $i heapbufmp_c6678_core${i}.xe66
 done
 
 echo "Running heapbufmp User land sample application"
-./heapbufmpapp_release 7 1 0x817180 2 0x817180 3 0x817180 4 0x817180 5 0x817180 6 0x817180 7 0x817180 3
+./heapbufmpapp_release 7 1 $IRV 2 $IRV 3 $IRV 4 $IRV 5 $IRV 6 $IRV 7 $IRV 3
 echo "rmmod syslink.ko"
 rmmod syslink.ko
 echo "HeapBufMP sample application run is complete"

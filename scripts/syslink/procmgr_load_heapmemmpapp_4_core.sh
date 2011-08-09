@@ -6,6 +6,9 @@ else
         LOADER=$1
 fi
 CORES="1 2 3"
+# IPC Reset Vector. configured in rtos application cfg file
+IRV=0x800000
+
 echo "Beginning of HeapMemMP kernel test module run"
 echo "insmod syslink.ko"
 insmod syslink.ko
@@ -17,7 +20,7 @@ ${LOADER} $i heapmemmp_c6670_core${i}.xe66
 done
 
 echo "Running procmgr User land sample application"
-./procmgrapp_release 3 1 0x815f00 2 0x815f00 3 0x815f00 3
+./procmgrapp_release 3 1 $IRV 2 $IRV 3 $IRV 3
 echo "rmmod syslink.ko"
 rmmod syslink.ko
 echo "HeapMemMP kernel test module run is complete"

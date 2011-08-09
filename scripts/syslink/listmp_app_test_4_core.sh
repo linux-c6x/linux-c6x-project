@@ -6,6 +6,9 @@ else
         LOADER=$1
 fi
 CORES="1 2 3"
+# IPC Reset Vector. configured in rtos application cfg file
+IRV=0x800000
+
 echo "Beginning of ListMP sample application run"
 echo "insmod syslink.ko"
 insmod syslink.ko
@@ -17,7 +20,7 @@ ${LOADER} $i listmp_c6670_core${i}.xe66
 done
 
 echo "Running listmp User land sample application"
-./listmpapp_release 3 1 0x815b80 2 0x815b80 3 0x815b80 3
+./listmpapp_release 3 1 $IRV 2 $IRV 3 $IRV 3
 echo "rmmod syslink.ko"
 rmmod syslink.ko
 echo "ListMP sample application run is complete"

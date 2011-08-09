@@ -6,6 +6,9 @@ else
         LOADER=$1
 fi
 CORES="1 2 3"
+# IPC Reset Vector. configured in rtos application cfg file
+IRV=0x800000
+
 echo "Beginning of SharedRegion kernel test module run"
 echo "insmod syslink.ko"
 insmod syslink.ko
@@ -16,7 +19,7 @@ echo "Loading and running slave core $i"
 ${LOADER} $i sharedregion_c6670_core${i}.xe66
 done
 echo "Running procmgr User land sample application"
-./procmgrapp_release 3 1 0x815080 2 0x815080 3 0x815080 3
+./procmgrapp_release 3 1 $IRV 2 $IRV 3 $IRV 3
 echo "rmmod syslink.ko"
 rmmod syslink.ko
 echo "SharedRegion kernel test module run is complete"

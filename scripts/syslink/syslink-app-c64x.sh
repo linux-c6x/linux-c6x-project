@@ -80,10 +80,10 @@ then
 	fi
 fi
 
+reset_vector=0x800000
 insmod syslink.ko
-echo "Type Reset vector and then <enter>"
-read reset_vector
-echo $reset_vector
+echo "Load BIOS application on slave cores and Type  <enter>"
+read none
 
 
 echo "Testing release version of notify application, num-cores=$num_cores reset_vector=$reset_vector"

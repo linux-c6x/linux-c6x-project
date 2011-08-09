@@ -6,6 +6,9 @@ else
 	LOADER=$1
 fi
 CORES="1 2 3"
+# IPC Reset Vector. configured in rtos application cfg file
+IRV=0x800000
+
 echo "Beginning of GateMP sample application run"
 echo "insmod syslink.ko"
 insmod syslink.ko
@@ -17,7 +20,7 @@ ${LOADER} $i gatemp_c6670_core${i}.xe66
 done
 
 echo "Running GateMP User land sample application"
-./gatempapp_release 3 1 0x815c80 2 0x815c80 3 0x815c80 3
+./gatempapp_release 3 1 $IRV 2 $IRV 3 $IRV 3
 rmmod syslink.ko
 echo "GateMP sample application run is complete"
 
