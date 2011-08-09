@@ -61,8 +61,8 @@ fi
 add_boiler_plate() {
 	cat <<EOF >>$PRJ/.setenv.local
 SETENV_LOCAL_SOURCED=1
-if [ -z "$$SETENV_SOURCED" ]; then
-	source $$LINUX_C6X_TOP_DIR/linux-c6x-project/setenv
+if [ -z "\$SETENV_SOURCED" ]; then
+	source \$LINUX_C6X_TOP_DIR/linux-c6x-project/setenv
 fi
 EOF
 }
