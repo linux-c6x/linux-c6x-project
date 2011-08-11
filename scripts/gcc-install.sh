@@ -147,6 +147,7 @@ if $DO_SRC; then echo "Installing uclibc source under ${INSTALL_DIR}/gcc-c6x-ucl
 # create and/or start clean
 rm -rf ${TEMPDIR}
 mkdir -p ${TEMPDIR}
+mkdir -p ${DOWNLOAD_DIR}
 
 if $DO_BIN; then
 
