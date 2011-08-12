@@ -15,7 +15,6 @@ install_gcc() {
 	INSTALL_OPT=""
 	if $DONT_TOUCH_UCLIBC ; then INSTALL_OPT="--only-gcc" ; fi
 	$PRJ/scripts/gcc-install.sh $INSTALL_OPT $GCC_VERSION
-	GCC_DIR=$TOP/gcc-c6x
 }
 
 reverse_words() {
@@ -85,6 +84,14 @@ elif [ "$GCC_VERSION" != "none" ]; then
     # try to find preinstalled version of CCS
     if ! find_existing_gcc || ! find_existing_uclibc ; then
 	install_gcc
+	if ! find_existing_gcc ; then
+	    echo "Can't find usable GCC even after installing"
+	    exit 2
+	fi
+	if ! find_existing_uclibc ; then
+	    echo "Can't find usable uClibc even after installing"
+	    exit 2
+	fi
     fi
 fi
 
