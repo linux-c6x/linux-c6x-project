@@ -190,7 +190,7 @@ ifeq ($(ENDIAN),big)
 USERSPACE_CFLAGS  += -mbig-endian
 USERSPACE_LDFLAGS += -mbig-endian
 endif
-ifeq ($(ENDIAN),hard)
+ifeq ($(FLOAT),hard)
 USERSPACE_CFLAGS  += -march=c674x
 USERSPACE_LDFLAGS += -march=c674x
 endif
