@@ -14,7 +14,10 @@ REMOTE="origin"
 
 BASE_PRJ="linux-c6x busybox"
 WRAP_PRJ=""
-EXTRA_PRJ="projects/mtd-utils projects/rio-utils projects/packages projects/ltp projects/c6x-linux-mcsdk-demo projects/syslink"
+EXTRA1_PRJ="projects/mtd-utils projects/rio-utils projects/ltp projects/syslink"
+EXTRA2_PRJ="projects/c6x-linux-mcsdk-demo projects/packages projects/package-downloads"
+EXTRA3_PRJ="projects/ibl projects/c64-eepromwriter"
+EXTRA_PRJ="$EXTRA1_PRJ $EXTRA2_PRJ $EXTRA3_PRJ"
 
 CONFIG_CMD=scripts/setup
 
