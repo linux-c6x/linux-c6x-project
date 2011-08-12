@@ -38,7 +38,7 @@ verify_gcc_dir() {
 }
 
 find_existing_gcc() {
-    for base in $TOP/gcc-c6x $(reverse_words ~/opt/c6x-*) $(reverse_words /opt/c6x-*) ; do
+    for base in $TOP/opt/gcc-c6x $(reverse_words ~/opt/c6x-*) $(reverse_words /opt/c6x-*) ; do
 	if verify_gcc_dir $base ; then
 	    GCC_DIR=$base
 	    echo "found GCC version $THIS_GCC_VERSION in $GCC_DIR"
@@ -50,7 +50,10 @@ find_existing_gcc() {
 
 find_existing_uclibc() {
     # for now we always expect a local copy
-    for base in $TOP/gcc-c6x-uclibc ; do
+    # if it came from a source tar file it will be in $TOP/gcc-c6x-uclibc
+    # if it was installed by the setup scripts it will be in $TOP/opt/gcc-c6x-uclibc
+    # this is intentional
+    for base in $TOP/gcc-c6x-uclibc $TOP/opt/gcc-c6x-uclibc; do
 	if [ -d $base/libc ]; then
 	    UCLIBC_DIR=$base
 	    echo "found uClibc source in $UCLIBC_DIR"
@@ -87,4 +90,5 @@ fi
 
 cat - >>$PRJ/.setenv.local <<EOF
 export GCC_DIR="$GCC_DIR"
+export UCLIBC_DIR="$UCLIBC_DIR"
 EOF

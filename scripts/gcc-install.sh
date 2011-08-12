@@ -52,7 +52,8 @@ if [ -z "$LINUX_C6X_TOP_DIR" ]; then
 	INSTALL_DIR=$(pwd)
 	echo "warning: setenv not in effect, installing to $INSTALL_DIR"
 else
-	INSTALL_DIR=$LINUX_C6X_TOP_DIR
+	INSTALL_DIR=$LINUX_C6X_TOP_DIR/opt
+	mkdir -p $INSTALL_DIR
 fi
 
 if [ -z "$1" ] ; then
@@ -140,7 +141,7 @@ fi
 : ${DOWNLOAD_DIR=$DOWNLOAD_PATH}"
 TEMPDIR=/tmp/gcc-c6x-${GCC_REL}
 
-echo "Installing gcc release $GCC_REL from $SERVER_DESC site";
+echo "Installing gcc release $GCC_REL from $SERVER_DESC";
 if $DO_BIN; then echo "Installing gcc tool chain to ${INSTALL_DIR}/gcc-c6x"; fi
 if $DO_SRC; then echo "Installing uclibc source under ${INSTALL_DIR}/gcc-c6x-uclibc"; fi
 

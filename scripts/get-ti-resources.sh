@@ -13,7 +13,7 @@ if [ -z "$CCS_VERSION" ]   || [ -z "$CGT_LINUX_VERSION" ] || [ -z "$CGT_BIOS_VER
     exit 2
 fi
 
-TEMPDIR=/tmp/linux-c6x-$(date --iso)
+TEMPDIR=/tmp/linux-c6x-install-$(date --iso)
 rm -rf ${TEMPDIR} || true
 mkdir -p ${TEMPDIR}
 
@@ -35,7 +35,7 @@ install_ccs() {
 
     rm -rf $scrap_dir
     mkdir -p $scrap_dir
-    ccs_install_prefix=~/opt/ti
+    ccs_install_prefix=$TOP/opt/
     pushd $scrap_dir
 	echo "extracting CCS setup"
 	tar xzf $tarball
@@ -48,11 +48,11 @@ EOF
 		sudo ./install_drivers.sh 
 	fi
     popd
-    CCS_DIR=~/opt/ti/ccsv5
+    CCS_DIR=$ccs_install_prefix/ccsv5
 }
 
 find_existing_ccs() {
-    for base in ~/opt/ti /opt/ti ; do
+    for base in $TOP/opt ~/opt/ti /opt/ti ; do
 	if [ -d $base/ccsv5 ]; then
 	    this_ccs_base=$(basename $(echo $base/ccsv5/ccs_base*))
 	    this_ccs_ver=${this_ccs_base#ccs_base_}
@@ -91,7 +91,7 @@ install_cgt() {
     this_cgt_ver=${this_cgt_ver%_setup_linux_x86.bin}
     
     chmod +x $cgt_setup
-    cgt_install_prefix=~/opt/TI/TI_CGT_C6000_${this_cgt_ver}
+    cgt_install_prefix=$TOP/opt/TI_CGT_C6000_${this_cgt_ver}
     expect - <<EOF
 spawn ${cgt_setup} --mode console
 while true {
@@ -110,7 +110,7 @@ EOF
 }
 
 find_existing_cgt() {
-    for base in $(reverse_words $TOP/TI_CGT_C6000_*) $CCS_DIR/tools/compiler/c6000 $(reverse_words ~/opt/{TI,ti}/TI_CGT_C6000_*) $(reverse_words /opt/{TI,ti}/TI_CGT_C6000_*) ; do
+    for base in $(reverse_words $TOP/opt/TI_CGT_C6000_*) $CCS_DIR/tools/compiler/c6000 $(reverse_words ~/opt/{TI,ti}/TI_CGT_C6000_*) $(reverse_words /opt/{TI,ti}/TI_CGT_C6000_*) ; do
 	if [ -x $base/bin/cl6x ]; then
 	    this_cgt_ver=$($base/bin/cl6x --tool_version | awk '{ print $NF; exit }')
 	    this_cgt_ver=${this_cgt_ver#v}
@@ -124,27 +124,27 @@ find_existing_cgt() {
     return 1
 }
 
-install_ipc() {
-    if [ "$IPC_VERSION" == "any" ]; then
+install_comp() {
+    if [ "$COMP_VERSION" == "any" ]; then
 	ver_spec="*"
     else
-	ver_spec=${IPC_VERSION//./_}
+	ver_spec=${COMP_VERSION//./_}
     fi
 
-    ipc_setup=$(echo $DOWNLOAD_PATH/ipc_setuplinux_${ver_spec}.bin | awk '{print $NF; exit}')
-    if [ ! -r $ipc_setup ]; then
-	echo "need IPC version $IPC_VERSION and did not find it nor install file $ipc_setup"
+    comp_setup=$(echo $DOWNLOAD_PATH/${COMP_SETUP_PREFIX}${ver_spec}${COMP_SETUP_SUFFIX} | awk '{print $NF; exit}')
+    if [ ! -r $comp_setup ]; then
+	echo "need $COMP version $COMP_VERSION and did not find it nor install file $comp_setup"
 	exit 2
     fi
-    this_ipc_ver=$(basename $ipc_setup)
-    this_ipc_ver=${this_ipc_ver#ipc_setuplinux_}
-    this_ipc_ver=${this_ipc_ver%.bin}
+    this_comp_ver=$(basename $comp_setup)
+    this_comp_ver=${this_comp_ver#${COMP_SETUP_PREFIX}}
+    this_comp_ver=${this_comp_ver%${COMP_SETUP_SUFFIX}}
     
-    chmod +x $ipc_setup
-    IPC_DIR=$TOP/ipc_${this_ipc_ver}
-    ipc_install_prefix=$(basename $IPC_DIR)
+    chmod +x $comp_setup
+    COMP_DIR=$TOP/opt/${COMP_DIR_PREFIX}${this_comp_ver}
+    comp_install_prefix=$(dirname $COMP_DIR)
     expect - <<EOF
-spawn ${ipc_setup} --mode console
+spawn ${comp_setup} --mode console
 while true {
 expect {
     "Continue?" {send "y\n"} 
@@ -152,32 +152,18 @@ expect {
     "Do you accept " {send "y\n"}
     "Is this correct?" {send "y\n"}
     "Is this is correct?" {send "y\n"}
-    "Where do you want to install" {send "${ipc_install_prefix}\n"}
+    "Please type \"Y\" to agree and continue:" {send "y\n"}
+    "Where do you want to install" {send "${comp_install_prefix}\n"}
     eof {break}
 }
 }
 EOF
 
-    echo "installed and will use IPC version $this_ipv_ver in $IPC_DIR"
-}
-
-find_existing_ipc() {
-    for base in $(reverse_words $TOP/ipc_*) $(reverse_words {,~}/opt/{TI,ti}{/ccsv5,}/ipc_*) ; do
-	if [ -d $base ]; then
-	    this_ipc_ver=$(basename $base)
-	    this_ipc_ver=${this_ipc_ver#ipc_}
-	    if [ "$IPC_VERSION" == "any" ] || [ "${IPC_VERSION//./_}" == "$this_ipc_ver" ]; then
-		IPC_DIR=$base
-		echo "found IPC version $this_ipc_ver in $IPC_DIR"
-		return 0
-	    fi
-	fi
-    done
-    return 1
+    echo "installed and will use $COMP version $this_comp_ver in $COMP_DIR"
 }
 
 find_existing_comp() {
-    for base in $(reverse_words $TOP/${COMP_SEARCH}*) $(reverse_words $CCS_DIR/${COMP_SEARCH}*) $(reverse_words {,~}/opt/{TI,ti}{/ccsv5,}/${COMP_SEARCH}*) ; do
+    for base in $(reverse_words $TOP/opt/${COMP_SEARCH}*) $(reverse_words $CCS_DIR/${COMP_SEARCH}*) $(reverse_words {,~}/opt/{TI,ti}{/ccsv5,}/${COMP_SEARCH}*) ; do
 	if [ -d $base ]; then
 	    this_comp_ver=$(basename $base)
 	    this_comp_ver=${this_comp_ver#$COMP_SEARCH}
@@ -189,11 +175,6 @@ find_existing_comp() {
 	fi
     done
     return 1
-}
-
-install_comp() {
-    echo "install of $COMP not supported"
-    exit 2
 }
 
 # get CCS directory
@@ -230,20 +211,14 @@ elif [ -n "$CGT_BIOS_VERSION" ] && [ "$CGT_BIOS_VERSION" != "none" ]; then
     CGT_BIOS_DIR=$CGT_DIR
 fi
 
-# get BIOS IPC directory
-if [ -n "$IPC_DIR" ]; then
-    echo "using predefined TI IPC directory: $IPC_DIR"
-elif [ -n "$IPC_VERSION" ] && [ "$IPC_VERSION" != "none" ]; then
-    if ! find_existing_ipc; then
-	install_ipc
-    fi
-fi
-
 generic_comp() {
     COMP=$1
     COMP_DIR=$2
     COMP_VERSION=$3
     COMP_SEARCH=$4
+    COMP_SETUP_PREFIX=$5
+    COMP_SETUP_SUFFIX=$6
+    COMP_DIR_PREFIX=$4
     if [ -n "$COMP_DIR" ]; then
         echo "using predefined $COMP directory: $COMP_DIR"
     elif [ -n "$COMP_VERSION" ] && [ "$COMP_VERSION" != "none" ]; then
@@ -253,11 +228,14 @@ generic_comp() {
     fi
 }
 
-generic_comp BIOS 	"$BIOS_DIR"   "$BIOS_VERSION"   bios_
+# get TI SYSBIOS components
+generic_comp IPC 	"$IPC_DIR"    "$IPC_VERSION"    ipc_		ipc_setuplinux_		.bin
+IPC_DIR=$COMP_DIR
+generic_comp BIOS 	"$BIOS_DIR"   "$BIOS_VERSION"   bios_		bios_setuplinux_	.bin
 BIOS_DIR=$COMP_DIR
-generic_comp XDC	"$XDC_DIR"    "$XDC_VERSION"    xdctools_
+generic_comp XDC	"$XDC_DIR"    "$XDC_VERSION"    xdctools_	xdctools_setuplinux_	.bin
 XDC_DIR=$COMP_DIR
-generic_comp XDAIS	"$XDAIS_DIR"  "$XDAIS_VERSION"  xdais_
+generic_comp XDAIS	"$XDAIS_DIR"  "$XDAIS_VERSION"  xdais_		xdias_setuplinux_	.bin
 XDAIS_DIR=$COMP_DIR
 
 cat - >>$PRJ/.setenv.local <<EOF

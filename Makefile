@@ -160,7 +160,7 @@ ifeq ($(BUILD_USERSPACE_WITH_GCC),yes)
 CC_SDK=$(SDK_DIR)/bin/$(ARCH)-uclinux-
 CC_UCLIBC = $(CC_GNU)
 UCLIBC_CONFIGNAME = uClibc-0.9.30-cs.config
-UCLIBC_SRCDIR = $(TOP)/gcc-$(ARCH)-uclibc
+UCLIBC_SRCDIR = $(UCLIBC_DIR)
 BUILD_STATIC_BBOX =
 ifeq ($(ENDIAN),little)
 SYSROOT_DIR_SUBPATH_ENDIAN = $(ARCH)-uclinux/libc
