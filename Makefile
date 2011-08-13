@@ -16,7 +16,7 @@ export DATE
 # These targets can be built little-endian and/or big-endian and hard or soft floating point ABI
 TOP_TARGETS = rootfs mtd rio busybox packages sdk clib kernels sdk0 clean mtd-clean rio-clean \
 	busybox-clean packages-clean clib-clean extra-kernels bootblobs elf-loader mcsdk-demo ltp \
-	syslink
+	syslink packages
 
 # These sub-targets build only one endian/float setting
 ENDIAN_TARGETS = one-rootfs one-mtd one-rio one-busybox one-sdk one-clib one-kernels one-sdk0 \

@@ -34,7 +34,7 @@ for spec in $@; do
     for pkg in $pkg_list; do
         pkg_path=`find $RPM_CROSS_DIR/RPMS -name $pkg.$ARCH.rpm -o -name $pkg.noarch.rpm`
 	pushd $CROSS_ROOTDEVDIR
-	rpm2cpio $pkg_path | cpio -iduv --no-preserve-owner '*/lib/*' '*/include/*'
+	$SDK_DIR/rpm/bin/rpm2cpio $pkg_path | cpio -iduv --no-preserve-owner '*/lib/*' '*/include/*'
 	if [ $? -ne 0 ]; then
 	    echo "*** Cannot extract libraries and include file from RPMs ***"
 	    exit 2
