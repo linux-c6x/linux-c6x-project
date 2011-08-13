@@ -28,8 +28,8 @@ if ! which lsb_release >/dev/null || ! which awk >/dev/null || ! distro-check Ub
 fi
 
 # set up machine debian based machine
-# (we only need expect for the CGT installer)
-PACKAGES="build-essential git-core expect automake"
+# (we only need expect for the TI installers)
+PACKAGES="build-essential git-core expect automake zlib1g-dev"
 if ! dpkg -L $PACKAGES 2>&1 >/dev/null; then
     if [ x"$AUTO_INSTALL" == x"yes" ] ; then
 	echo "installing (at least one of) the following packages: $PACKAGES"
