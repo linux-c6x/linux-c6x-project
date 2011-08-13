@@ -16,7 +16,7 @@ distro-check() {
 
 if ! which lsb_release >/dev/null || ! which awk >/dev/null || ! distro-check Ubuntu Debian ; then
     echo "This distribution is not setup for auto setup, doing basic checks ..."
-    PROGRAMS="make gcc git awk perl wget autoheader automake"
+    PROGRAMS="make gcc git awk perl wget autoheader automake expect bison flex"
     RC=0
     for pgm in $PROGRAMS; do
         if ! which $pgm >/dev/null; then
@@ -29,7 +29,7 @@ fi
 
 # set up machine debian based machine
 # (we only need expect for the TI installers)
-PACKAGES="build-essential git-core expect automake zlib1g-dev"
+PACKAGES="build-essential git-core expect automake zlib1g-dev bison flex"
 if ! dpkg -L $PACKAGES 2>&1 >/dev/null; then
     if [ x"$AUTO_INSTALL" == x"yes" ] ; then
 	echo "installing (at least one of) the following packages: $PACKAGES"
