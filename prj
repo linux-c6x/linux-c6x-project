@@ -349,6 +349,10 @@ config)
     shift
     $CONFIG_CMD "$@"
 ;;
+make|build)
+    shift
+    (. setenv; make "$@")
+;;
 git)
     shift
     for prj in $ALL_PRJ ; do
