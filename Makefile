@@ -6,55 +6,135 @@
 
 def-target: product
 
-all: product syslink-all 
+all: product syslink-all
 
 product: rootfs extra-kernels bootblobs
 
 DATE ?= $(shell date +'%Y%m%d')
 export DATE
 
-# These targets can be built little-endian and/or big-endian and hard or soft floating point ABI
-TOP_TARGETS = rootfs mtd rio busybox packages sdk clib kernels sdk0 clean mtd-clean rio-clean \
-	busybox-clean packages-clean clib-clean extra-kernels bootblobs elf-loader mcsdk-demo ltp \
-	syslink packages
+V ?= 0
+TV ?= $(V)
+TOP_VERBOSE ?= $(TV)
+export TOP_VERBOSE
 
-# These sub-targets build only one endian/float setting
-ENDIAN_TARGETS = one-rootfs one-mtd one-rio one-busybox one-sdk one-clib one-kernels one-sdk0 \
+ifeq ($(TOP_VERBOSE),0)
+QUIET=@
+else
+QUIET=
+endif
+
+BUILD_ORDER_TARGETS ?= "product"
+build-order:
+	@$(SUB_MAKE) -n $(BUILD_ORDER_TARGETS) 2>&1 | grep "^\*\*\*"
+
+# These targets are valid user command line targets and depend on ENDIAN and FLOAT
+TOP_ENDIAN_FLOAT_TARGETS = mtd rio busybox package sdk clib sdk0 clean mtd-clean rio-clean \
+	busybox-clean packages-clean clib-clean bootblobs elf-loader mcsdk-demo ltp \
+	syslink min-root mcsdk-demo-root full-root ltp-root
+
+# These are internal sub-targets to support TOP_ENDIAN_FLOAT targets
+ENDIAN_FLOAT_TARGETS = one-mtd one-rio one-busybox one-sdk one-clib one-sdk0 \
 	one-kernels-clean one-uclibc-clean one-mtd-clean one-rio-clean one-busybox-clean \
 	min-root-clean full-root-clean one-clean \
-	one-extra-kernels one-packages one-packages-clean one-ltp one-ltp-clean \
-	one-elf-loader one-mcsdk-demo one-syslink
+	one-package one-packages-clean one-ltp one-ltp-clean \
+	one-elf-loader one-mcsdk-demo one-syslink one-min-root one-mcsdk-demo-root one-full-root one-ltp-root
 
-$(TOP_TARGETS) product kernel-headers: sanity
+# These targets are valid user command line targets and depend on ENDIAN and not on FLOAT
+TOP_ENDIAN_TARGETS = kernels extra-kernels syslink-rtos-demos syslink-rtos-all
+
+# These are internal sub-targets to support TOP_ENDIAN_FLOAT targets
+ENDIAN_TARGETS = one-kernels one-extra-kernels one-syslink-rtos-demos one-syslink-rtos-all
+
+# These targets are valid user command line targets and depend on ENDIAN and the kernel being built
+TOP_ENDIAN_KERNEL_TARGETS = kernel syslink-kernel
+
+# These are internal sub-targets to support TOP_ENDIAN_FLOAT targets
+ENDIAN_KERNEL_TARGETS = one-kernel one-syslink-kernel
+
+# These targets are valid user command line targets and depend on ENDIAN, FLOAT, and the kernel being built
+TOP_ENDIAN_KERNEL_TARGETS = syslink-user
+
+# These are internal sub-targets to support TOP_ENDIAN_FLOAT targets
+ENDIAN_KERNEL_TARGETS = one-syslink-user
+
+# These targets don't depend on ENDIAN, FLOAT, or KERNEL
+TOP_NONE_TARGETS = product packages all kernel-headers rpm
+
+# all TOP level targets, if the target is not here it is not meant to be one the user command line
+TOP_TARGETS = TOP_ENDIAN_FLOAT_TARGETS TOP_ENDIAN_TARGETS TOP_ENDIAN_KERNEL_TARGETS TOP_NONE_TARGETS
+
+$(TOP_TARGETS): sanity
 
 sanity:
-	@if [ -z "$$LINUX_C6X_TOP_DIR" ] ; then echo Does not look like setenv has been setup; exit 1; fi
-	@echo $(if $(ONLY),skipping conditional dependencies,using full dependencies)
+	$(QUIET)if [ -z "$$LINUX_C6X_TOP_DIR" ] ; then echo Does not look like setenv has been setup; exit 1; fi
+	+$(QUIET)echo $(if $(ONLY),skipping conditional dependencies,using full dependencies)
+
+$(ENDIAN_FLOAT_TARGETS): endian-float-sanity
+
+endian-float-sanity:
+	$(QUIET)if [ -z "$(ENDIAN_SUFFIX)" ] || [ -z "$(FLOAT)" ] \
+	 || [ "$(ENDIAN)" == "both" ] || [ "$(FLOAT)" == "both" ] \
+	 || [ "$(ENDIAN)" == "none" ] || [ "$(FLOAT)" == "none" ] \
+	 ; then \
+		echo Must define ENDIAN and FLOAT for this target; \
+		exit 1; \
+	fi
 
 $(ENDIAN_TARGETS): endian-sanity
 
 endian-sanity:
-	@if [ -z "$(ENDIAN_SUFFIX)" ] || [ -z "$(FLOAT)" ] ; then echo Must define ENDIAN and FLOAT for this target; exit 1; fi
+	$(QUIET)if [ -z "$(ENDIAN_SUFFIX)" ] || \
+		   [ "$(ENDIAN)" == "both" ] || \
+	           [ "$(ENDIAN)" == "none" ] ; then \
+		echo "Must define ENDIAN for this target" ; \
+		exit 1; \
+	fi
+
+$(ENDIAN_KERNEL_TARGETS): endian-kernel-sanity
+
+endian-kernel-sanity:
+	$(QUIET)if [ -z "$(ENDIAN_SUFFIX)" ] || [ -z "$(KNAME)" ] || \
+		[ "$(ENDIAN)" == "both" ]    || \
+		[ "$(ENDIAN)" == "none" ]    || [ "$(KNAME)" == "none" ] ; then \
+		echo "Must define ENDIAN and KNAME for this target" ; \
+		exit 1; \
+	fi
+
+$(NONE_TARGETS): none-sanity
+
+
+none-sanity:
+	true
 
 # For these expand out to all settings of ENDIAN and FLOAT specified
-$(TOP_TARGETS):
-	@if [ -z "$(ENDIAN)" ] || [ "$(ENDIAN)" == "both" ]; then					\
+$(TOP_ENDIAN_FLOAT_TARGETS):
+	+$(QUIET)if [ -z "$(ENDIAN)" ] || [ "$(ENDIAN)" == "both" ]; then				\
 	    if [ -z "$(FLOAT)" ] || [ "$(FLOAT)" == "both" ] ; then					\
-		$(MAKE) ENDIAN=little FLOAT=soft KERNEL_HEADERS_ENDIAN=little one-$@;		\
-		$(MAKE) ENDIAN=big FLOAT=soft KERNEL_HEADERS_ENDIAN=little one-$@;		\
-		$(MAKE) ENDIAN=little FLOAT=hard KERNEL_HEADERS_ENDIAN=little one-$@;		\
-		$(MAKE) ENDIAN=big FLOAT=hard KERNEL_HEADERS_ENDIAN=little one-$@;		\
-	    else										\
-		$(MAKE) ENDIAN=little FLOAT=$(FLOAT) KERNEL_HEADERS_ENDIAN=little one-$@;	\
-		$(MAKE) ENDIAN=big FLOAT=$(FLOAT) KERNEL_HEADERS_ENDIAN=little one-$@;		\
-	    fi											\
-	else											\
+		$(SUB_MAKE) ENDIAN=little FLOAT=soft KERNEL_HEADERS_ENDIAN=little one-$@	|| exit 2;	\
+		$(SUB_MAKE) ENDIAN=big FLOAT=soft KERNEL_HEADERS_ENDIAN=little one-$@	|| exit 2;	\
+		$(SUB_MAKE) ENDIAN=little FLOAT=hard KERNEL_HEADERS_ENDIAN=little one-$@	|| exit 2;	\
+		$(SUB_MAKE) ENDIAN=big FLOAT=hard KERNEL_HEADERS_ENDIAN=little one-$@	|| exit 2;	\
+	    else											\
+		$(SUB_MAKE) ENDIAN=little FLOAT=$(FLOAT) KERNEL_HEADERS_ENDIAN=little one-$@ || exit 2;	\
+		$(SUB_MAKE) ENDIAN=big FLOAT=$(FLOAT) KERNEL_HEADERS_ENDIAN=little one-$@   || exit 2;	\
+	    fi												\
+	else												\
 	    if [ -z "$(FLOAT)" ] || [ "$(FLOAT)" == "both" ] ; then					\
-		$(MAKE) ENDIAN=$(ENDIAN) FLOAT=soft KERNEL_HEADERS_ENDIAN=$(ENDIAN) one-$@;	\
-		$(MAKE) ENDIAN=$(ENDIAN) FLOAT=hard KERNEL_HEADERS_ENDIAN=$(ENDIAN) one-$@;	\
-	    else										\
-		$(MAKE) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) KERNEL_HEADERS_ENDIAN=$(ENDIAN) one-$@;	\
-	    fi											\
+		$(SUB_MAKE) ENDIAN=$(ENDIAN) FLOAT=soft KERNEL_HEADERS_ENDIAN=$(ENDIAN) one-$@ || exit 2;	\
+		$(SUB_MAKE) ENDIAN=$(ENDIAN) FLOAT=hard KERNEL_HEADERS_ENDIAN=$(ENDIAN) one-$@ || exit 2;	\
+	    else											\
+		$(SUB_MAKE) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) KERNEL_HEADERS_ENDIAN=$(ENDIAN) one-$@ || exit 2; \
+	    fi												\
+	fi
+
+# For these expand out to all settings of ENDIAN specified
+$(TOP_ENDIAN_TARGETS):
+	+$(QUIET)if [ -z "$(ENDIAN)" ] || [ "$(ENDIAN)" == "both" ]; then				\
+		$(SUB_MAKE) ENDIAN=little FLOAT=$(FLOAT) KERNEL_HEADERS_ENDIAN=little one-$@ || exit 2;	\
+		$(SUB_MAKE) ENDIAN=big FLOAT=$(FLOAT) KERNEL_HEADERS_ENDIAN=little one-$@    || exit 2;	\
+	else												\
+		$(SUB_MAKE) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) KERNEL_HEADERS_ENDIAN=$(ENDIAN) one-$@ || exit 2; \
 	fi
 
 ifeq ($(ENDIAN),little)
@@ -153,14 +233,23 @@ endif
 
 # SDK0 is a compiler only w/o C library. it is used to build kernel and C library
 # SDK is SDK0 + c library and is used for busybox and other user apps and libraries
-CC_SDK0=$(SDK0_DIR)/bin/$(FARCH)-linux-
-CC_GNU=$(GNU_TOOLS_DIR)/bin/$(ARCH)-uclinux-
+
+CC_CGT_SDK0=$(SDK0_DIR)/bin/$(FARCH)-linux-
+CC_CGT_SDK=$(SDK_DIR)/bin/$(FARCH)-linux-
+CC_GCC_SDK0=$(GNU_TOOLS_DIR)/bin/$(ARCH)-uclinux-
+CC_GCC_SDK=$(SDK_DIR)/bin/$(ARCH)-uclinux-
+
+ifeq ($(BUILD_KERNEL_WITH_GCC),yes)
+CC_SDK0=$(CC_GCC_SDK0)
+else
+CC_SDK0=$(CC_CGT_SDK0)
+endif
 
 ifeq ($(BUILD_USERSPACE_WITH_GCC),yes)
-CC_SDK=$(SDK_DIR)/bin/$(ARCH)-uclinux-
-CC_UCLIBC = $(CC_GNU)
+CC_SDK=$(CC_GCC_SDK)
+CC_UCLIBC = $(CC_GCC_SDK0)
 UCLIBC_CONFIGNAME = uClibc-0.9.30-cs.config
-UCLIBC_SRCDIR = $(UCLIBC_DIR)
+UC_SRCDIR = $(UCLIBC_DIR)
 BUILD_STATIC_BBOX =
 ifeq ($(ENDIAN),little)
 SYSROOT_DIR_SUBPATH_ENDIAN = $(ARCH)-uclinux/libc
@@ -175,13 +264,14 @@ endif
 SYSROOT_DIR     = $(SDK_DIR)/$(SYSROOT_DIR_SUBPATH)
 SYSROOT_HDR_DIR	= $(SDK_DIR)/$(ARCH)-uclinux/libc
 else
-CC_SDK=$(SDK_DIR)/bin/$(FARCH)-linux-
-CC_UCLIBC = $(CC_SDK0)
+CC_SDK=$(CC_CGT_SDK)
+CC_UCLIBC = $(CC_CGT_SDK0)
 UCLIBC_CONFIGNAME = uClibc-0.9.30-c64xplus-shared.config
 UCLIBC_THR_CONFIGNAME = uClibc-0.9.30-c64xplus-shared-thread.config
 UCLIBC_SRCDIR = $(TOP)/uClibc
 SYSROOT_DIR	= $(SDK_DIR)/$(FARCH)-sysroot
 endif
+
 BBOX_CONFIGNAME ?= busybox-1.00-full-$(ARCH).config
 
 USERSPACE_CFLAGS   = -O2 -g -mdsbt
@@ -200,9 +290,6 @@ GDBSERVER = $(GNU_TOOLS_DIR)/c6x-uclinux/libc/usr/bin/gdbserver
 else
 GDBSERVER = $(GNU_TOOLS_DIR)/c6x-uclinux/libc/be/usr/bin/gdbserver
 endif
-
-# install kernel modules here
-MOD_DIR = $(BLD)/rootfs/kernel-modules-$(ARCHe)
 
 # install kernel headers here
 HDR_DIR = $(BLD)/kernel-headers
@@ -254,28 +341,35 @@ ONLY=
 COND_DEP=$(if $(ONLY),,$(1))
 
 ########  kernels
-one-kernels: productdir $(call COND_DEP, sdk0)
-	for kname in $(KERNELS_TO_BUILD) ; do \
-		if [ "$(BUILD_KERNEL_WITH_GCC)" = "yes" ] ; then \
-			$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_GNU) KNAME=$$kname kernel-sub ; \
-		else \
-			$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_SDK0) KNAME=$$kname kernel-sub ; \
+kernels: $(call COND_DEP, sdk0)
+one-kernels:
+	+$(QUIET)for kname in $(KERNELS_TO_BUILD) ; do \
+		if ! $(SUB_MAKE) KNAME=$$kname one-kernel ; then \
+			echo "Build of kernel $$kname Failed" ; \
+			exit 2; \
 		fi \
 	done
 
 
-one-extra-kernels: productdir
-	for kname in $(EXTRA_KERNELS_TO_BUILD) ; do \
-		if [ "$(BUILD_KERNEL_WITH_GCC)" = "yes" ] ; then \
-			$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_GNU) KNAME=$$kname kernel-sub ; \
-		else \
-			$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_SDK0) KNAME=$$kname kernel-sub ; \
+extra-kernels: $(call COND_DEP, rootfs)
+one-extra-kernels:
+	+$(QUIET)for kname in $(EXTRA_KERNELS_TO_BUILD) ; do \
+		if ! $(SUB_MAKE) KNAME=$$kname one-kernel ; then \
+			echo "Build of extra kernel $$kname Failed" ; \
+			exit 2; \
 		fi \
 	done
+
+one-kernel: productdir
+	+$(QUIET)echo "********** $(KNAME) ENDIAN=$(ENDIAN)"
+	+$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_SDK0) KNAME=$(KNAME) kernel-sub ; \
 
 KERNEL_FNAME=`cat $(KOBJDIR)/include/config/kernel.release`$(PRODVERSION)
+# install kernel modules here
+MOD_DIR = $(KOBJ_BASE)/modules-$(KERNEL_FNAME)
+TEST_MOD_DIR = $(KOBJ_BASE)/test-modules-$(KERNEL_FNAME)
 kernel-sub:
-	@if [ -z "$(KNAME)" ] ; then echo Must define KNAME for this target; exit 1; fi
+	$(QUIET)if [ -z "$(KNAME)" ] ; then echo Must define KNAME for this target; exit 1; fi
 	[ -d $(KOBJDIR) ] || mkdir -p $(KOBJDIR)
 	cp arch/$(ARCH)/configs/$(DEFCONFIG) $(KOBJDIR)/.config
 	[ -z "$(CONFIGPATCH)" ] || patch -p1 -d $(KOBJDIR) -i $(PRJ)/kbuilds/$(CONFIGPATCH)
@@ -293,17 +387,18 @@ kernel-sub:
 	make ARCH=$(ARCH) O=$(KOBJDIR)/ oldconfig
 	make ARCH=$(ARCH) O=$(KOBJDIR)/
 	make ARCH=$(ARCH) O=$(KOBJDIR)/ DEPMOD=$(DEPMOD) INSTALL_MOD_PATH=$(MOD_DIR) modules_install
-	if [ "$(ROOTFS)" == "ltp-root" ]; then \
-		mkdir -p $(KTESTOBJDIR) ; \
-		cp -r $(TESTMOD_SRC)/* $(KTESTOBJDIR) ; \
-		make ARCH=$(ARCH) O=$(KOBJDIR)/ M=$(KTESTOBJDIR) DEPMOD=$(DEPMOD) \
-			INSTALL_MOD_PATH=$(MOD_DIR) modules modules_install ; \
-	fi
+	mkdir -p $(KTESTOBJDIR) ; \
+	cp -r $(TESTMOD_SRC)/* $(KTESTOBJDIR) ; \
+	make ARCH=$(ARCH) O=$(KOBJDIR)/ M=$(KTESTOBJDIR) DEPMOD=$(DEPMOD) \
+		INSTALL_MOD_PATH=$(TEST_MOD_DIR) modules modules_install ; \
 	cp $(KOBJDIR)/vmlinux $(PRODUCT_DIR)/vmlinux-$(KERNEL_FNAME)
 	objcopy -I elf32-$(ENDIAN) -O binary $(PRODUCT_DIR)/vmlinux-$(KERNEL_FNAME) $(PRODUCT_DIR)/vmlinux-$(KERNEL_FNAME).bin
+	if [ -d $(MOD_DIR)      ] ; then (cd $(MOD_DIR);      tar czf $(PRODUCT_DIR)/modules-$(KERNEL_FNAME).tar.gz      * ); fi
+	if [ -d $(TEST_MOD_DIR) ] ; then (cd $(TEST_MOD_DIR); tar czf $(PRODUCT_DIR)/test-modules-$(KERNEL_FNAME).tar.gz * ); fi
 
 kernel-headers: kernels
-	$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_SDK0) \
+	+$(QUIET)echo "********** $@"
+	+$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_SDK0) \
 		ENDIAN=$(KERNEL_HEADERS_ENDIAN) KNAME=$(KERNEL_HEADERS_KERNEL) kernel-headers-sub
 
 kernel-headers-sub:
@@ -314,7 +409,7 @@ kernel-headers-sub:
 	fi
 
 one-kernels-clean:
-	for kname in $(KERNELS_TO_BUILD) ; do \
+	+for kname in $(KERNELS_TO_BUILD) ; do \
 		$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_SDK0) KNAME=$$kname kernel-clean-sub ; \
 	done
 
@@ -322,14 +417,16 @@ kernel-clean-sub:
 	rm -rf $(KOBJDIR)
 
 ########  C library
-one-clib: $(call COND_DEP, sdk0 kernel-headers)
+clib: $(call COND_DEP, sdk0 kernel-headers)
+one-clib:
+	+$(QUIET)echo "********** clib ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
 	[ -d $(BLD)/uClibc$(FULL_SUFFIX) ] || mkdir -p $(BLD)/uClibc$(FULL_SUFFIX)
 	cp -a $(UCLIBC_SRCDIR)/* $(BLD)/uClibc$(FULL_SUFFIX)
 	$(SUB_MAKE) -C $(BLD)/uClibc$(FULL_SUFFIX) CROSS_COMPILE=ensure_not_used CROSS=$(CC_UCLIBC) clib-sub
 	if [ "$(BUILD_USERSPACE_WITH_GCC)" != "yes" ] ; then \
 		[ -d $(BLD)/uClibc-pthread$(FULL_SUFFIX) ] || mkdir -p $(BLD)/uClibc-pthread$(FULL_SUFFIX) ; \
 		cp -a $(UCLIBC_SRCDIR)/* $(BLD)/uClibc-pthread$(FULL_SUFFIX) ; \
-		$(SUB_MAKE) -C $(BLD)/uClibc-pthread$(FULL_SUFFIX) CROSS_COMPILE=ensure_not_used CROSS=$(CC_UCLIBC) clib-sub-pthread ; \
+		+$(SUB_MAKE) -C $(BLD)/uClibc-pthread$(FULL_SUFFIX) CROSS_COMPILE=ensure_not_used CROSS=$(CC_UCLIBC) clib-sub-pthread ; \
 	fi
 
 UCLIBC_CONFIG = $(PRJ)/uclibc-configs/$(UCLIBC_CONFIGNAME)
@@ -379,7 +476,8 @@ one-clib-clean:
 # SDK0 is not built if you have a prebuilt toolchain
 # Currently GCC is always precompiled 
 one-sdk0:
-	@if [ -e $(SDK0_DIR)/linux-$(ARCHe)-sdk0-prebuilt ] ; then 	\
+	+$(QUIET)echo "********** sdk0 ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
+	$(QUIET)if [ -e $(SDK0_DIR)/linux-$(ARCHe)-sdk0-prebuilt ] ; then 	\
 	    echo "using pre-built sdk0";				\
 	else	    						\
 	    if [ "$(BUILD_KERNEL_WITH_GCC)" != "yes" ] ; then  \
@@ -394,15 +492,15 @@ one-sdk0:
 	fi;							
 
 sdk0-keep:
-	@touch $(SDK0_DIR)/linux-c6x-sdk0-prebuilt
-	@touch $(SDK0_DIR)/linux-c6xeb-sdk0-prebuilt
+	$(QUIET)touch $(SDK0_DIR)/linux-c6x-sdk0-prebuilt
+	$(QUIET)touch $(SDK0_DIR)/linux-c6xeb-sdk0-prebuilt
 
 sdk0-unkeep:
-	@rm -f $(SDK0_DIR)/linux-c6x-sdk0-prebuilt
-	@rm -f $(SDK0_DIR)/linux-c6xeb-sdk0-prebuilt
+	$(QUIET)rm -f $(SDK0_DIR)/linux-c6x-sdk0-prebuilt
+	$(QUIET)rm -f $(SDK0_DIR)/linux-c6xeb-sdk0-prebuilt
 
 sdk0-clean:
-	@if [ -e $(SDK0_DIR)/linux-c6x-sdk0-prebuilt ] ; then 	\
+	$(QUIET)if [ -e $(SDK0_DIR)/linux-c6x-sdk0-prebuilt ] ; then 	\
 	    echo "using pre-built sdk0 (skip clean)";		\
 	else	    						\
 	    if [ -e $(SDK0_DIR)/bin/$(FARCH)-linux-gcc ] ; then 	\
@@ -414,36 +512,44 @@ sdk0-clean:
 	fi							\
 
 # SDK is the toolchain plus the fundamental libraries and is needed to build the userspace components
-one-sdk: sdk0 one-clib
+sdk: $(call COND_DEP, sdk0 clib)
+one-sdk:
+	+$(QUIET)echo "********** sdk ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
 	[ -e $(SYSROOT_DIR) ] || mkdir -p $(SYSROOT_DIR)
         # Just updating with new files. Re-visit it later as needed
-	if [ "$(BUILD_USERSPACE_WITH_GCC)" != "yes" ] ; then \
-		[ -e $(SYSROOT_TMP_DIR) ] || mkdir -p $(SYSROOT_TMP_DIR) ; \
-		cp -a $(SDK0_DIR)/* $(SDK_DIR) ; \
-		[ -d $(SYSROOT_TMP_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_TMP_DIR) ; \
-		(cd $(SDK_DIR)/bin; ls c6x-* | cut -d\- -f4 | sort -u | xargs -i ln -sf $(ARCH)-elf-linux-"{}" $(ARCH)-linux-"{}" ) ; \
-		(cd $(SDK_DIR)/bin; ls c6xeb-* | cut -d\- -f4 | sort -u | xargs -i ln -sf $(ARCH)eb-elf-linux-"{}" $(ARCH)eb-linux-"{}" ) ; \
-		make -C $(BLD)/uClibc$(FULL_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_TMP_DIR) install ; \
-		[ -e $(SYSROOT_TMP_DIR_THREAD) ] || mkdir -p $(SYSROOT_TMP_DIR_THREAD) ; \
-		make -C $(BLD)/uClibc-pthread$(FULL_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_TMP_DIR_THREAD) install ; \
-		mv -f $(BLD)/uClibc-pthread$(FULL_SUFFIX)/lib/libc.a $(BLD)/uClibc-pthread$(FULL_SUFFIX)/lib/libc-pthread.a ; \
-		rsync -rlpgocv --ignore-existing $(SYSROOT_TMP_DIR_THREAD)/ $(SYSROOT_TMP_DIR)/ ; \
-		rsync -rlpgocv --delete $(SYSROOT_TMP_DIR)/ $(SYSROOT_DIR)/ ; \
+	+$(QUIET)if [ "$(BUILD_USERSPACE_WITH_GCC)" != "yes" ] ; then \
+		$(SUB_MAKE) one-sdk-cgt ; \
 	else \
-		cp -a $(GNU_TOOLS_DIR)/{bin,lib,libexec,share} $(SDK_DIR) ; \
-		cp -a $(GNU_TOOLS_DIR)/$(ARCH)-uclinux/{bin,lib,share,include} $(SDK_DIR)/$(ARCH)-uclinux ; \
-		[ -d $(SYSROOT_HDR_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_HDR_DIR) ; \
-		(cd $(SDK_DIR)/bin; ls | cut -d\- -f3 | sort -u | xargs -i ln -sf $(ARCH)-uclinux-"{}" $(ARCH)-linux-"{}" ) ; \
-		(cd $(SDK_DIR)/bin; ls | cut -d\- -f3 | sort -u | xargs -i ln -sf $(ARCH)-uclinux-"{}" $(ARCH)eb-linux-"{}" ) ; \
-		[ -d $(SYSROOT_DIR)/lib ] || mkdir -p $(SYSROOT_DIR)/lib; \
-		[ -d $(SYSROOT_DIR)/usr/lib ] || mkdir -p $(SYSROOT_DIR)/usr/lib; \
-		make -C $(BLD)/uClibc$(FULL_SUFFIX) CROSS=$(CC_GNU) PREFIX=$(SYSROOT_DIR) install ; \
-		if [ "$(SYSROOT_DIR)" != "$(SYSROOT_HDR_DIR)" ]; then \
-		    cp -r $(SYSROOT_DIR)/usr/include/* $(SYSROOT_HDR_DIR)/usr/include ; \
-		    rm -rf $(SYSROOT_DIR)/usr/include ; \
-		fi; \
-		cp -a $(GNU_TOOLS_DIR)/$(SYSROOT_DIR_SUBPATH)/usr/lib/libstdc++.a $(SYSROOT_DIR)/usr/lib/; \
+		$(SUB_MAKE) one-sdk-gcc ; \
 	fi
+
+one-sdk-cgt:
+	[ -e $(SYSROOT_TMP_DIR) ] || mkdir -p $(SYSROOT_TMP_DIR)
+	cp -a $(SDK0_DIR)/* $(SDK_DIR)
+	[ -d $(SYSROOT_TMP_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_TMP_DIR)
+	(cd $(SDK_DIR)/bin; ls c6x-* | cut -d\- -f4 | sort -u | xargs -i ln -sf $(ARCH)-elf-linux-"{}" $(ARCH)-linux-"{}" )
+	(cd $(SDK_DIR)/bin; ls c6xeb-* | cut -d\- -f4 | sort -u | xargs -i ln -sf $(ARCH)eb-elf-linux-"{}" $(ARCH)eb-linux-"{}" )
+	make -C $(BLD)/uClibc$(FULL_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_TMP_DIR) install
+	[ -e $(SYSROOT_TMP_DIR_THREAD) ] || mkdir -p $(SYSROOT_TMP_DIR_THREAD)
+	make -C $(BLD)/uClibc-pthread$(FULL_SUFFIX) CROSS=$(CC_SDK0) PREFIX=$(SYSROOT_TMP_DIR_THREAD) install
+	mv -f $(BLD)/uClibc-pthread$(FULL_SUFFIX)/lib/libc.a $(BLD)/uClibc-pthread$(FULL_SUFFIX)/lib/libc-pthread.a
+	rsync -rlpgocv --ignore-existing $(SYSROOT_TMP_DIR_THREAD)/ $(SYSROOT_TMP_DIR)/
+	rsync -rlpgocv --delete $(SYSROOT_TMP_DIR)/ $(SYSROOT_DIR)/
+
+one-sdk-gcc:
+	cp -a $(GNU_TOOLS_DIR)/{bin,lib,libexec,share} $(SDK_DIR)
+	cp -a $(GNU_TOOLS_DIR)/$(ARCH)-uclinux/{bin,lib,share,include} $(SDK_DIR)/$(ARCH)-uclinux
+	[ -d $(SYSROOT_HDR_DIR)/usr/include/asm ] || cp -a $(KHDR_DIR) $(SYSROOT_HDR_DIR)
+	(cd $(SDK_DIR)/bin; ls | cut -d\- -f3 | sort -u | xargs -i ln -sf $(ARCH)-uclinux-"{}" $(ARCH)-linux-"{}" )
+	(cd $(SDK_DIR)/bin; ls | cut -d\- -f3 | sort -u | xargs -i ln -sf $(ARCH)-uclinux-"{}" $(ARCH)eb-linux-"{}" )
+	[ -d $(SYSROOT_DIR)/lib ] || mkdir -p $(SYSROOT_DIR)/lib
+	[ -d $(SYSROOT_DIR)/usr/lib ] || mkdir -p $(SYSROOT_DIR)/usr/lib
+	make -C $(BLD)/uClibc$(FULL_SUFFIX) CROSS=$(CC_UCLIBC) PREFIX=$(SYSROOT_DIR) install
+	if [ "$(SYSROOT_DIR)" != "$(SYSROOT_HDR_DIR)" ]; then \
+	    cp -r $(SYSROOT_DIR)/usr/include/* $(SYSROOT_HDR_DIR)/usr/include ; \
+	    rm -rf $(SYSROOT_DIR)/usr/include ; \
+	fi
+	cp -a $(GNU_TOOLS_DIR)/$(SYSROOT_DIR_SUBPATH)/usr/lib/libstdc++.a $(SYSROOT_DIR)/usr/lib/
 
 sdk-clean:
 	rm -rf $(SDK_DIR)
@@ -455,7 +561,9 @@ one-sdk-clean:
 ########  Busybox
 BBOX_CONFIG = $(BLD)/busybox$(FULL_SUFFIX)/$(BBOX_CONFIGNAME)
 
-one-busybox:  $(call COND_DEP, one-sdk)
+busybox:   $(call COND_DEP, sdk)
+one-busybox:
+	+$(QUIET)echo "********** busybox ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
 	[ -d $(BLD)/busybox$(FULL_SUFFIX) ] || mkdir -p $(BLD)/busybox$(FULL_SUFFIX)
 	cp $(PRJ)/busybox-configs/$(BBOX_CONFIGNAME) $(BBOX_CONFIG)
 	if [ "$(BUILD_USERSPACE_WITH_GCC)" == "yes" ] ; then \
@@ -502,7 +610,9 @@ one-busybox-clean:
 
 ########  Other userspace components
 ### MTD
-one-mtd: $(call COND_DEP, one-sdk)
+mtd: $(call COND_DEP, sdk)
+one-mtd: 
+	+$(QUIET)echo "********** mtd ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
 	[ -d $(BLD)/mtd-utils$(FULL_SUFFIX) ] || mkdir -p $(BLD)/mtd-utils$(FULL_SUFFIX)
 	$(SUB_MAKE) -C $(BLD)/mtd-utils$(FULL_SUFFIX) CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) mtd-sub
 
@@ -510,7 +620,7 @@ MTD_LDFLAGS = $(USERSPACE_LDFLAGS) -static
 MTD_CFLAGS = $(USERSPACE_CFLAGS)
 
 MTD_MAKE = make -C $(MTD_SRC) CROSS=$(CC_SDK) SUBDIRS= DESTDIR=$(MTD_DIR) \
-	LDFLAGS="$(MTD_LDFLAGS)" CFLAGS="$(MTD_CFLAGS)"
+	BUILDDIR=$(BLD)/mtd-utils$(FULL_SUFFIX) LDFLAGS="$(MTD_LDFLAGS)" CFLAGS="$(MTD_CFLAGS)"
 
 mtd-sub:
 	rm -rf $(MTD_DIR)
@@ -521,11 +631,12 @@ one-mtd-clean:
 	rm -rf $(BLD)/mtd-utils$(FULL_SUFFIX)
 
 ### mcsdk-demo
-one-mcsdk-demo: 
+one-mcsdk-demo:
+	+$(QUIET)echo "********** mcsdk-demo ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
 	if [ -d $(MCSDK_DEMO_DIR) ]; then \
-	[ -d $(BLD)/mcsdk-demo$(FULL_SUFFIX) ] || mkdir -p $(BLD)/mcsdk-demo$(FULL_SUFFIX) ; \
-	cp -a $(MCSDK_DEMO_DIR)/* $(BLD)/mcsdk-demo$(FULL_SUFFIX) ; \
-	(cd $(BLD)/mcsdk-demo$(FULL_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)) ; \
+		[ -d $(BLD)/mcsdk-demo$(FULL_SUFFIX) ] || mkdir -p $(BLD)/mcsdk-demo$(FULL_SUFFIX) ; \
+		cp -a $(MCSDK_DEMO_DIR)/* $(BLD)/mcsdk-demo$(FULL_SUFFIX) ; \
+		(cd $(BLD)/mcsdk-demo$(FULL_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)) ; \
 	else \
 		echo "install $(MCSDK_DEMO_DIR) and re-run build"; \
 		exit; \
@@ -535,7 +646,9 @@ one-mcsdk-demo-clean:
 	rm -rf $(BLD)/mcsdk-demo$(FULL_SUFFIX)
 
 ### mcoreloader
-one-elf-loader: $(call COND_DEP, one-sdk)
+elf-loader: $(call COND_DEP, sdk)
+one-elf-loader:
+	+$(QUIET)echo "********** mcoreloader ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
 # TODO currently support only C6678. So hard coded
 	[ -d $(BLD)/elf-loader$(FULL_SUFFIX) ] || mkdir -p $(BLD)/elf-loader$(FULL_SUFFIX) ; \
 	cp -a $(TOP)/linux-c6x-project/tools/elfloader/* $(BLD)/elf-loader$(FULL_SUFFIX) ; \
@@ -547,7 +660,9 @@ one-elf-loader-clean:
 ### RapidIO utilities
 RIO_CFLAGS = $(USERSPACE_CFLAGS)
 
-one-rio: $(call COND_DEP, one-sdk)
+rio: $(call COND_DEP, sdk)
+one-rio:
+	+$(QUIET)echo "********** rio ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
 	[ -d $(BLD)/rio-utils$(FULL_SUFFIX) ] || mkdir -p $(BLD)/rio-utils$(FULL_SUFFIX)
 	make -f $(RIO_SRC)/Makefile -C $(RIO_SRC) CC="$(CC_SDK)gcc" EXTRA_CFLAGS="$(RIO_CFLAGS)" BUILDIR=$(BLD)/rio-utils$(FULL_SUFFIX) DESTDIR=$(RIO_DIR)
 	make -f $(RIO_SRC)/Makefile -C $(RIO_SRC) CC="$(CC_SDK)gcc" EXTRA_CFLAGS="$(RIO_CFLAGS)" BUILDIR=$(BLD)/rio-utils$(FULL_SUFFIX) DESTDIR=$(RIO_DIR) install
@@ -556,7 +671,9 @@ one-rio-clean:
 	rm -rf $(BLD)/rio-utils$(FULL_SUFFIX)
 
 ### LTP
+ltp: $(call COND_DEP, sdk)
 one-ltp:
+	+$(QUIET)echo "********** ltp ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
 	[ -d $(BLD)/ltp$(FULL_SUFFIX) ] || mkdir -p $(BLD)/ltp$(FULL_SUFFIX)
 	(cd $(PRJ)/testing/ltp; make TOP_DIR=${TOP} ENDIAN=${ENDIAN} FLOAT=${FLOAT} GCC=true all);\
 	cp $(BLD)/ltp$(FULL_SUFFIX)/testdriver ${TOP}/product
@@ -565,11 +682,12 @@ one-ltp-clean:
 	rm -rf $(BLD)/ltp$(FULL_SUFFIX)
 
 ### Packages built with cross rpm
-rpm: $(SDK_DIR)/rpm-done.txt
+rpm: $(BLD)/rpm-done.txt
 
 $(SDK_DIR)/rpm: $(BLD)/rpm-done.txt
 
 $(BLD)/rpm-done.txt:
+	+$(QUIET)echo "********** rpm"
 	$(PRJ)/cross-rpm/build-rpm.sh
 
 rpm-clean:
@@ -577,8 +695,16 @@ rpm-clean:
 	rm -rf $(BLD)/rpm-4.0.4
 	rm -rf $(SDK_DIR)/rpm
 
-one-packages: $(SDK_DIR)/rpm
-	@if [ "$(BUILD_USERSPACE_WITH_GCC)" != "yes" ] ; then echo "cannot build packages without GCC"; exit 1; fi
+
+$(PKG_LIST): $(call COND_DEP, rpm sdk)
+	+$(SUB_MAKE) PKG_LIST="$@" package
+
+packages:  $(PKG_LIST)
+
+package:
+one-package:
+	+$(QUIET)echo "********** package $(PKG_LIST) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
+	$(QUIET)if [ "$(BUILD_USERSPACE_WITH_GCC)" != "yes" ] ; then echo "cannot build packages without GCC"; exit 1; fi
 	mkdir -p $(RPM_CROSS_DIR)/tmp
 	mkdir -p $(RPM_CROSS_DIR)/db
 	mkdir -p $(RPM_CROSS_DIR)/SOURCES
@@ -597,8 +723,10 @@ one-packages-clean:
 	rm -rf $(RPM_CROSS_DIR)
 
 ###  Syslink targets
+syslink: $(call COND_DEP, rpm sdk)
 one-syslink:
-	if [ -d $(SYSLINK_ROOT) ] ; then \
+	+$(QUIET)echo "********** syslink ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
+	+if [ -d $(SYSLINK_ROOT) ] ; then \
 		for kname in $(SYSLINK_KERNEL_MODULES_TO_BUILD) ; do \
 			echo Building SysLink kernel module for $$kname ; \
 			mkdir -p $(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
@@ -616,25 +744,25 @@ one-syslink:
 
 one-syslink-clean:
 	for kname in $(SYSLINK_KERNEL_MODULES_TO_BUILD) ; do \
-	rm -rf $(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
+		rm -rf $(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
 	done
 
 include $(PRJ)/scripts/Makefile.syslink
 
 ########  Root filesystems
-one-rootfs: productdir bootblob
-	for this_rootfs in $(ROOTFS) ; do \
-		$(SUB_MAKE) $${this_rootfs}-$(ARCHef); \
-	done
+rootfs: bootblob $(ROOTFS) bootblob
 
-min-root-$(ARCHef): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one-mtd)
+min-root: $(call COND_DEP, busybox mtd)
+one-min-root: min-root-$(ARCHef)
+min-root-$(ARCHef): productdir
+	+$(QUIET)echo "********** min-root ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
 	if [ -d $(BLD)/rootfs/$@ -a -e $(BLD)/rootfs/$@-marker ] ; then rm -rf $(BLD)/rootfs/$@; fi
 	mkdir -p $(BLD)/rootfs/$@; date > $(BLD)/rootfs/$@-marker
 	(cd $(BLD)/rootfs/$@; cpio -i <$(PRJ)/rootfs/min-root-skel.cpio)
 	cp -a rootfs/min-root-extra/* $(BLD)/rootfs/$@
 	cp -a $(BBOX_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(MTD_DIR)/* $(BLD)/rootfs/$@
-	cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
+	#cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
 	if [ -n $(EXTRA_ROOT_DIR) ] ; then for dir in $(EXTRA_ROOT_DIR); do cp -a $$dir/rootfs/* $(BLD)/rootfs/$@ ; done ; fi
 	if [ -e $(GDBSERVER) ] ; then cp $(GDBSERVER) $(BLD)/rootfs/$@/usr/bin ; fi
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(BLD)/rootfs/$@; tar xf -))
@@ -643,7 +771,10 @@ min-root-$(ARCHef): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, on
 	(cd $(BLD)/rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
-mcsdk-demo-root-$(ARCHef): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one-mtd) $(call COND_DEP, one-mcsdk-demo) $(call COND_DEP, one-syslink) $(call COND_DEP, one-elf-loader)
+mcsdk-demo-root: $(call COND_DEP, busybox mtd mcsdk-demo syslink elf-loader)
+one-mcsdk-demo-root: mcsdk-demo-root-$(ARCHef)
+mcsdk-demo-root-$(ARCHef): productdir
+	+$(QUIET)echo "********** mcsdk-root ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
 	if [ -d $(BLD)/rootfs/$@ -a -e $(BLD)/rootfs/$@-marker ] ; then rm -rf $(BLD)/rootfs/$@; fi
 	mkdir -p $(BLD)/rootfs/$@; date > $(BLD)/rootfs/$@-marker
 	(cd $(BLD)/rootfs/$@; cpio -i <$(PRJ)/rootfs/min-root-skel.cpio)
@@ -678,7 +809,7 @@ mcsdk-demo-root-$(ARCHef): productdir $(call COND_DEP, one-busybox) $(call COND_
 	done
 	cp -a $(BBOX_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(MTD_DIR)/* $(BLD)/rootfs/$@
-	cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
+	#cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
 	if [ -n $(EXTRA_ROOT_DIR) ] ; then for dir in $(EXTRA_ROOT_DIR); do cp -a $$dir/rootfs/* $(BLD)/rootfs/$@ ; done ; fi
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - usr/lib | (cd $(BLD)/rootfs/$@; tar xf -))
@@ -686,7 +817,10 @@ mcsdk-demo-root-$(ARCHef): productdir $(call COND_DEP, one-busybox) $(call COND_
 	(cd $(BLD)/rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
-full-root-$(ARCHef): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one-mtd) $(call COND_DEP, one-rio) $(call COND_DEP, one-packages)
+full-root: $(call COND_DEP, busybox mtd rio packages)
+one-full-root: full-root-$(ARCHef)
+full-root-$(ARCHef): productdir
+	+$(QUIET)echo "********** full-root ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
 	if [ -d $(BLD)/rootfs/$@ -a -e $(BLD)/rootfs/$@-marker ] ; then rm -rf $(BLD)/rootfs/$@; fi
 	mkdir -p $(BLD)/rootfs/$@; date > $(BLD)/rootfs/$@-marker
 	(cd $(BLD)/rootfs/$@; cpio -i <$(PRJ)/rootfs/min-root-skel.cpio)
@@ -695,7 +829,7 @@ full-root-$(ARCHef): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, o
 	cp -a $(MTD_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(RIO_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(PACKAGES_DIR)/* $(BLD)/rootfs/$@
-	cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
+	#cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
 	if [ -n $(EXTRA_ROOT_DIR) ] ; then for dir in $(EXTRA_ROOT_DIR); do cp -a $$dir/rootfs/* $(BLD)/rootfs/$@ ; done ; fi
 	if [ -e $(GDBSERVER) ] ; then cp $(GDBSERVER) $(BLD)/rootfs/$@/usr/bin ; fi
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(BLD)/rootfs/$@; tar xf -))
@@ -704,14 +838,17 @@ full-root-$(ARCHef): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, o
 	(cd $(BLD)/rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
-ltp-root-$(ARCHef): productdir $(call COND_DEP, one-busybox) $(call COND_DEP, one-mtd) $(call COND_DEP, one-ltp)
+ltp-root: $(call COND_DEP, busybox mtd ltp)
+one-ltp-root: ltp-root-$(ARCHef)
+ltp-root-$(ARCHef): productdir
+	+$(QUIET)echo "********** ltp-root ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
 	if [ -d $(BLD)/rootfs/$@ -a -e $(BLD)/rootfs/$@-marker ] ; then rm -rf $(BLD)/rootfs/$@; fi
 	mkdir -p $(BLD)/rootfs/$@; date > $(BLD)/rootfs/$@-marker
 	(cd $(BLD)/rootfs/$@; cpio -i <$(PRJ)/rootfs/min-root-skel.cpio)
 	cp -a rootfs/min-root-extra/* $(BLD)/rootfs/$@
 	cp -a $(BBOX_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(MTD_DIR)/* $(BLD)/rootfs/$@
-	cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
+	#cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
 	if [ -n $(EXTRA_ROOT_DIR) ] ; then for dir in $(EXTRA_ROOT_DIR); do cp -a $$dir/rootfs/* $(BLD)/rootfs/$@ ; done ; fi
 	if [ -e $(GDBSERVER) ] ; then cp $(GDBSERVER) $(BLD)/rootfs/$@/usr/bin ; fi
 	cp $(TESTING_DIR)/scripts/* $(BLD)/rootfs/$@/bin
@@ -747,8 +884,9 @@ bootblob: productdir
 	cp -a $(PRJ)/scripts/bootblob $(PRODUCT_DIR)/
 	chmod +x $(PRODUCT_DIR)/bootblob
 
-one-bootblobs: productdir bootblob
-	for this_blob in $(BOOTBLOBS) ; do \
+bootblobs: bootblob
+one-bootblobs: productdir
+	+$(QUIET)for this_blob in $(BOOTBLOBS) ; do \
 		if [ -r $(PRJ)/bootblob-specs/$${this_blob}.mk ]; then \
 			$(SUB_MAKE) -C $(PRODUCT_DIR) BOOTBLOB_FILE=$${this_blob} one-this-bootblob; \
 		else	\
@@ -764,7 +902,7 @@ endif
 
 .PHONY: one-this-bootblobs
 one-this-bootblob: $(BOOTBLOB_DEPENDENCIES)
-	echo Building bootblob $(BOOTBLOB_FILE)
+	+$(QUIET)echo "********** bootblob $(BOOTBLOB_FILE) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
 	$(BOOTBLOB_CMD)
 
 ########  Directory targets
@@ -778,5 +916,5 @@ product-clean:
 one-clean: one-mtd-clean one-rio-clean one-busybox-clean one-clib-clean one-sdk-clean one-min-root-clean one-full-root-clean one-ltp-clean one-ltp-root-clean one-mcsdk-demo-clean one-mcsdk-demo-root-clean one-elf-loader-clean one-syslink-clean
 	rm -rf $(MOD_DIR) $(HDR_DIR) $(BBOX_DIR)
 	rm -rf $(KOBJ_BASE)
-	make sdk0-clean
+	+$(SUB_MAKE) sdk0-clean
 

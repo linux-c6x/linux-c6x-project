@@ -1,5 +1,7 @@
 #!/bin/sh
-set -x
+
+if [ -n "$TOP_VERBOSE" ] ; then set -x; fi
+set -e
 
 # First argument is architecture: either c64xplus or c64xpluseb
 # Other arguments are spec files with full path:

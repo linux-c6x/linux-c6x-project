@@ -1,5 +1,7 @@
 #!/bin/sh
-set -x
+
+if [ "$TOP_VERBOSE"x != "0"x ] ; then set -x ; fi
+set -e
 
 # Argument is architecture: either c6x or c6xeb
 # $ ./pkg_build c6x
@@ -13,6 +15,7 @@ fi
 for pkg in $PKG_LIST; do
 	file=$RPM_CROSS_DIR/SPECS/$pkg.spec
 	if [ -f $file ]; then
+		echo "********** package: $pkg ARCH=$ARCH"
 		$SDK_DIR/rpm/cross-rpm/pkg_build $ARCH $file
 		if [ $? -ne 0 ]; then
 	  	  exit 2
