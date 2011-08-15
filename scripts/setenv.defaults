@@ -32,25 +32,8 @@ export GNU_TOOLS_DIR=$GCC_DIR
 
 # ********** Below this for building SysLink **********************************
 
-# List the syslink kernel modules to build. evmc6678 and evmc6670 supported
-# Use this variable when building syslink as part of mcsdk-demo-root ROOTFS
-# SysLink modules and exe files will get installed under /opt/syslink_<evm>.
-# <endian prefix> folder of the rootfs
-# by default this is set to the same as KERNELS_TO_BUILD if BUILD_SYSLINK is yes
-#  and set to empty if BUILD_SYSLINK is no
-# export SYSLINK_KERNEL_MODULES_TO_BUILD=""
-if [ -z "$SYSLINK_KERNEL_MODULES_TO_BUILD" ] && [ "$BUILD_SYSLINK" == "yes" ] ; then
-	export SYSLINK_KERNEL_MODULES_TO_BUILD=$KERNELS_TO_BUILD
-fi
-
-# Set below if you are building syslink separately (not as part of product build).
-# SysLink modules and exe files get installed under product/syslink_<evm>.<endian
-# prefix> folder. User has to copy the files manually to execute them on the target.
-# This will become obsolete soon.
-# export SYSLINK_TO_BUILD=
-
 # SysLink install directory
-export SYSLINK_ROOT=$LINUX_C6X_TOP_DIR/projects/syslink
+export SYSLINK_SRC=$LINUX_C6X_TOP_DIR/projects/syslink
 
 # IPC package install directory. 
 export IPC_PACKAGES_DIR=$IPC_DIR/packages

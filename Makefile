@@ -31,35 +31,29 @@ build-order:
 # These targets are valid user command line targets and depend on ENDIAN and FLOAT
 TOP_ENDIAN_FLOAT_TARGETS = mtd rio busybox package sdk clib sdk0 clean mtd-clean rio-clean \
 	busybox-clean packages-clean clib-clean bootblobs elf-loader mcsdk-demo ltp \
-	syslink min-root mcsdk-demo-root full-root ltp-root
+	syslink-user min-root mcsdk-demo-root full-root ltp-root
 
 # These are internal sub-targets to support TOP_ENDIAN_FLOAT targets
-ENDIAN_FLOAT_TARGETS = one-mtd one-rio one-busybox one-sdk one-clib one-sdk0 \
-	one-kernels-clean one-uclibc-clean one-mtd-clean one-rio-clean one-busybox-clean \
-	min-root-clean full-root-clean one-clean \
-	one-package one-packages-clean one-ltp one-ltp-clean \
-	one-elf-loader one-mcsdk-demo one-syslink one-min-root one-mcsdk-demo-root one-full-root one-ltp-root
+ENDIAN_FLOAT_TARGETS = $(add-prefix one-,$(TOP_ENDIAN_FLOAT_TARGETS))
+
+SYSLINK_RTOS_TARGETS= syslink-rtos-demo syslink-rtos-all \
+	syslink-rtos-ipc syslink-rtos-platform \
+	syslink-rtos-notify syslink-rtos-messageq
 
 # These targets are valid user command line targets and depend on ENDIAN and not on FLOAT
-TOP_ENDIAN_TARGETS = kernels extra-kernels syslink-rtos-demos syslink-rtos-all
+TOP_ENDIAN_TARGETS = kernels extra-kernels syslink-kernel $(SYSLINK_RTOS_TARGETS)
 
-# These are internal sub-targets to support TOP_ENDIAN_FLOAT targets
-ENDIAN_TARGETS = one-kernels one-extra-kernels one-syslink-rtos-demos one-syslink-rtos-all
+# These are internal sub-targets to support TOP_ENDIAN targets
+ENDIAN_TARGETS = $(add-prefix one-,$(TOP_ENDIAN_TARGETS)) $(add-prefix one-,$(SYSLINK_RTOS_TARGETS))
 
-# These targets are valid user command line targets and depend on ENDIAN and the kernel being built
-TOP_ENDIAN_KERNEL_TARGETS = kernel syslink-kernel
+# These targets are only valid when ENDIAN and KNAME are specificly defined
+ENDIAN_KERNEL_TARGETS = kernel one-one-syslink-kernel $(add-prefix one-one-,$(SYSLINK_RTOS_TARGETS))
 
-# These are internal sub-targets to support TOP_ENDIAN_FLOAT targets
-ENDIAN_KERNEL_TARGETS = one-kernel one-syslink-kernel
-
-# These targets are valid user command line targets and depend on ENDIAN, FLOAT, and the kernel being built
-TOP_ENDIAN_KERNEL_TARGETS = syslink-user
-
-# These are internal sub-targets to support TOP_ENDIAN_FLOAT targets
-ENDIAN_KERNEL_TARGETS = one-syslink-user
+# These targets are only valid when ENDIAN, FLOAT and KNAME are specificly defined
+ENDIAN_FLOAT_KERNEL_TARGETS = one-one-syslink-user
 
 # These targets don't depend on ENDIAN, FLOAT, or KERNEL
-TOP_NONE_TARGETS = product packages all kernel-headers rpm
+TOP_NONE_TARGETS = product rootfs packages all kernel-headers rpm syslink-demo syslink-all syslink
 
 # all TOP level targets, if the target is not here it is not meant to be one the user command line
 TOP_TARGETS = TOP_ENDIAN_FLOAT_TARGETS TOP_ENDIAN_TARGETS TOP_ENDIAN_KERNEL_TARGETS TOP_NONE_TARGETS
@@ -131,10 +125,10 @@ $(TOP_ENDIAN_FLOAT_TARGETS):
 # For these expand out to all settings of ENDIAN specified
 $(TOP_ENDIAN_TARGETS):
 	+$(QUIET)if [ -z "$(ENDIAN)" ] || [ "$(ENDIAN)" == "both" ]; then				\
-		$(SUB_MAKE) ENDIAN=little FLOAT=$(FLOAT) KERNEL_HEADERS_ENDIAN=little one-$@ || exit 2;	\
-		$(SUB_MAKE) ENDIAN=big FLOAT=$(FLOAT) KERNEL_HEADERS_ENDIAN=little one-$@    || exit 2;	\
+		$(SUB_MAKE) ENDIAN=little FLOAT=none KERNEL_HEADERS_ENDIAN=little one-$@ || exit 2;	\
+		$(SUB_MAKE) ENDIAN=big FLOAT=none KERNEL_HEADERS_ENDIAN=little one-$@    || exit 2;	\
 	else												\
-		$(SUB_MAKE) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) KERNEL_HEADERS_ENDIAN=$(ENDIAN) one-$@ || exit 2; \
+		$(SUB_MAKE) ENDIAN=$(ENDIAN) FLOAT=none KERNEL_HEADERS_ENDIAN=$(ENDIAN) one-$@ || exit 2; \
 	fi
 
 ifeq ($(ENDIAN),little)
@@ -145,7 +139,7 @@ ifeq ($(ENDIAN),big)
 ARCHendian     = eb
 ENDIAN_SUFFIX  = .eb
 else
-ENDIAN = 
+ENDIAN =
 endif
 endif
 
@@ -161,6 +155,7 @@ ARCHfloat      = -hf
 FLOAT_SUFFIX   = _hardfp
 else
 FLOAT =
+FLOAT_SUFFIX   =
 endif
 endif
 
@@ -361,7 +356,7 @@ one-extra-kernels:
 	done
 
 one-kernel: productdir
-	+$(QUIET)echo "********** $(KNAME) ENDIAN=$(ENDIAN)"
+	+$(QUIET)echo "********** kernel $(KNAME) ENDIAN=$(ENDIAN)"
 	+$(SUB_MAKE) -C $(LINUX_C6X_KERNEL_DIR) CROSS_COMPILE=$(CC_SDK0) KNAME=$(KNAME) kernel-sub ; \
 
 KERNEL_FNAME=`cat $(KOBJDIR)/include/config/kernel.release`$(PRODVERSION)
@@ -723,27 +718,38 @@ one-packages-clean:
 	rm -rf $(RPM_CROSS_DIR)
 
 ###  Syslink targets
-syslink: $(call COND_DEP, rpm sdk)
-one-syslink:
-	+$(QUIET)echo "********** syslink ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
-	+if [ -d $(SYSLINK_ROOT) ] ; then \
-		for kname in $(SYSLINK_KERNEL_MODULES_TO_BUILD) ; do \
-			echo Building SysLink kernel module for $$kname ; \
-			mkdir -p $(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
-			cp -a $(SYSLINK_ROOT)/* $(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
-			if [ "$$kname" = "evmc6678" ]; then \
-			$(SUB_MAKE) syslink-demo-all SYSLINK_TO_BUILD=evmc6678 SYSLINK_ROOT=$(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
-			fi ; \
-			if [ "$$kname" = "evmc6670" ]; then \
-			$(SUB_MAKE) syslink-demo-all SYSLINK_TO_BUILD=evmc6670 SYSLINK_ROOT=$(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
-			fi ; \
-		done ; \
-	else \
-		echo "SysLink package not installed" ; \
-	fi ;
+ifeq ($(BUILD_SYSLINK),yes)
+SYSLINKS_TO_BUILD = $(KERNELS_TO_BUILD)
+else
+SYSLINKS_TO_BUILD = ""
+endif
+
+MID_SYSLINK_TARGETS = one-syslink-kernel one-syslink-user \
+	one-syslink-rtos-demo one-syslink-rtos-all	\
+	one-syslink-rtos-ipc  one-syslink-rtos-platform \
+	one-syslink-rtos-notify one-syslink-rtos-messageq
+
+syslink: syslink-all
+syslink-demo: syslink-kernel syslink-user syslink-rtos-demo
+syslink-all:  syslink-kernel syslink-user syslink-rtos-all
+syslink-kernel:   $(call COND_DEP, kernels)
+syslink-user:     $(call COND_DEP, sdk)
+syslink-rtos-demo: syslink-rtos-notify syslink-rtos-messageq
+syslink-rtos-notify syslink-rtos-messageq: syslink-rtos-ipc syslink-rtos-platform
+
+$(MID_SYSLINK_TARGETS):
+	+$(QUIET)for kname in $(SYSLINKS_TO_BUILD) ; do \
+		if ! $(SUB_MAKE) KNAME=$$kname one-$@ ; then \
+			echo "Build of $@ for $$kname Failed" ; \
+			exit 2; \
+		fi \
+	done
+
+one-one-syslink-rtos-demo:
+	$(QUIET)true
 
 one-syslink-clean:
-	for kname in $(SYSLINK_KERNEL_MODULES_TO_BUILD) ; do \
+	for kname in $(SYSLINKS_TO_BUILD) ; do \
 		rm -rf $(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
 	done
 
