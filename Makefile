@@ -8,7 +8,7 @@ def-target: product
 
 all: product syslink-all
 
-product: rootfs extra-kernels bootblobs
+product: rootfs modules extra-kernels bootblobs
 
 DATE ?= $(shell date +'%Y%m%d')
 export DATE
