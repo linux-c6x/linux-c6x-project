@@ -20,6 +20,7 @@ export TOP_VERBOSE
 
 ifeq ($(TOP_VERBOSE),0)
 QUIET=@
+MAKEFLAGS += --no-print-directory
 else
 QUIET=
 endif
