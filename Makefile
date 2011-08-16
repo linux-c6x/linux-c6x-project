@@ -41,13 +41,13 @@ SYSLINK_RTOS_TARGETS= syslink-rtos-demo syslink-rtos-all \
 	syslink-rtos-notify syslink-rtos-messageq
 
 # These targets are valid user command line targets and depend on ENDIAN and not on FLOAT
-TOP_ENDIAN_TARGETS = kernels extra-kernels syslink-kernel $(SYSLINK_RTOS_TARGETS)
+TOP_ENDIAN_TARGETS = kernels modules extra-kernels syslink-kernel $(SYSLINK_RTOS_TARGETS)
 
 # These are internal sub-targets to support TOP_ENDIAN targets
 ENDIAN_TARGETS = $(add-prefix one-,$(TOP_ENDIAN_TARGETS)) $(add-prefix one-,$(SYSLINK_RTOS_TARGETS))
 
 # These targets are only valid when ENDIAN and KNAME are specificly defined
-ENDIAN_KERNEL_TARGETS = kernel one-one-syslink-kernel $(add-prefix one-one-,$(SYSLINK_RTOS_TARGETS))
+ENDIAN_KERNEL_TARGETS = one-kernel one-module one-one-syslink-kernel $(add-prefix one-one-,$(SYSLINK_RTOS_TARGETS))
 
 # These targets are only valid when ENDIAN, FLOAT and KNAME are specificly defined
 ENDIAN_FLOAT_KERNEL_TARGETS = one-one-syslink-user
@@ -346,6 +346,16 @@ one-kernels:
 	done
 
 
+modules: $(call COND_DEP, kernels syslink-kernel)
+one-modules:
+	+$(QUIET)for kname in $(KERNELS_TO_BUILD) ; do \
+		if ! $(SUB_MAKE) KNAME=$$kname one-module ; then \
+			echo "Package of modules for $$kname Failed" ; \
+			exit 2; \
+		fi \
+	done
+
+
 extra-kernels: $(call COND_DEP, rootfs)
 one-extra-kernels:
 	+$(QUIET)for kname in $(EXTRA_KERNELS_TO_BUILD) ; do \
@@ -388,6 +398,9 @@ kernel-sub:
 		INSTALL_MOD_PATH=$(TEST_MOD_DIR) modules modules_install ; \
 	cp $(KOBJDIR)/vmlinux $(PRODUCT_DIR)/vmlinux-$(KERNEL_FNAME)
 	objcopy -I elf32-$(ENDIAN) -O binary $(PRODUCT_DIR)/vmlinux-$(KERNEL_FNAME) $(PRODUCT_DIR)/vmlinux-$(KERNEL_FNAME).bin
+
+one-module: productdir
+	+$(QUIET)echo "********** modules $(KNAME) ENDIAN=$(ENDIAN)"
 	if [ -d $(MOD_DIR)      ] ; then (cd $(MOD_DIR);      tar czf $(PRODUCT_DIR)/modules-$(KERNEL_FNAME).tar.gz      * ); fi
 	if [ -d $(TEST_MOD_DIR) ] ; then (cd $(TEST_MOD_DIR); tar czf $(PRODUCT_DIR)/test-modules-$(KERNEL_FNAME).tar.gz * ); fi
 
@@ -717,9 +730,10 @@ one-package:
 one-packages-clean:
 	rm -rf $(RPM_CROSS_DIR)
 
+SYSLINK_PLATFORMS = evmc6678 evmc6670 evmc6472 evmc6474 evmc6474-lite
 ###  Syslink targets
 ifeq ($(BUILD_SYSLINK),yes)
-SYSLINKS_TO_BUILD = $(KERNELS_TO_BUILD)
+SYSLINKS_TO_BUILD = $(filter $(SYSLINK_PLATFORMS),$(KERNELS_TO_BUILD))
 else
 SYSLINKS_TO_BUILD = ""
 endif
@@ -739,7 +753,7 @@ syslink-rtos-notify syslink-rtos-messageq: syslink-rtos-ipc syslink-rtos-platfor
 
 $(MID_SYSLINK_TARGETS):
 	+$(QUIET)for kname in $(SYSLINKS_TO_BUILD) ; do \
-		if ! $(SUB_MAKE) KNAME=$$kname one-$@ ; then \
+		if ! $(SUB_MAKE) IS_SYSLINK_BUILD=1 KNAME=$$kname one-$@ ; then \
 			echo "Build of $@ for $$kname Failed" ; \
 			exit 2; \
 		fi \
@@ -748,9 +762,9 @@ $(MID_SYSLINK_TARGETS):
 one-one-syslink-rtos-demo:
 	$(QUIET)true
 
-one-syslink-clean:
+syslink-clean:
 	for kname in $(SYSLINKS_TO_BUILD) ; do \
-		rm -rf $(BLD)/syslink_$$kname$(ENDIAN_SUFFIX) ; \
+		rm -rf $(BLD)/syslink_$$kname* ; \
 	done
 
 include $(PRJ)/scripts/Makefile.syslink
