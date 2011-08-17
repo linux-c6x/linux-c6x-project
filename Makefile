@@ -4,7 +4,18 @@
 # This is intentional not modular or distributed to keep this simple case in one place
 # Real distribution build will be done w/ bitbake
 
+ifeq ($(BO),)
+
+# the normal case
 def-target: product
+
+else
+
+# if BO=target specified, print the build order w/o doing anything
+BUILD_ORDER_TARGETS = $(BO)
+def-target: build-order
+
+endif
 
 all: product syslink-all
 
