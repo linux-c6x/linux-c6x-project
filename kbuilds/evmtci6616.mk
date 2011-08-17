@@ -1,6 +1,6 @@
 # these are mandatory
 DEFCONFIG = ti_evmtci6616_defconfig
-LOCALVERSION = -evmtci6616$(ENDIAN_SUFFIX)-$(DATE)
+LOCALVERSION = -evmtci6616$(ENDIAN_SUFFIX)$(BUILD_NAME)
 
 # these are optional
 CONFIGPATCH =
@@ -9,4 +9,4 @@ CMDLINE = console=cio
 else
 CMDLINE = console=cio
 endif
-PRODVERSION = -1
+PRODVERSION =

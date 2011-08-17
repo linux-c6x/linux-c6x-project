@@ -1,6 +1,6 @@
 # these are mandatory
 DEFCONFIG = ti_evmc6670_defconfig
-LOCALVERSION = -evmc6670$(ENDIAN_SUFFIX)-$(DATE)
+LOCALVERSION = -evmc6670$(ENDIAN_SUFFIX)$(BUILD_NAME)
 
 # these are optional
 CONFIGPATCH =
@@ -9,4 +9,4 @@ CMDLINE = console=ttyS0,115200 ip=dhcp root=/dev/nfs nfsroot=158.218.100.25:/opt
 else
 CMDLINE = console=cio rw
 endif
-PRODVERSION = -1
+PRODVERSION =

@@ -1,5 +1,5 @@
 # these are mandatory
-LOCALVERSION = -evmc6457$(ENDIAN_SUFFIX)-$(DATE)
+LOCALVERSION = -evmc6457$(ENDIAN_SUFFIX)$(BUILD_NAME)
 DEFCONFIG = ti_evmc6457_defconfig
 
 # these are optional
@@ -12,4 +12,4 @@ CMDLINE = console=cio ip=dhcp root=/dev/nfs nfsroot=158.218.100.25:/opt/min-root
 endif
 
 # tack this on to name of kernel when copying vmlinux to product directory
-PRODVERSION = -1
+PRODVERSION =

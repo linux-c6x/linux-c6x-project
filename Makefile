@@ -24,6 +24,9 @@ product: rootfs modules extra-kernels bootblobs
 DATE ?= $(shell date +'%Y%m%d')
 export DATE
 
+BUILD_USER ?= $(USERNAME)
+BUILD_NAME ?= dev-$(BUILD_USER)-$(DATE)
+
 V ?= 0
 TV ?= $(V)
 TOP_VERBOSE ?= $(TV)
