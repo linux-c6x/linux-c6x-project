@@ -32,7 +32,7 @@ build-order:
 # These targets are valid user command line targets and depend on ENDIAN and FLOAT
 TOP_ENDIAN_FLOAT_TARGETS = mtd rio busybox package sdk clib sdk0 clean mtd-clean rio-clean \
 	busybox-clean packages-clean clib-clean bootblobs elf-loader mcsdk-demo ltp \
-	syslink-user min-root mcsdk-demo-root full-root ltp-root
+	syslink-user syslink-demo syslink-all min-root mcsdk-demo-root full-root ltp-root
 
 # These are internal sub-targets to support TOP_ENDIAN_FLOAT targets
 ENDIAN_FLOAT_TARGETS = $(add-prefix one-,$(TOP_ENDIAN_FLOAT_TARGETS))
@@ -51,10 +51,10 @@ ENDIAN_TARGETS = $(add-prefix one-,$(TOP_ENDIAN_TARGETS)) $(add-prefix one-,$(SY
 ENDIAN_KERNEL_TARGETS = one-kernel one-module one-one-syslink-kernel $(add-prefix one-one-,$(SYSLINK_RTOS_TARGETS))
 
 # These targets are only valid when ENDIAN, FLOAT and KNAME are specificly defined
-ENDIAN_FLOAT_KERNEL_TARGETS = one-one-syslink-user
+ENDIAN_FLOAT_KERNEL_TARGETS = one-one-syslink-user one-one-syslink-demo one-one-syslink-all
 
 # These targets don't depend on ENDIAN, FLOAT, or KERNEL
-TOP_NONE_TARGETS = product rootfs packages all kernel-headers rpm syslink-demo syslink-all syslink
+TOP_NONE_TARGETS = product rootfs packages all kernel-headers rpm
 
 # all TOP level targets, if the target is not here it is not meant to be one the user command line
 TOP_TARGETS = TOP_ENDIAN_FLOAT_TARGETS TOP_ENDIAN_TARGETS TOP_ENDIAN_KERNEL_TARGETS TOP_NONE_TARGETS
@@ -306,6 +306,10 @@ MCSDK_DEMO_DIR=$(TOP)/projects/c6x-linux-mcsdk-demo
 
 # install rio  here
 RIO_DIR = $(BLD)/rootfs/rio-utils-$(ARCHef)
+
+# install syslink stuff here
+SYSLINK_DEMO_DIR = $(BLD)/rootfs/syslink-demo-$(KNAME)-$(ARCHef)
+SYSLINK_ALL_DIR  = $(BLD)/rootfs/syslink-all-$(KNAME)-$(ARCHef)
 
 PACKAGES_SRC = $(TOP)/projects/packages/
 PACKAGES_BIN = $(TOP)/projects/package-downloads/
@@ -742,15 +746,18 @@ endif
 MID_SYSLINK_TARGETS = one-syslink-kernel one-syslink-user \
 	one-syslink-rtos-demo one-syslink-rtos-all	\
 	one-syslink-rtos-ipc  one-syslink-rtos-platform \
-	one-syslink-rtos-notify one-syslink-rtos-messageq
+	one-syslink-rtos-notify one-syslink-rtos-messageq \
+	one-syslink-demo one-syslink-all
+
+SYSLINK_DEMO_RTOS_SAMPLES=syslink-rtos-notify syslink-rtos-messageq
 
 syslink: syslink-all
 syslink-demo: syslink-kernel syslink-user syslink-rtos-demo
 syslink-all:  syslink-kernel syslink-user syslink-rtos-all
 syslink-kernel:   $(call COND_DEP, kernels)
 syslink-user:     $(call COND_DEP, sdk)
-syslink-rtos-demo: syslink-rtos-notify syslink-rtos-messageq
-syslink-rtos-notify syslink-rtos-messageq: syslink-rtos-ipc syslink-rtos-platform
+syslink-rtos-demo: $(SYSLINK_DEMO_RTOS_SAMPLES)
+$(SYSLINK_DEMO_RTOS_SAMPLES): syslink-rtos-ipc syslink-rtos-platform
 
 $(MID_SYSLINK_TARGETS):
 	+$(QUIET)for kname in $(SYSLINKS_TO_BUILD) ; do \
@@ -792,7 +799,7 @@ min-root-$(ARCHef): productdir
 	(cd $(BLD)/rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
-mcsdk-demo-root: $(call COND_DEP, busybox mtd mcsdk-demo syslink elf-loader)
+mcsdk-demo-root: $(call COND_DEP, busybox mtd mcsdk-demo syslink-demo elf-loader)
 one-mcsdk-demo-root: mcsdk-demo-root-$(ARCHef)
 mcsdk-demo-root-$(ARCHef): productdir
 	+$(QUIET)echo "********** mcsdk-root ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
@@ -804,30 +811,7 @@ mcsdk-demo-root-$(ARCHef): productdir
 	# call mcsdk demo install
 	(cd $(BLD)/mcsdk-demo$(FULL_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) INSTALL_PREFIX=$(BLD)/rootfs/$@ install )
 	(cd $(BLD)/elf-loader$(FULL_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) INSTALL_PREFIX=$(BLD)/rootfs/$@/usr/bin install )
-	# Install syslink executables and modules
-	for kname in $(SYSLINK_KERNEL_MODULES_TO_BUILD) ; do \
-		mkdir -p $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
-		cp -a $(PRODUCT_DIR)/syslink_$$kname${ENDIAN_SUFFIX}/messageq* $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
-		cp -a $(PRODUCT_DIR)/syslink_$$kname${ENDIAN_SUFFIX}/notify* $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
-		cp -a $(PRODUCT_DIR)/syslink_$$kname${ENDIAN_SUFFIX}/procmgrapp_release $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
-		cp -a $(PRODUCT_DIR)/syslink_$$kname${ENDIAN_SUFFIX}/syslink.ko $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
-		if [ "$$kname" == "evmc6678" ] ; then \
-			cp $(PRJ)/scripts/syslink/messageq*_8_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
-			cp $(PRJ)/scripts/syslink/notify*_8_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
-			cp $(PRJ)/scripts/syslink/procmgr_load_messageqapp_8_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
-			cp $(PRJ)/scripts/syslink/procmgr_load_notifyapp_8_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
-			$(STRIP_CGT) $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX}/*.xe66 ; \
-		fi ; \
-		if [ "$$kname" == "evmc6670" ] ; then \
-			cp $(PRJ)/scripts/syslink/messageq*_4_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
-			cp $(PRJ)/scripts/syslink/notify*_4_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
-			cp $(PRJ)/scripts/syslink/procmgr_load_messageqapp_4_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
-			cp $(PRJ)/scripts/syslink/procmgr_load_notifyapp_4_core.sh $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX} ; \
-			$(STRIP_CGT) $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX}/*.xe66 ; \
-		fi ; \
-		rm -rf $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX}/messageqapp_debug ; \
-		rm -rf $(BLD)/rootfs/$@/opt/syslink_$$kname${ENDIAN_SUFFIX}/notifyapp_debug ; \
-	done
+	#cp -a $(SYSLINK_DEMO_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(BBOX_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(MTD_DIR)/* $(BLD)/rootfs/$@
 	#cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
@@ -859,7 +843,7 @@ full-root-$(ARCHef): productdir
 	(cd $(BLD)/rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
-ltp-root: $(call COND_DEP, busybox mtd ltp)
+ltp-root: $(call COND_DEP, busybox mtd syslink-all ltp)
 one-ltp-root: ltp-root-$(ARCHef)
 ltp-root-$(ARCHef): productdir
 	+$(QUIET)echo "********** ltp-root ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
@@ -869,6 +853,7 @@ ltp-root-$(ARCHef): productdir
 	cp -a rootfs/min-root-extra/* $(BLD)/rootfs/$@
 	cp -a $(BBOX_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(MTD_DIR)/* $(BLD)/rootfs/$@
+	#cp -a $(SYSLINK_ALL_DIR)/* $(BLD)/rootfs/$@
 	#cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
 	if [ -n $(EXTRA_ROOT_DIR) ] ; then for dir in $(EXTRA_ROOT_DIR); do cp -a $$dir/rootfs/* $(BLD)/rootfs/$@ ; done ; fi
 	if [ -e $(GDBSERVER) ] ; then cp $(GDBSERVER) $(BLD)/rootfs/$@/usr/bin ; fi
