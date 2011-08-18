@@ -244,17 +244,27 @@ SL_SC=8
 endif
 
 ifeq ($(KNAME),evmc6674)
-SL_ST=4
+SL_SC=4
 endif
 
 SL_SSRC=$(PRJ)/scripts/syslink/
-one-one-syslink-script-install:
+one-one-syslink-script-demo-install:
 ifdef $(SL_ST)
-	cp $(SL_SSRC)/messageq*_$(SL_SC)_core.sh 			$(SYSLINK_INSTALL)/
-	cp $(SL_SSRC)/notify*_$(SL_SC)_core.sh 				$(SYSLINK_INSTALL)/
-	cp $(SL_SSRC)/procmgr_load_messageqapp_$(SL_SC)_core.sh 	$(SYSLINK_INSTALL)/
-	cp $(SL_SSRC)/syslink/procmgr_load_notifyapp_$(SL_SC)_core.sh 	$(SYSLINK_INSTALL)/
+	cp $(SL_SSRC)/{messageq,notify}_*_test_$(SL_SC)_core.sh 	  $(SYSLINK_INSTALL)/
+	cp $(SL_SSRC)/procmgr_load_{messageq,notify}app_$(SL_SC)_core.sh  $(SYSLINK_INSTALL)/
+	cp $(SL_SSRC)/*.txt  						  $(SYSLINK_INSTALL)/
 endif
+	true
+
+SL_SSRC=$(PRJ)/scripts/syslink/
+one-one-syslink-script-all-install:
+ifdef $(SL_ST)
+	cp $(SL_SSRC)/*_test_$(SL_SC)_core.sh 		  		  $(SYSLINK_INSTALL)/
+	cp $(SL_SSRC)/procmgr_load_*app_$(SL_SC)_core.sh  		  $(SYSLINK_INSTALL)/
+else
+	cp $(SL_SSRC)/syslink*_c64x.{sh,js} 		  		  $(SYSLINK_INSTALL)/
+endif
+	cp $(SL_SSRC)/*.txt  						  $(SYSLINK_INSTALL)/
 	true
 
 one-one-syslink-demo:
@@ -262,7 +272,7 @@ one-one-syslink-demo:
 	rm -rf $(BLD)/rootfs-parts/syslink-demo-$(KNAME)$(FULL_SUFFIX)
 	$(SUB_MAKE) SYSLINK_INSTALL_TYPE=demo one-one-syslink-kernel-demo-install \
 		one-one-syslink-user-demo-install  one-one-syslink-rtos-demo-install \
-		one-one-syslink-script-install
+		one-one-syslink-script-demo-install
 	$(SUB_MAKE) SYSLINK_INSTALL_TYPE=demo one-one-syslink-tar
 
 one-one-syslink-all:
@@ -270,5 +280,5 @@ one-one-syslink-all:
 	rm -rf $(BLD)/rootfs-parts/syslink-demo-$(KNAME)$(FULL_SUFFIX)
 	$(SUB_MAKE) SYSLINK_INSTALL_TYPE=all one-one-syslink-kernel-all-install \
 		one-one-syslink-user-all-install  one-one-syslink-rtos-all-install \
-		one-one-syslink-script-install
+		one-one-syslink-script-all-install
 	$(SUB_MAKE) SYSLINK_INSTALL_TYPE=all one-one-syslink-tar
