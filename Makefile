@@ -27,6 +27,10 @@ export DATE
 BUILD_USER ?= $(USERNAME)
 BUILD_NAME ?= dev-$(BUILD_USER)-$(DATE)
 
+ifneq ($(BUILD_NAME),)
+BUILD_NAME := -$(BUILD_NAME)
+endif
+
 V ?= 0
 TV ?= $(V)
 TOP_VERBOSE ?= $(TV)
