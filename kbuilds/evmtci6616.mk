@@ -1,6 +1,6 @@
 # these are mandatory
 DEFCONFIG = ti_evmtci6616_defconfig
-LOCALVERSION = -evmtci6616$(ENDIAN_SUFFIX)$(BUILD_NAME)
+LOCALVERSION = -evmtci6616$(ENDIAN_SUFFIX)$(BUILD_SUFFIX)
 
 # these are optional
 CONFIGPATCH =

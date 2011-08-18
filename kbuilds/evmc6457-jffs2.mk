@@ -1,5 +1,5 @@
 # these are mandatory
-LOCALVERSION = -evmc6457$(ENDIAN_SUFFIX)$(BUILD_NAME)-jffs2
+LOCALVERSION = -evmc6457$(ENDIAN_SUFFIX)$(BUILD_SUFFIX)-jffs2
 DEFCONFIG = ti_evmc6457_defconfig
 
 # these are optional

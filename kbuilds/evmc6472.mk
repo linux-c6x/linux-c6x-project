@@ -1,5 +1,5 @@
 # these are mandatory
-LOCALVERSION = -evmc6472$(ENDIAN_SUFFIX)$(BUILD_NAME)
+LOCALVERSION = -evmc6472$(ENDIAN_SUFFIX)$(BUILD_SUFFIX)
 DEFCONFIG = ti_evmc6472_defconfig
 
 # these are optional

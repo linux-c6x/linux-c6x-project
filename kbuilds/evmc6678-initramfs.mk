@@ -1,6 +1,6 @@
 # these are mandatory
 DEFCONFIG = ti_evmc6678_defconfig
-LOCALVERSION = -evmc6678$(ENDIAN_SUFFIX)$(BUILD_NAME)
+LOCALVERSION = -evmc6678$(ENDIAN_SUFFIX)$(BUILD_SUFFIX)
 
 # these are optional
 KOBJNAME=evmc6678$(ENDIAN_SUFFIX)

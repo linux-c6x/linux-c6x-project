@@ -1,6 +1,6 @@
 # these are mandatory
 DEFCONFIG = ti_dsk6455_defconfig
-LOCALVERSION = -dsk6455$(ENDIAN_SUFFIX)$(BUILD_NAME)
+LOCALVERSION = -dsk6455$(ENDIAN_SUFFIX)$(BUILD_SUFFIX)
 
 # these are optional
 KOBJNAME=dsk6455$(ENDIAN_SUFFIX)
