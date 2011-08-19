@@ -64,7 +64,7 @@ export PKG_LIST="zlib net-snmp polarssl ttcp dhrystone nbench-byte tcpdump iperf
 
 # Build syslink (Linux side & examples)?
 # 'yes', 'no' (default) 
-export BUILD_SYSLINK=no
+export BUILD_SYSLINK=yes
 
 # to build SYSLINK and BIOS examples, you need extra dependencies
 # each of these can be:
