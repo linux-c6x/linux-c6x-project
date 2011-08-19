@@ -176,19 +176,19 @@ one-one-syslink-user: one-one-syslink-prep
 
 one-one-syslink-rtos-ipc: one-one-syslink-prep
 	+$(QUIET)echo "********** $(subst one-one-,,$@) for $(KNAME) ENDIAN=$(ENDIAN)"
-	(cd $(SYSLINK_ROOT)/ti/syslink/ipc; IPC_PLATFORM=$(IPC_PLATFORM) IPC_TARGET=$(IPC_TARGET) $(XDC_DIR)/xdc all -PR . )
+	(cd $(SYSLINK_ROOT)/ti/syslink/ipc; IPC_PLATFORM=$(IPC_PLATFORM) IPC_TARGET=$(IPC_TARGET) $(XDC_DIR)/xdc all XDCBUILDCFG="${SYSLINK_ROOT}/config.bld" -PR . )
 
 one-one-syslink-rtos-platform: one-one-syslink-prep
 	+$(QUIET)echo "********** $(subst one-one-,,$@) for $(KNAME) ENDIAN=$(ENDIAN)"
-	(cd $(SYSLINK_ROOT)/ti/syslink/samples/rtos/platforms; IPC_PLATFORM=$(IPC_PLATFORM) IPC_TARGET=$(IPC_TARGET) $(XDC_DIR)/xdc all -PR . )
+	(cd $(SYSLINK_ROOT)/ti/syslink/samples/rtos/platforms; IPC_PLATFORM=$(IPC_PLATFORM) IPC_TARGET=$(IPC_TARGET) $(XDC_DIR)/xdc all XDCBUILDCFG="${SYSLINK_ROOT}/config.bld" -PR . )
 
 one-one-syslink-rtos-notify: one-one-syslink-prep
 	+$(QUIET)echo "********** $(subst one-one-,,$@) for $(KNAME) ENDIAN=$(ENDIAN)"
-	(cd $(SYSLINK_ROOT)/ti/syslink/samples/rtos/notify; IPC_PLATFORM=$(IPC_PLATFORM) IPC_TARGET=$(IPC_TARGET) $(XDC_DIR)/xdc all )
+	(cd $(SYSLINK_ROOT)/ti/syslink/samples/rtos/notify; IPC_PLATFORM=$(IPC_PLATFORM) IPC_TARGET=$(IPC_TARGET) $(XDC_DIR)/xdc all XDCBUILDCFG="${SYSLINK_ROOT}/config.bld")
 
 one-one-syslink-rtos-messageq: one-one-syslink-prep
 	+$(QUIET)echo "********** $(subst one-one-,,$@) for $(KNAME) ENDIAN=$(ENDIAN)"
-	(cd $(SYSLINK_ROOT)/ti/syslink/samples/rtos/messageQ; IPC_PLATFORM=$(IPC_PLATFORM) IPC_TARGET=$(IPC_TARGET) $(XDC_DIR)/xdc all )
+	(cd $(SYSLINK_ROOT)/ti/syslink/samples/rtos/messageQ; IPC_PLATFORM=$(IPC_PLATFORM) IPC_TARGET=$(IPC_TARGET) $(XDC_DIR)/xdc all XDCBUILDCFG="${SYSLINK_ROOT}/config.bld")
 
 one-one-syslink-rtos-all: one-one-syslink-prep
 	+$(QUIET)echo "********** syslink-rtos-all for $(KNAME) ENDIAN=$(ENDIAN)"
@@ -208,33 +208,33 @@ SYSLINK_USER_RESULTS=$(SYSLINK_ROOT)/ti/syslink/bin/$(SYSLINK_PLATFORM)
 SYSLINK_RTOS_RESULTS=$(SYSLINK_ENDIAN_ROOT)/ti/syslink/samples/rtos
 
 one-one-syslink-kernel-demo-install:
-	mkdir -p $(SYSLINK_INSTALL)/samples
+	mkdir -p $(SYSLINK_INSTALL)
 	cp -f $(SYSLINK_KERNEL_RESULTS)/syslink.ko    			$(SYSLINK_INSTALL)/
-	cp -f $(SYSLINK_KERNEL_RESULTS)/samples/{notify,messageq}app.ko	$(SYSLINK_INSTALL)/samples/
+	cp -f $(SYSLINK_KERNEL_RESULTS)/samples/{notify,messageq}app.ko	$(SYSLINK_INSTALL)/
 
 one-one-syslink-kernel-all-install:
-	mkdir -p $(SYSLINK_INSTALL)/samples
+	mkdir -p $(SYSLINK_INSTALL)
 	cp -f $(SYSLINK_KERNEL_RESULTS)/syslink.ko    			$(SYSLINK_INSTALL)/
-	cp -f $(SYSLINK_KERNEL_RESULTS)/samples/*.ko  	$(SYSLINK_INSTALL)/samples/
+	cp -f $(SYSLINK_KERNEL_RESULTS)/samples/*.ko  	$(SYSLINK_INSTALL)/
 
 one-one-syslink-user-all-install:
-	mkdir -p $(SYSLINK_INSTALL)/samples
-	cp -f $(SYSLINK_USER_RESULTS)/samples/*_debug 	$(SYSLINK_INSTALL)/samples/
-	cp -f $(SYSLINK_USER_RESULTS)/samples/*_release $(SYSLINK_INSTALL)/samples/
+	mkdir -p $(SYSLINK_INSTALL)
+	cp -f $(SYSLINK_USER_RESULTS)/samples/*_debug 	$(SYSLINK_INSTALL)/
+	cp -f $(SYSLINK_USER_RESULTS)/samples/*_release $(SYSLINK_INSTALL)/
 
 one-one-syslink-user-demo-install:
-	mkdir -p $(SYSLINK_INSTALL)/samples
-	cp -f $(SYSLINK_USER_RESULTS)/samples/{notify,messageq}app_release $(SYSLINK_INSTALL)/samples/
+	mkdir -p $(SYSLINK_INSTALL)
+	cp -f $(SYSLINK_USER_RESULTS)/samples/{notify,messageq}app_release $(SYSLINK_INSTALL)/
 
 one-one-syslink-rtos-all-install:
-	mkdir -p $(SYSLINK_INSTALL)/samples/map
-	(cd $(SYSLINK_RTOS_RESULTS); cp `find . -name *$(RTOS_EXTENSION)`     $(SYSLINK_INSTALL)/samples/)
-	(cd $(SYSLINK_RTOS_RESULTS); cp `find . -name *$(RTOS_EXTENSION).map` $(SYSLINK_INSTALL)/samples/map)
+	mkdir -p $(SYSLINK_INSTALL)/map
+	(cd $(SYSLINK_RTOS_RESULTS); cp `find . -name *$(RTOS_EXTENSION)`     $(SYSLINK_INSTALL)/)
+	(cd $(SYSLINK_RTOS_RESULTS); cp `find . -name *$(RTOS_EXTENSION).map` $(SYSLINK_INSTALL)/map)
 	
 one-one-syslink-rtos-demo-install:
-	mkdir -p $(SYSLINK_INSTALL)/samples
-	(cd $(SYSLINK_RTOS_RESULTS); cp `find . -name *.$(RTOS_EXTENSION)`     $(SYSLINK_INSTALL)/samples/)
-	$(STRIP_CGT) -p $(SYSLINK_INSTALL)/samples/*.$(RTOS_EXTENSION)
+	mkdir -p $(SYSLINK_INSTALL)
+	(cd $(SYSLINK_RTOS_RESULTS); cp `find . -name *.$(RTOS_EXTENSION)`     $(SYSLINK_INSTALL)/)
+	$(STRIP_CGT) -p $(SYSLINK_INSTALL)/*.$(RTOS_EXTENSION)
 
 one-one-syslink-tar:
 	cd $(SYSLINK_INSTALL_DIR); tar czf $(PRODUCT_DIR)/syslink-$(SYSLINK_INSTALL_TYPE)-$(KNAME)$(FULL_SUFFIX)$(BUILD_SUFFIX).tar.gz *
@@ -249,22 +249,22 @@ endif
 
 SL_SSRC=$(PRJ)/scripts/syslink/
 one-one-syslink-script-demo-install:
-ifdef $(SL_ST)
-	cp $(SL_SSRC)/{messageq,notify}_*_test_$(SL_SC)_core.sh 	  $(SYSLINK_INSTALL)/
-	cp $(SL_SSRC)/procmgr_load_{messageq,notify}app_$(SL_SC)_core.sh  $(SYSLINK_INSTALL)/
-	cp $(SL_SSRC)/*.txt  						  $(SYSLINK_INSTALL)/
+ifdef $(SL_SC)
+	cp $(SL_SSRC)/{messageq,notify}_*_test_$(SL_SC)_core.sh 	  $(SYSLINK_INSTALL)
+	cp $(SL_SSRC)/procmgr_load_{messageq,notify}app_$(SL_SC)_core.sh  $(SYSLINK_INSTALL)
+	cp $(SL_SSRC)/*.txt  						  $(SYSLINK_INSTALL)
 endif
 	true
 
 SL_SSRC=$(PRJ)/scripts/syslink/
 one-one-syslink-script-all-install:
-ifdef $(SL_ST)
-	cp $(SL_SSRC)/*_test_$(SL_SC)_core.sh 		  		  $(SYSLINK_INSTALL)/
-	cp $(SL_SSRC)/procmgr_load_*app_$(SL_SC)_core.sh  		  $(SYSLINK_INSTALL)/
+ifdef $(SL_SC)
+	cp $(SL_SSRC)/*_test_$(SL_SC)_core.sh 		  		  $(SYSLINK_INSTALL)
+	cp $(SL_SSRC)/procmgr_load_*app_$(SL_SC)_core.sh  		  $(SYSLINK_INSTALL)
 else
-	cp $(SL_SSRC)/syslink*_c64x.{sh,js} 		  		  $(SYSLINK_INSTALL)/
+	cp $(SL_SSRC)/syslink*c64x.{sh,js} 		  		  $(SYSLINK_INSTALL)
 endif
-	cp $(SL_SSRC)/*.txt  						  $(SYSLINK_INSTALL)/
+	cp $(SL_SSRC)/*.txt  						  $(SYSLINK_INSTALL)
 	true
 
 one-one-syslink-demo:
