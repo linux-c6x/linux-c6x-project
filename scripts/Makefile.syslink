@@ -196,7 +196,7 @@ one-one-syslink-rtos-all: one-one-syslink-prep
 
 
 # the dir where we assemble the syslink filesystem image
-SYSLINK_INSTALL_DIR 	= $(BLD)/rootfs-parts/syslink-$(SYSLINK_INSTALL_TYPE)-$(KNAME)$(FULL_SUFFIX)
+SYSLINK_INSTALL_DIR 	= $(BLD)/rootfs-parts/syslink-$(SYSLINK_INSTALL_TYPE)-$(KNAME).$(ARCHe)$(ARCHfloat)
 
 # the path within the filesystem where the files will appear
 SYSLINK_INSTALL_PATH	= /opt/syslink-$(KNAME)$(ENDIAN_SUFFIX)
@@ -237,7 +237,7 @@ one-one-syslink-rtos-demo-install:
 	$(STRIP_CGT) -p $(SYSLINK_INSTALL)/*.$(RTOS_EXTENSION)
 
 one-one-syslink-tar:
-	cd $(SYSLINK_INSTALL_DIR); tar czf $(PRODUCT_DIR)/syslink-$(SYSLINK_INSTALL_TYPE)-$(KNAME)$(FULL_SUFFIX)$(BUILD_SUFFIX).tar.gz *
+	cd $(SYSLINK_INSTALL_DIR); tar czf $(PRODUCT_DIR)/syslink-$(SYSLINK_INSTALL_TYPE)-$(KNAME).$(ARCHe)$(ARCHfloat)$(BUILD_SUFFIX).tar.gz *
 
 ifeq ($(KNAME),evmc6678)
 SL_SC=8

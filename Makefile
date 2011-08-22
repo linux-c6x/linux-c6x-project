@@ -27,6 +27,9 @@ export DATE
 BUILD_USER 	?= $(USER)
 BUILD_NAME 	?= dev-$(BUILD_USER)-$(DATE)
 BUILD_SUFFIX 	?= -$(BUILD_NAME)
+export BUILD_NAME
+export BUILD_SUFFIX
+export BUILD_USER
 
 V ?= 0
 TV ?= $(V)
