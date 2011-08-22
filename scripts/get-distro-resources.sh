@@ -16,7 +16,7 @@ distro-check() {
 
 if ! which lsb_release >/dev/null || ! which awk >/dev/null || ! distro-check Ubuntu Debian ; then
     echo "This distribution is not setup for auto setup, doing basic checks ..."
-    PROGRAMS="make gcc git awk perl wget autoheader automake expect bison flex"
+    PROGRAMS="make gcc git awk perl wget autoheader automake expect bison flex mkfs.jffs2"
     RC=0
     for pgm in $PROGRAMS; do
         if ! which $pgm >/dev/null; then
@@ -24,19 +24,27 @@ if ! which lsb_release >/dev/null || ! which awk >/dev/null || ! distro-check Ub
             RC=1
         fi
     done
-    exit $RC
+
+    # if DISTRO_CHECK_WARN is defined, this becomes non-fatal
+    if [ -z "$DISTRO_CHECK_WARN" ]; then 
+	exit $RC
+    fi
 fi
 
-# set up machine debian based machine
+# set up debian based machine
 # (we only need expect for the TI installers)
-PACKAGES="build-essential git-core expect automake zlib1g-dev bison flex"
+PACKAGES="build-essential git-core expect automake zlib1g-dev bison flex mtd-utils fakeroot"
 if ! dpkg -L $PACKAGES 2>&1 >/dev/null; then
     if [ x"$AUTO_INSTALL" == x"yes" ] ; then
 	echo "installing (at least one of) the following packages: $PACKAGES"
         sudo apt-get install -y $PACKAGES
     else
         echo "needed packages missing and AUTO_INSTALL != yes"
-        exit 1
+	if [ -z "$DISTRO_CHECK_WARN" ]; then 
+	    exit 1
+	else
+	    echo "DISTRO_CHECK_WARN enabled, continuing anyway ..."
+	fi
     fi
 else
     echo "all following packages already installed: $PACKAGES"

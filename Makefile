@@ -906,6 +906,7 @@ one-mcsdk-demo-root-clean:
 ########  Bootblobs
 bootblob: productdir
 	cp -a $(PRJ)/scripts/bootblob $(PRODUCT_DIR)/
+	cp -a $(PRJ)/scripts/make-filesystem $(PRODUCT_DIR)/
 
 bootblobs: bootblob
 one-bootblobs: productdir

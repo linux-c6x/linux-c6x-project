@@ -1,0 +1,372 @@
+#!/bin/bash
+
+ME=$(basename $0)
+MY_DIR=$(cd $(dirname $0); pwd)
+
+if [ -n "$V" ] && [ "$V" -ne 0 ]; then
+	VERBOSE=true
+	set -x
+else
+	VERBOSE=false
+fi
+
+CPIO_CONCAT=false
+FAKEROOT=""
+MKJFFS_OPTIONS=""
+SUMTOOL_OPTIONS=""
+
+do-help() {
+	echo "make-filesystem [<options>] <output name>  <base filesystem> [<additional components> ...]"
+	echo "where format is deduced from output name:"
+	echo "    *.cpio.gz                 format appropriate for initramfs image"
+	echo "    *.tar.gz *.tar.bz2        general archive format"
+	echo "    *.jffs2                   flash file system image"
+	echo "    <other>                   extract filesystem to specified directory (for NFS, etc)"
+	echo ""
+	echo "each input component can be:"
+	echo "     a cpio or tar archive"
+	echo "     a directory"
+	echo ""
+	echo "and where options is one or more of:"
+	echo "    --blocksize=<blocksize>	required for jffs2 image"
+	echo "    --pagesize=<pagesize>		required for jffs2 image"
+	echo "    --big-endian			required for jffs2 image if target is big endian"
+	echo "    --no-cleanmarkers		passed to mkfs.jffs2 and sumtool if specified"
+	echo ""
+	echo "You probibly need sudo to extract to a directory."
+	echo "You may need sudo or fakeroot depending on the contents and format of the filesystem components."
+	echo "fakeroot will be used if found, not root already, and not producing a directory as output."
+	echo "Using cpio as the output & base filesystem format and keeping all privaliged files/devices"
+	echo "  in the base filesystem eliminates the need for sudo or fakeroot"
+	echo ""
+	echo "example1, make-image:"
+	echo '    ./make-filesystem my-initramfs-filesystem.cpio.gz min-root-c6x.cpio.gz my-extra-stuff/ '
+	echo ""
+}
+
+form-filesystem() {
+	if [ $# -lt 2 ]; then need-args $# "output name" "list of filesystem components"; fi
+	local OUTPUT=$1
+	local BASEFS=$2
+	shift 2
+
+	find-component-format $OUTPUT
+	OUTPUT_FORMAT=${FORMAT:-dir}
+
+	if ! find-component-format $BASEFS; then
+		fatal-error "base filesytem $BASEFS does not exist or is unknown type"
+	fi
+	BASE_FORMAT=${FORMAT}
+
+	FAKEROOT=$(which fakeroot)
+	if [ -n "$FAKEROOT" ] && [ $(id -u) -ne 0 ] && [ $OUTPUT_FORMAT != dir ]; then
+		echo "using $FAKEROOT"
+		$FAKEROOT $MY_DIR/$ME $ALL_OPT $OUTPUT $BASEFS "$@"
+		exit $?
+	fi
+
+	if [ $OUTPUT_FORMAT == .cpio ]; then
+		local TEMP_FILE=$(mktemp)
+		if [ $BASE_FORMAT == .cpio ]; then
+			decompress-component $BASEFS $TEMP_FILE
+		else
+			create-empty-cpio $TEMP_FILE
+			add-cpio-component $BASEFS $TEMP_FILE
+		fi
+
+		for comp in "$@"; do
+			add-cpio-component $comp $TEMP_FILE
+		done
+		compress-component $TEMP_FILE $OUTPUT
+		rm $TEMP_FILE
+	else
+		local TEMP_DIR=$(mktemp -d)
+		for comp in $BASEFS "$@"; do
+			add-dir-component $comp $TEMP_DIR
+		done
+		create-output-from-dir $TEMP_DIR $OUTPUT
+		rm -rf $TEMP_DIR
+	fi
+}
+
+add-cpio-component() {
+	local INPUT=$1
+	local OUTPUT=$2
+
+	if ! find-component-format $INPUT; then
+		fatal-error "$INPUT does not exist or is unknown format"
+	fi
+
+	case $FORMAT in
+	.cpio)
+		add-cpio-to-cpio $INPUT $OUTPUT
+		;;
+	.tar)
+		local TEMP_DIR=$(mktemp -d)
+		add-tar-to-dir $INPUT $TEMP_DIR
+		add-dir-to-cpio $TEMP_DIR $OUTPUT
+		rm -rf $TEMP_DIR
+		;;
+	dir)
+		add-dir-to-cpio $INPUT $OUTPUT
+		;;
+	jffs2)
+		fatal-error "jffs2 is not supported as an input format, only output"
+		;;
+	esac
+}
+
+add-dir-component() {
+	local INPUT=$1
+	local OUTPUT=$2
+
+	if ! find-component-format $INPUT; then
+		fatal-error "$INPUT does not exist or is unknown format"
+	fi
+
+	case $FORMAT in
+	.cpio)
+		add-cpio-to-dir $INPUT $OUTPUT
+		;;
+	.tar)
+		add-tar-to-dir $INPUT $OUTPUT
+		;;
+	dir)
+		add-dir-to-dir $INPUT $OUTPUT
+		;;
+	jffs2)
+		fatal-error "jffs2 is not supported as an input format, only output"
+		;;
+	esac
+}
+
+create-output-from-dir() {
+	local INPUT_DIR=$1
+	local OUTPUT=$(abs-path $2)
+
+	find-compression-format $OUTPUT
+	case $OUTPUT in
+	*.tar${COMPRESSION_EXT})
+		(cd $INPUT_DIR; tar c . | $COMPRESS_CMD >$OUTPUT)
+		;;
+	*.cpio${COMPRESSION_EXT})
+		local TEMP_FILE=$(mktemp)
+		add-dir-to-cpio $INPUT_DIR $TEMP_FILE
+		compress-component $TEMP_FILE $OUTPUT
+		rm $TEMP_FILE
+		;;
+	*.jffs2)
+		local TEMP_FILE=$(mktemp)
+		mkfs.jffs2 -o $TEMP_FILE -d $INPUT_DIR $MKJFFS_OPTIONS
+		sumtool -o $OUTPUT -i $TEMP_FILE $SUMTOOL_OPTIONS
+		rm $TEMP_FILE
+		;;
+	*)
+		mkdir -p $OUTPUT
+		add-dir-to-dir $INPUT_DIR $OUTPUT
+		;;
+	esac
+}
+
+find-compression-format() {
+	case $1 in
+	*.gz)
+		COMPRESSION="gzip"
+		COMPRESSION_EXT=".gz"
+		COMPRESS_CMD="gzip"
+		DECOMPRESS_CMD="gunzip"
+		;;
+	*.bz2)
+		COMPRESSION="bzip2"
+		COMPRESSION_EXT=".bz2"
+		COMPRESS_CMD="bzip2"
+		DECOMPRESS_CMD="bunzip2"
+		;;
+	*)
+		COMPRESSION="none"
+		COMPRESSION_EXT=""
+		COMPRESS_CMD="cat"
+		DECOMPRESS_CMD="cat"
+		;;
+	esac
+}
+
+find-component-format() {
+	if [ -d $1 ]; then
+		FORMAT="dir"
+		return 0
+	fi
+
+	find-compression-format $1
+	case $1 in
+		*.cpio${COMPRESSION_EXT})
+		FORMAT=".cpio"
+		;;
+		*.tar${COMPRESSION_EXT})
+		FORMAT=".tar"
+		;;
+		*.jffs2)
+		FORMAT=".jffs2"
+		;;
+		*)
+		FORMAT=""
+		return 1
+		;;
+	esac
+
+	if [ ! -r $1 ]; then
+		return 1
+	else
+		return 0
+	fi
+}
+
+compress-component() {
+	local INPUT=$1
+	local OUTPUT=$2
+	find-compression-format $OUTPUT
+	$COMPRESS_CMD <$INPUT >$OUTPUT
+}
+
+decompress-component() {
+	local INPUT=$1
+	local OUTPUT=$2
+	find-compression-format $INPUT
+	$DECOMPRESS_CMD <$INPUT >$OUTPUT
+}
+
+add-tar-to-dir() {
+	local INPUT=$(abs-path $1)
+	local OUTPUT_DIR=$2
+	find-compression-format $INPUT
+	(cd $OUTPUT_DIR; $DECOMPRESS_CMD <$INPUT | tar x )
+}
+
+add-cpio-to-cpio() {
+	local INPUT=$1
+	local OUTPUT=$2
+	# the kernel handles concatinated cpio archives but is it really legal?
+	# the input should also be in newc format or I am sure bad things will happen
+	if $CPIO_CONCAT; then
+		find-compression-format $INPUT
+		$DECOMPRESS_CMD <$INPUT | cat - >>$OUTPUT
+	else
+		local TEMP_DIR=$(mktemp -d)
+		add-cpio-to-dir $INPUT $TEMP_DIR
+		add-dir-to-cpio $TEMP_DIR $OUTPUT
+		rm -rf $TEMP_DIR
+	fi
+}
+
+add-cpio-to-dir() {
+	local INPUT=$(abs-path $1)
+	local OUTPUT_DIR=$2
+	find-compression-format $INPUT
+	(cd $OUTPUT_DIR; $DECOMPRESS_CMD <$INPUT | cpio -i )
+}
+
+create-empty-cpio() {
+	local OUTPUT=$(abs-path $1)
+	cpio -H newc -o -O $OUTPUT </dev/null
+}
+
+add-dir-to-cpio() {
+	local INPUT_DIR=$1
+	local OUTPUT=$(abs-path $2)
+	(cd $INPUT_DIR; find . | cpio -H newc -o -A -O $OUTPUT)
+}
+
+add-dir-to-dir() {
+	local INPUT_DIR=$1
+	local OUTPUT_DIR=$2
+	(cd $INPUT_DIR ; tar cf - .  ) | (cd $OUTPUT_DIR; tar xf -)
+}
+
+need-args() {
+	local found=$1; shift
+	echo "$CMD expected $# arguments and found $found"
+	i=1
+	for name in "$@" ; do
+		printf "\t%s\t%s\n" "arg$i" "$name"
+		i=$((i+1))
+	done
+	exit 2
+}
+
+abs-path() {
+	case $1 in
+	/*)
+		echo "$1"
+		;;
+	*)
+		echo "$PWD/$1"
+		;;
+	esac
+}
+
+assert-readable() {
+	for file in "$@" ; do
+		if [ ! -r $file ] ; then
+			echo "Can not read file $file"
+			exit 2
+		fi
+	done
+}
+
+fatal-error() {
+	echo "$@" >&2
+	exit 2
+}
+
+handle-one-option() {
+	local opt=$1
+	case $opt in
+	-d|--debug)
+		set -x
+		;;
+	-h|--help)
+		do-help
+		exit 0
+		;;
+	--cpio-concat)
+		CPIO_CONCAT=true
+		;;
+	--eraseblock=*|--no-cleanmarkers)
+		MKJFFS_OPTIONS="$MKJFFS_OPTIONS $opt"
+		SUMTOOL_OPTIONS="$SUMTOOL_OPTIONS $opt"
+		;;
+	--big-endian|--bigendian)
+		MKJFFS_OPTIONS="$MKJFFS_OPTIONS --big-endian"
+		SUMTOOL_OPTIONS="$SUMTOOL_OPTIONS --bigendian"
+		;;
+	--little-endian|--littleendian)
+		MKJFFS_OPTIONS="$MKJFFS_OPTIONS --little-endian"
+		SUMTOOL_OPTIONS="$SUMTOOL_OPTIONS --littleendian"
+		;;
+	--pagesize=*)
+		MKJFFS_OPTIONS="$MKJFFS_OPTIONS $opt"
+		;;
+	--)
+		return 2
+		;;
+	-*)
+		fatal-error "unknow option use '$0 help' for info"
+		;;
+	*)
+		return 1
+		;;
+	esac
+	return 0
+}
+
+# handle options before the CMD
+while handle-one-option $1 ; do
+	ALL_OPT="$ALL_OPT $1"
+	shift
+done
+if [ "$1" == "--" ]; then 
+	ALL_OPT="$ALL_OPT $1"
+	shift; 
+fi
+
+form-filesystem "$@"
