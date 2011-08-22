@@ -906,28 +906,27 @@ one-mcsdk-demo-root-clean:
 ########  Bootblobs
 bootblob: productdir
 	cp -a $(PRJ)/scripts/bootblob $(PRODUCT_DIR)/
-	chmod +x $(PRODUCT_DIR)/bootblob
 
 bootblobs: bootblob
 one-bootblobs: productdir
 	+$(QUIET)for this_blob in $(BOOTBLOBS) ; do \
-		if [ -r $(PRJ)/bootblob-specs/$${this_blob}.mk ]; then \
+		if [ -r $(PRJ)/bootblob-templates/$${this_blob} ]; then \
 			$(SUB_MAKE) -C $(PRODUCT_DIR) BOOTBLOB_FILE=$${this_blob} one-this-bootblob; \
 		else	\
-			echo "No spec to build bootblob $${this_blob}"; false; \
+			echo "No template to build bootblob $${this_blob}"; false; \
 		fi; \
 	done
 
 # this include and target below only make sense on the recursive makes started from the target above
 # BOOTBLOB_FILE should always be undefined for the top level make
 ifneq ($(BOOTBLOB_FILE),)
-include $(PRJ)/bootblob-specs/$(BOOTBLOB_FILE).mk
+# TODO: invoke template to have it calculate dependencies
 endif
 
 .PHONY: one-this-bootblobs
 one-this-bootblob: $(BOOTBLOB_DEPENDENCIES)
 	+$(QUIET)echo "********** bootblob $(BOOTBLOB_FILE) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
-	$(BOOTBLOB_CMD)
+	./bootblob $(BOOTBLOB_FILE)
 
 ########  Directory targets
 productdir:

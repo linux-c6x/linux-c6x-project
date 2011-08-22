@@ -1,0 +1,7 @@
+# shell fragment to create a specific bootblob
+# should be sourced into bash
+
+EVM=evmc6670
+INITRAMFS=min-root
+source ${SPEC_DIR}/defs/evmc667x.sh
+DESC="Kernel for $EVM w/ Minimal root initram fs"

@@ -2,4 +2,5 @@
 
 EVM=evmc6678
 INITRAMFS=mcsdk-demo-root
-include $(PRJ)/bootblob-specs/defs/evmc667x.mk
+source ${SPEC_DIR}/defs/evmc667x.sh
+DESC="Kernel for $EVM w/ Demo root initram fs"
