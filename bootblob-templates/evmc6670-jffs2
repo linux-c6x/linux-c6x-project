@@ -1,7 +1,8 @@
 # makefile fragment to create a specific bootblob
 
 EVM=evmc6670
-FSTYPE=INITRAMFS
-BASEFS=min-root
+FSTYPE=JFFS2
+BASEFS=full-root
+SYSLINK_TYPE=demo
 source ${STD_TEMPLATE_DIR}/defs/evmc667x.sh
-DESC="Kernel for $EVM w/ Minimal root initram fs"
+DESC="Kernel for $EVM + JFFS2 full-root image"
