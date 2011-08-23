@@ -125,10 +125,10 @@ do_it() {
 	FS_OPTS=""
 	case $FSTYPE in 
 	NFS)
-		ROOT="root=/dev/nfs nfsroot=${NFS_SERVER}${NFS_PREFIX}/${FS_OUTFILE}/,v3,tcp rw"
+		ROOT="root=/dev/nfs nfsroot=${NFS_SERVER}${NFS_PREFIX%/}/${FS_OUTFILE}/,v3,tcp rw"
 		if [ -n "$NFS_PREFIX_DIR" ] ; then
 			FS_EXT=""
-			FS_PREFIX=$NFS_PREFIX_DIR/
+			FS_PREFIX=${NFS_PREFIX_DIR%/}/
 		else
 			FS_EXT=".cpio.gz"
 		fi
