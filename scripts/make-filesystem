@@ -262,18 +262,18 @@ add-cpio-to-dir() {
 	local INPUT=$(abs-path $1)
 	local OUTPUT_DIR=$2
 	find-compression-format $INPUT
-	(cd $OUTPUT_DIR; $DECOMPRESS_CMD <$INPUT | cpio -i )
+	(cd $OUTPUT_DIR; $DECOMPRESS_CMD <$INPUT | cpio -i 2>/dev/null)
 }
 
 create-empty-cpio() {
 	local OUTPUT=$(abs-path $1)
-	cpio -H newc -o -O $OUTPUT </dev/null
+	cpio -H newc -o -O $OUTPUT </dev/null 2>/dev/null
 }
 
 add-dir-to-cpio() {
 	local INPUT_DIR=$1
 	local OUTPUT=$(abs-path $2)
-	(cd $INPUT_DIR; find . | cpio -H newc -o -A -O $OUTPUT)
+	(cd $INPUT_DIR; find . | cpio -H newc -o -A -O $OUTPUT 2>/dev/null)
 }
 
 add-dir-to-dir() {
@@ -314,7 +314,7 @@ assert-readable() {
 }
 
 fatal-error() {
-	echo "$@" >&2
+	echo "error:" "$@" >&2
 	exit 2
 }
 
