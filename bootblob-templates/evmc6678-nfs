@@ -1,7 +1,8 @@
 # makefile fragment to create a specific bootblob
 
 EVM=evmc6678
-INITRAMFS=
-ROOT="root=/dev/nfs nfsroot=/sysroots/${EVM}${ENDIAN_SUFFIX}/,v3,tcp rw"
-source ${SPEC_DIR}/defs/evmc667x.sh
-DESC="Copy of $EVM kernel w/ command line set for NFS root"
+FSTYPE=NFS
+BASEFS=full-root
+SYSLINK_TYPE=demo
+source ${STD_TEMPLATE_DIR}/defs/evmc667x.sh
+DESC="Kernel for $EVM + JFFS2 full-root NFS dir or achive"

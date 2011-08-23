@@ -1,6 +1,6 @@
 #! /bin/bash
 
-SPEC_DIR=$(cd $(dirname $0); pwd)/bootblob-templates
+STD_TEMPLATE_DIR=$(cd $(dirname $0); pwd)/bootblob-templates
 PAD_SIZE=0
 ROUND_SIZE=0
 FSIMAGE_START=""
@@ -157,7 +157,7 @@ final_rc_check() {
 	if $ANY_WORKED && $ALL_WORKED; then 
 		echo "all specified template combinations suceeded"
 	elif $ANY_WORKED; then
-		echo "some attempted template combinations were skipped"
+		echo "some attempted template combinations were skipped or failed"
 	else
 		echo "all attempted template combinations failed"
 	fi
@@ -176,7 +176,8 @@ do_templates() {
     for template in $@; do
 	if [ -f "$template" ] ; then 
 		TEMPLATE=$(basename $template)
-		source $SPEC_DIR/defs/common.sh
+		THIS_TEMPLATE_DIR=$(dirname $template)
+		source $STD_TEMPLATE_DIR/defs/common.sh
 		source $template
 		do_for_each do_one
 	else
@@ -195,7 +196,7 @@ do_help() {
     echo "    save-cmdline            save the raw cmdline data to a file"
     echo ""
     echo "or where template is one of:"
-    for template in $(echo $SPEC_DIR/*); do
+    for template in $(echo $STD_TEMPLATE_DIR/*); do
 	if [ -f "$template" ] ; then
 		DESC=$(source $template; echo $DESC)
 		printf "    %-38s  $DESC\n" $(basename $template)
@@ -295,11 +296,11 @@ case $CMD in
         ;;
     all)
 	BEST_EFFORT=true
-	do_templates $SPEC_DIR/*
+	do_templates $STD_TEMPLATE_DIR/*
 	;;
     *)
-	if [ -r "$SPEC_DIR/$CMD" ] ; then
-		do_templates $SPEC_DIR/$CMD
+	if [ -r "$STD_TEMPLATE_DIR/$CMD" ] ; then
+		do_templates $STD_TEMPLATE_DIR/$CMD
 	else
 		echo "unknown command or template $CMD"
 		exit 1

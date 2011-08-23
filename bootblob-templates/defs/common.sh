@@ -55,8 +55,18 @@ do_late_defs() {
 	KERNEL_PATTERN_START="vmlinux-2.6.34-${EVM}${ENDIAN_SUFFIX}"
 	KERNEL_PATTERN_END=".bin"
 	KERNEL_FILE="${KERNEL_PATTERN_START}${BUILD_SUFFIX}${KERNEL_PATTERN_END}"
+	MODULES_FILE="modules-2.6.34-${EVM}${ENDIAN_SUFFIX}${BUILD_SUFFIX}.tar.gz"
+	TEST_MODULES_FILE="test-modules-2.6.34-${EVM}${ENDIAN_SUFFIX}${BUILD_SUFFIX}.tar.gz"
+	SYSLINK_FILE="syslink-${SYSLINK_TYPE}-${EVM}${FULL_SUFFIX}${BUILD_SUFFIX}.tar.gz"
+	DEVTOOLS_FILE="gplv3-devtools-${ARCHef}.tar.gz"
 
 	BLOB_OUTFILE=${TEMPLATE}${FULL_SUFFIX}${BUILD_SUFFIX}.bin
+	FS_OUTFILE=${TEMPLATE}${FULL_SUFFIX}${BUILD_SUFFIX}
+
+	: ${IPADDR:=$(eval echo \$${EVM}_IPADDR)}
+	: ${IPADDR:=dhcp}
+	: ${IP:="ip=${IPADDR}"}
+	: ${NFS_PREFIX:="/srv/nfs/"}
 }
 
 do_for_each() {
@@ -106,3 +116,79 @@ do_one() {
 	do_it
 }
 
+calculate_depends() {
+	BOOTBLOB_DEPENDS=""
+}
+
+do_it() {
+	FS_PREFIX=""
+	FS_OPTS=""
+	case $FSTYPE in 
+	NFS)
+		ROOT="root=/dev/nfs nfsroot=${NFS_SERVER}${NFS_PREFIX}/${FS_OUTFILE}/,v3,tcp rw"
+		if [ -n "$NFS_PREFIX_DIR" ] ; then
+			FS_EXT=""
+			FS_PREFIX=$NFS_PREFIX_DIR/
+		else
+			FS_EXT=".cpio.gz"
+		fi
+		;;
+	INITRAMFS)
+		ROOT="rw"
+		FS_EXT=.cpio.gz
+		;;
+	JFFS2)
+		ROOT="root=${JFFS2_DEV} rootfstype=jffs2 rw"
+		FS_EXT=".jffs2"
+		FS_OPTS=$JFFS2_OPT
+		;;
+	*)
+		echo "Unknown FSTYPE=$FSTYPE"
+		return 1
+	esac
+
+	if [ $ENDIAN == "big" ] ; then
+		FS_OPTS="$FS_OPTS --big-endian"
+	else
+		FS_OPTS="$FS_OPTS --little-endian"
+	fi
+
+	if [ -z "$SYSLINK_TYPE" ]; then SYSLINK_FILE=""; fi
+	if [ -n "$SYSLINK_FILE" ] && [ ! -r "$SYSLINK_FILE" ]; then
+		echo "skipping non-existant file $SYSLINK_FILE"
+		SYSLINK_FILE=""
+	fi
+
+	if [ "$TEST_MODULES"x != "yes"x ]; then TEST_MODULES_FILE=""; fi
+	if [ -n "$TEST_MODULES_FILE" ] && [ ! -r "$TEST_MODULES_FILE" ]; then
+		echo "skipping non-existant file $TEST_MODULES_FILE"
+		TEST_MODULES_FILE=""
+	fi
+
+	if [ "$GPLV3OK"x != "yes"x ]; then DEVTOOLS_FILE=""; fi
+	if [ -n "$DEVTOOLS_FILE" ] && [ ! -r "$DEVTOOLS_FILE" ]; then
+		echo "skipping non-existant file $DEVTOOLS_FILE"
+		DEVTOOLS_FILE=""
+	fi
+
+	MAKE_FILESYSTEM_CMD="./make-filesystem ${FS_OPTS} ${FS_PREFIX}${FS_OUTFILE}${FS_EXT} ${BASEFS}-${ARCHef}.cpio.gz ${TEST_MODULES_FILE} ${MODULES_FILE} ${SYSLINK_FILE} ${DEVTOOLS_FILE} ${EXTRA_FS_PARTS}"
+	echo $MAKE_FILESYSTEM_CMD
+	if ! $MAKE_FILESYSTEM_CMD ; then
+		return 2
+	fi
+
+	CMDLINE="${CONSOLE} ${ROOT} ${MEM} ${IP} ${EXTRA_CMDLINE_ARGS}"
+
+	if [ $FSTYPE == INITRAMFS ]; then
+		BOOTBLOB_CMD_PART1="./bootblob make-image --abs-base=${MEMORY_START} --round=0x100000 ${BLOB_OUTFILE} ${KERNEL_FILE} ${FS_OUTFILE}${FS_EXT}"
+		CMDLINE="${CMDLINE} initrd=0x%fsimage-start-abs-x%,0x%fsimage-size-x%"
+
+		echo $BOOTBLOB_CMD_PART1 \"$CMDLINE\" >&2
+		$BOOTBLOB_CMD_PART1 "${CMDLINE}"
+	else
+		echo cp ${KERNEL_FILE} ${BLOB_OUTFILE}
+		cp ${KERNEL_FILE} ${BLOB_OUTFILE}
+		echo ./bootblob set-cmdline ${BLOB_OUTFILE} \"${CMDLINE}\"
+		./bootblob set-cmdline ${BLOB_OUTFILE} "${CMDLINE}"
+	fi
+}

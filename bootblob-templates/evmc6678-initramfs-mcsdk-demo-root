@@ -1,6 +1,8 @@
 # makefile fragment to create a specific bootblob
 
 EVM=evmc6678
-INITRAMFS=mcsdk-demo-root
-source ${SPEC_DIR}/defs/evmc667x.sh
+FSTYPE=INITRAMFS
+BASEFS=mcsdk-demo-root
+SYSLINK_TYPE=demo
+source ${STD_TEMPLATE_DIR}/defs/evmc667x.sh
 DESC="Kernel for $EVM w/ Demo root initram fs"
