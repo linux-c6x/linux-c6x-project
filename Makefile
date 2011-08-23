@@ -912,7 +912,7 @@ bootblob: productdir
 bootblobs: bootblob
 one-bootblobs: productdir
 	+$(QUIET)for this_blob in $(BOOTBLOBS) ; do \
-		if [ -r $(PRJ)/bootblob-templates/$${this_blob} ]; then \
+		if [ -r $(PRJ)/bootblob-templates/$${this_blob} ] || [ "$$this_blob" == "all" ]; then \
 			$(SUB_MAKE) -C $(PRODUCT_DIR) BOOTBLOB_FILE=$${this_blob} one-this-bootblob; \
 		else	\
 			echo "No template to build bootblob $${this_blob}"; false; \
