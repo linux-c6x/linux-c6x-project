@@ -1,6 +1,6 @@
 # makefile fragment to create a specific bootblob
 
-EVM=evmc6670
+EVM=evmc6474
 FSTYPE=NFS
 BASEFS=ltp-root
 SYSLINK_TYPE=all

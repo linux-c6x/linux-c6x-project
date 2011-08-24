@@ -1,0 +1,7 @@
+# makefile fragment to create a specific bootblob
+
+EVM=evmc6457
+FSTYPE=INITRAMFS
+BASEFS=min-root
+source ${STD_TEMPLATE_DIR}/defs/${EVM}.sh
+DESC="Kernel for $EVM w/ Minimal root initram fs"

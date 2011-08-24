@@ -1,0 +1,16 @@
+for evm in evmc6678 evmc6670 dsk6455 evmc6472 evmc6457 evmc6474 evmc6474-lite ; do
+    mkdir -p ../new-templates
+    for template in evmxxxx* ; do
+	new_template=${template/evmxxxx/$evm}
+	cp $template ../new-templates/$new_template
+	sed -i -e "s%EVM=evmxxxx%EVM=$evm%" ../new-templates/$new_template
+    done
+done
+
+# now remove the ones that don't make sense
+rm ../new-templates/dsk6455-jffs2
+rm ../new-templates/evmc6474-jffs2
+rm ../new-templates/evmc64*-demo
+rm ../new-templates/dsk*-demo
+
+echo "The new templates are in $(cd ..; pwd)/new-templates.  Compare to whats in $(cd ..; pwd) and if satisfied overwrite them"

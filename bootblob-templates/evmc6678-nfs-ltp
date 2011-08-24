@@ -5,5 +5,5 @@ FSTYPE=NFS
 BASEFS=ltp-root
 SYSLINK_TYPE=all
 TEST_MODULES=yes
-source ${STD_TEMPLATE_DIR}/defs/evmc667x.sh
+source ${STD_TEMPLATE_DIR}/defs/${EVM}.sh
 DESC="Testing NFS dir or archive + Kernel for $EVM w/ adjusted command line"

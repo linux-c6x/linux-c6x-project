@@ -55,6 +55,7 @@ do_late_defs() {
 	KERNEL_PATTERN_START="vmlinux-2.6.34-${EVM}${ENDIAN_SUFFIX}"
 	KERNEL_PATTERN_END=".bin"
 	KERNEL_FILE="${KERNEL_PATTERN_START}${BUILD_SUFFIX}${KERNEL_PATTERN_END}"
+	BASEFS_FILE="${BASEFS}-${ARCHef}.cpio.gz"
 	MODULES_FILE="modules-2.6.34-${EVM}${ENDIAN_SUFFIX}${BUILD_SUFFIX}.tar.gz"
 	TEST_MODULES_FILE="test-modules-2.6.34-${EVM}${ENDIAN_SUFFIX}${BUILD_SUFFIX}.tar.gz"
 	SYSLINK_FILE="syslink-${SYSLINK_TYPE}-${EVM}${FULL_SUFFIX}${BUILD_SUFFIX}.tar.gz"
@@ -97,12 +98,7 @@ do_for_each_build() {
 		for kernel in ${KERNEL_PATTERN_START}*${KERNEL_PATTERN_END}; do
 			tmp=${kernel##$KERNEL_PATTERN_START}
 			tmp=${tmp%%$KERNEL_PATTERN_END}
-			if [ "$tmp" != '*' ]; then
-				BUILD_SUFFIX="$tmp" one_rc_check "$@"
-			else
-				echo "***** skipping $(basename $TEMPLATE) for ENDIAN=$ENDIAN FLOAT=$FLOAT, no kernel"
-				one_rc_check false
-			fi
+			BUILD_SUFFIX="$tmp" one_rc_check "$@"
 		done
 	else
 		one_rc_check "$@"
@@ -112,6 +108,18 @@ do_for_each_build() {
 
 do_one() {
 	do_late_defs
+	if [ ! -r $KERNEL_FILE ]; then
+		echo "***** skipping $(basename $TEMPLATE) for ENDIAN=$ENDIAN FLOAT=$FLOAT BUILD=$BUILD_SUFFIX, no kernel"
+		one_rc_check false
+		return
+	fi
+
+	if [ ! -r $BASEFS_FILE ]; then
+		echo "***** skipping $(basename $TEMPLATE) for ENDIAN=$ENDIAN FLOAT=$FLOAT BUILD=$BUILD_SUFFIX, no base filesystem"
+		one_rc_check false
+		return
+	fi
+
 	echo "***** Bootblob $(basename $TEMPLATE) for ENDIAN=$ENDIAN FLOAT=$FLOAT BUILD=$BUILD_SUFFIX"
 	do_it
 }
@@ -151,6 +159,11 @@ do_it() {
 		FS_OPTS="$FS_OPTS --big-endian"
 	else
 		FS_OPTS="$FS_OPTS --little-endian"
+	fi
+
+	if [ ! -r "$MODULES_FILE" ]; then
+		echo "skipping non-existant file $MODULES_FILE"
+		MODULES_FILE=""
 	fi
 
 	if [ -z "$SYSLINK_TYPE" ]; then SYSLINK_FILE=""; fi

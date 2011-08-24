@@ -4,5 +4,5 @@ EVM=evmc6678
 FSTYPE=NFS
 BASEFS=full-root
 SYSLINK_TYPE=demo
-source ${STD_TEMPLATE_DIR}/defs/evmc667x.sh
-DESC="Kernel for $EVM + JFFS2 full-root NFS dir or achive"
+source ${STD_TEMPLATE_DIR}/defs/${EVM}.sh
+DESC="Full root NFS dir or archive + Kernel for $EVM w/ adjusted command line"
