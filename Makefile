@@ -47,6 +47,25 @@ BUILD_ORDER_TARGETS ?= "product"
 build-order:
 	@$(SUB_MAKE) -n $(BUILD_ORDER_TARGETS) 2>&1 | grep "^\*\*\*"
 
+ifeq ($(FLOAT),native)
+FLOAT=${shell \
+	H=false; S=false; \
+	for evm in $(KERNELS_TO_BUILD); do \
+	case $$evm in	\
+		evmc66*|evm66*)        H=true; ;; \
+		dsk64*|evmc64*|evm64*) S=true; ;; \
+	esac ; \
+	done ; \
+	if $$H && $$S; then \
+		echo "both"; \
+	elif $$H; then	\
+		echo "hard"; \
+	else \
+		echo "soft"; \
+	fi \
+}
+endif
+
 # These targets are valid user command line targets and depend on ENDIAN and FLOAT
 TOP_ENDIAN_FLOAT_TARGETS = mtd rio busybox package sdk clib sdk0 clean mtd-clean rio-clean \
 	busybox-clean packages-clean clib-clean bootblobs elf-loader mcsdk-demo ltp \
