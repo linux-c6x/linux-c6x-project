@@ -147,7 +147,7 @@ create-output-from-dir() {
 	find-compression-format $OUTPUT
 	case $OUTPUT in
 	*.tar${COMPRESSION_EXT})
-		(cd $INPUT_DIR; tar c . | $COMPRESS_CMD >$OUTPUT)
+		(cd $INPUT_DIR; tar c .* * --exclude '.' --exclude '..' | $COMPRESS_CMD >$OUTPUT)
 		;;
 	*.cpio${COMPRESSION_EXT})
 		local TEMP_FILE=$(mktemp)
@@ -273,7 +273,7 @@ create-empty-cpio() {
 add-dir-to-cpio() {
 	local INPUT_DIR=$1
 	local OUTPUT=$(abs-path $2)
-	(cd $INPUT_DIR; find . | cpio -H newc -o -A -O $OUTPUT 2>/dev/null)
+	(cd $INPUT_DIR; find . ! -name "." | cpio -H newc -o -A -O $OUTPUT 2>/dev/null)
 }
 
 add-dir-to-dir() {

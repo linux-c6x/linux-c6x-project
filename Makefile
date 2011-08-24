@@ -814,7 +814,7 @@ min-root-$(ARCHef): productdir
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - usr/lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	cp rootfs/min-root-devs.cpio $(BLD)/rootfs/$@.cpio
-	(cd $(BLD)/rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
+	(cd $(BLD)/rootfs/$@; find . ! -name '.' | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
 mcsdk-demo-root: $(call COND_DEP, busybox mtd mcsdk-demo syslink-demo elf-loader)
@@ -837,7 +837,7 @@ mcsdk-demo-root-$(ARCHef): productdir
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - usr/lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	cp rootfs/min-root-devs.cpio $(BLD)/rootfs/$@.cpio
-	(cd $(BLD)/rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
+	(cd $(BLD)/rootfs/$@; find . ! -name '.' | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
 full-root: $(call COND_DEP, busybox mtd rio packages)
@@ -858,7 +858,7 @@ full-root-$(ARCHef): productdir
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - usr/lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	cp rootfs/min-root-devs.cpio $(BLD)/rootfs/$@.cpio
-	(cd $(BLD)/rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
+	(cd $(BLD)/rootfs/$@; find . ! -name '.' | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
 ltp-root: $(call COND_DEP, busybox mtd syslink-all ltp)
@@ -884,7 +884,7 @@ ltp-root-$(ARCHef): productdir
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - usr/lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	cp rootfs/min-root-devs.cpio $(BLD)/rootfs/$@.cpio
-	(cd $(BLD)/rootfs/$@; find . | cpio -H newc -o -A -O ../$@.cpio)
+	(cd $(BLD)/rootfs/$@; find . ! -name '.' | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
 one-min-root-clean:
