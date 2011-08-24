@@ -840,7 +840,7 @@ mcsdk-demo-root-$(ARCHef): productdir
 	(cd $(BLD)/rootfs/$@; find . ! -name '.' | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
-full-root: $(call COND_DEP, busybox mtd rio packages)
+full-root: $(call COND_DEP, busybox mtd rio packages mcsdk-demo syslink-demo elf-loader)
 one-full-root: full-root-$(ARCHef)
 full-root-$(ARCHef): productdir
 	+$(QUIET)echo "********** full-root ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
@@ -848,6 +848,10 @@ full-root-$(ARCHef): productdir
 	mkdir -p $(BLD)/rootfs/$@; date > $(BLD)/rootfs/$@-marker
 	(cd $(BLD)/rootfs/$@; cpio -i <$(PRJ)/rootfs/min-root-skel.cpio)
 	cp -a rootfs/min-root-extra/* $(BLD)/rootfs/$@
+	rm -rf $(BLD)/rootfs/$@/web
+	# call mcsdk demo install
+	(cd $(BLD)/mcsdk-demo$(FULL_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) INSTALL_PREFIX=$(BLD)/rootfs/$@ install )
+	(cd $(BLD)/elf-loader$(FULL_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) INSTALL_PREFIX=$(BLD)/rootfs/$@/usr/bin install )
 	cp -a $(BBOX_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(MTD_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(RIO_DIR)/* $(BLD)/rootfs/$@
@@ -861,7 +865,7 @@ full-root-$(ARCHef): productdir
 	(cd $(BLD)/rootfs/$@; find . ! -name '.' | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
-ltp-root: $(call COND_DEP, busybox mtd syslink-all ltp)
+ltp-root: $(call COND_DEP, busybox mtd rio mcsdk-demo elf-loader syslink-all ltp)
 one-ltp-root: ltp-root-$(ARCHef)
 ltp-root-$(ARCHef): productdir
 	+$(QUIET)echo "********** ltp-root ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
@@ -871,8 +875,13 @@ ltp-root-$(ARCHef): productdir
 	cp -a rootfs/min-root-extra/* $(BLD)/rootfs/$@
 	cp -a $(BBOX_DIR)/* $(BLD)/rootfs/$@
 	cp -a $(MTD_DIR)/* $(BLD)/rootfs/$@
+	cp -a $(RIO_DIR)/* $(BLD)/rootfs/$@
 	#cp -a $(SYSLINK_ALL_DIR)/* $(BLD)/rootfs/$@
 	#cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
+	rm -rf $(BLD)/rootfs/$@/web
+	# call mcsdk demo install
+	(cd $(BLD)/mcsdk-demo$(FULL_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) INSTALL_PREFIX=$(BLD)/rootfs/$@ install )
+	(cd $(BLD)/elf-loader$(FULL_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) INSTALL_PREFIX=$(BLD)/rootfs/$@/usr/bin install )
 	if [ -n $(EXTRA_ROOT_DIR) ] ; then for dir in $(EXTRA_ROOT_DIR); do cp -a $$dir/rootfs/* $(BLD)/rootfs/$@ ; done ; fi
 	if [ -e $(GDBSERVER) ] ; then cp $(GDBSERVER) $(BLD)/rootfs/$@/usr/bin ; fi
 	cp $(TESTING_DIR)/scripts/* $(BLD)/rootfs/$@/bin
