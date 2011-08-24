@@ -50,7 +50,7 @@ build-order:
 # These targets are valid user command line targets and depend on ENDIAN and FLOAT
 TOP_ENDIAN_FLOAT_TARGETS = mtd rio busybox package sdk clib sdk0 clean mtd-clean rio-clean \
 	busybox-clean packages-clean clib-clean bootblobs elf-loader mcsdk-demo ltp \
-	syslink-user syslink-demo syslink-all min-root mcsdk-demo-root full-root ltp-root
+	syslink-user syslink-demo syslink-all min-root mcsdk-demo-root full-root ltp-root devtools
 
 # These are internal sub-targets to support TOP_ENDIAN_FLOAT targets
 ENDIAN_FLOAT_TARGETS = $(add-prefix one-,$(TOP_ENDIAN_FLOAT_TARGETS))
@@ -293,17 +293,21 @@ USERSPACE_LDFLAGS  = -mdsbt
 ifeq ($(ENDIAN),big)
 USERSPACE_CFLAGS  += -mbig-endian
 USERSPACE_LDFLAGS += -mbig-endian
+ARCH_DIRe=/be
+else
+ARCH_DIRe=
 endif
+
 ifeq ($(FLOAT),hard)
 USERSPACE_CFLAGS  += -march=c674x
 USERSPACE_LDFLAGS += -march=c674x
-endif
-
-ifeq ($(ENDIAN),little)
-GDBSERVER = $(GNU_TOOLS_DIR)/c6x-uclinux/libc/usr/bin/gdbserver
+ARCH_DIRf=/c674x
 else
-GDBSERVER = $(GNU_TOOLS_DIR)/c6x-uclinux/libc/be/usr/bin/gdbserver
+ARCH_DIRf=
 endif
+ARCH_DIR=$(ARCH_DIRe)$(ARCH_DIRf)
+
+GDBSERVER = $(GNU_TOOLS_DIR)/c6x-uclinux/libc$(ARCH_DIR)/usr/bin/gdbserver
 
 # install kernel headers here
 HDR_DIR = $(BLD)/kernel-headers
@@ -795,10 +799,21 @@ syslink-clean:
 
 include $(PRJ)/scripts/Makefile.syslink
 
+### DevTools archive
+devtools: $(call COND_DEP, sdk)
+one-devtools: devtools-$(ARCHef)
+devtools-$(ARCHef): productdir
+	+$(QUIET)echo "********** devtools ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
+	echo GDBSERVER=$(GDBSERVER)
+	mkdir -p $(BLD)/rootfs/$@/usr/bin
+	@if [ -e $(GDBSERVER) ] ; then cp $(GDBSERVER) $(BLD)/rootfs/$@/usr/bin ; echo copied $(GDBSERVER); else echo "gdbserver not found"; fi
+	(cd $(BLD)/rootfs/$@; find . ! -name '.' | cpio -H newc -o -O ../$@.cpio)
+	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/gplv3-$@.cpio.gz
+
 ########  Root filesystems
 rootfs: bootblob $(ROOTFS) bootblob
 
-min-root: $(call COND_DEP, busybox mtd)
+min-root: $(call COND_DEP, busybox mtd devtools)
 one-min-root: min-root-$(ARCHef)
 min-root-$(ARCHef): productdir
 	+$(QUIET)echo "********** min-root ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
@@ -817,7 +832,7 @@ min-root-$(ARCHef): productdir
 	(cd $(BLD)/rootfs/$@; find . ! -name '.' | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
-mcsdk-demo-root: $(call COND_DEP, busybox mtd mcsdk-demo syslink-demo elf-loader)
+mcsdk-demo-root: $(call COND_DEP, busybox mtd mcsdk-demo syslink-demo elf-loader devtools)
 one-mcsdk-demo-root: mcsdk-demo-root-$(ARCHef)
 mcsdk-demo-root-$(ARCHef): productdir
 	+$(QUIET)echo "********** mcsdk-root ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
@@ -840,7 +855,7 @@ mcsdk-demo-root-$(ARCHef): productdir
 	(cd $(BLD)/rootfs/$@; find . ! -name '.' | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
-full-root: $(call COND_DEP, busybox mtd rio packages mcsdk-demo syslink-demo elf-loader)
+full-root: $(call COND_DEP, busybox mtd rio packages mcsdk-demo syslink-demo elf-loader devtools)
 one-full-root: full-root-$(ARCHef)
 full-root-$(ARCHef): productdir
 	+$(QUIET)echo "********** full-root ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
@@ -865,7 +880,7 @@ full-root-$(ARCHef): productdir
 	(cd $(BLD)/rootfs/$@; find . ! -name '.' | cpio -H newc -o -A -O ../$@.cpio)
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/$@.cpio.gz
 
-ltp-root: $(call COND_DEP, busybox mtd rio mcsdk-demo elf-loader syslink-all ltp)
+ltp-root: $(call COND_DEP, busybox mtd rio mcsdk-demo elf-loader syslink-all ltp devtools)
 one-ltp-root: ltp-root-$(ARCHef)
 ltp-root-$(ARCHef): productdir
 	+$(QUIET)echo "********** ltp-root ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"

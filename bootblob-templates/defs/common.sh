@@ -58,7 +58,7 @@ do_late_defs() {
 	MODULES_FILE="modules-2.6.34-${EVM}${ENDIAN_SUFFIX}${BUILD_SUFFIX}.tar.gz"
 	TEST_MODULES_FILE="test-modules-2.6.34-${EVM}${ENDIAN_SUFFIX}${BUILD_SUFFIX}.tar.gz"
 	SYSLINK_FILE="syslink-${SYSLINK_TYPE}-${EVM}${FULL_SUFFIX}${BUILD_SUFFIX}.tar.gz"
-	DEVTOOLS_FILE="gplv3-devtools-${ARCHef}.tar.gz"
+	DEVTOOLS_FILE="gplv3-devtools-${ARCHef}.cpio.gz"
 
 	BLOB_OUTFILE=${TEMPLATE}${FULL_SUFFIX}${BUILD_SUFFIX}.bin
 	FS_OUTFILE=${TEMPLATE}${FULL_SUFFIX}${BUILD_SUFFIX}
