@@ -810,7 +810,7 @@ min-root-$(ARCHef): productdir
 	cp -a $(MTD_DIR)/* $(BLD)/rootfs/$@
 	#cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
 	if [ -n $(EXTRA_ROOT_DIR) ] ; then for dir in $(EXTRA_ROOT_DIR); do cp -a $$dir/rootfs/* $(BLD)/rootfs/$@ ; done ; fi
-	if [ -e $(GDBSERVER) ] ; then cp $(GDBSERVER) $(BLD)/rootfs/$@/usr/bin ; fi
+#	if [ -e $(GDBSERVER) ] ; then cp $(GDBSERVER) $(BLD)/rootfs/$@/usr/bin ; fi
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - usr/lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	cp rootfs/min-root-devs.cpio $(BLD)/rootfs/$@.cpio
@@ -858,7 +858,7 @@ full-root-$(ARCHef): productdir
 	cp -a $(PACKAGES_DIR)/* $(BLD)/rootfs/$@
 	#cp -a $(MOD_DIR)/* $(BLD)/rootfs/$@
 	if [ -n $(EXTRA_ROOT_DIR) ] ; then for dir in $(EXTRA_ROOT_DIR); do cp -a $$dir/rootfs/* $(BLD)/rootfs/$@ ; done ; fi
-	if [ -e $(GDBSERVER) ] ; then cp $(GDBSERVER) $(BLD)/rootfs/$@/usr/bin ; fi
+#	if [ -e $(GDBSERVER) ] ; then cp $(GDBSERVER) $(BLD)/rootfs/$@/usr/bin ; fi
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	(cd $(SYSROOT_DIR) ; tar --exclude='*.a' -cf - usr/lib | (cd $(BLD)/rootfs/$@; tar xf -))
 	cp rootfs/min-root-devs.cpio $(BLD)/rootfs/$@.cpio
@@ -883,7 +883,7 @@ ltp-root-$(ARCHef): productdir
 	(cd $(BLD)/mcsdk-demo$(FULL_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) INSTALL_PREFIX=$(BLD)/rootfs/$@ install )
 	(cd $(BLD)/elf-loader$(FULL_SUFFIX); make CROSS=$(CC_SDK) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT) INSTALL_PREFIX=$(BLD)/rootfs/$@/usr/bin install )
 	if [ -n $(EXTRA_ROOT_DIR) ] ; then for dir in $(EXTRA_ROOT_DIR); do cp -a $$dir/rootfs/* $(BLD)/rootfs/$@ ; done ; fi
-	if [ -e $(GDBSERVER) ] ; then cp $(GDBSERVER) $(BLD)/rootfs/$@/usr/bin ; fi
+#	if [ -e $(GDBSERVER) ] ; then cp $(GDBSERVER) $(BLD)/rootfs/$@/usr/bin ; fi
 	cp $(TESTING_DIR)/scripts/* $(BLD)/rootfs/$@/bin
 	mkdir -p $(BLD)/rootfs/$@/opt/testing
 	cp -r $(TESTING_DIR)/images $(BLD)/rootfs/$@/opt/testing
