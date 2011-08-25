@@ -26,8 +26,10 @@ fi
 do_late_defs() {
 	if [ "$ENDIAN"x == "little"x ]; then
 		ENDIAN_TAG=el
+		ARCHe=""
 	elif [ "$ENDIAN"x == "big"x ]; then
 		ENDIAN_TAG=eb
+		ARCHe="eb"
 	fi
 
 	if [ "$FLOAT"x == "hard"x ]; then
@@ -50,7 +52,7 @@ do_late_defs() {
 	ENDIAN_SUFFIX=.$ENDIAN_TAG
 	FULL_TAG=$ENDIAN_TAG$FLOAT_SUFFIX
 	FULL_SUFFIX=".$FULL_TAG"
-	ARCHef="c6x$FULL_TAG"
+	ARCHef="c6x$ARCHe$FLOAT_SUFFIX"
 
 	KERNEL_PATTERN_START="vmlinux-2.6.34-${EVM}${ENDIAN_SUFFIX}"
 	KERNEL_PATTERN_END=".bin"
