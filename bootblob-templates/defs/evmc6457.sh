@@ -2,6 +2,6 @@
 # is sourced into bootblob and should not be used otherwise
 
 EVM=evmc6457
-source ${STD_TEMPLATE_DIR}/evmc64xxlc.sh
+source ${STD_TEMPLATE_DIR}/defs/evmc64xxlc.sh
 : ${MEMORY_START:=0xe0000000}
 
