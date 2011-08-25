@@ -237,7 +237,7 @@ one-one-syslink-rtos-demo-install:
 	$(STRIP_CGT) -p $(SYSLINK_INSTALL)/*.$(RTOS_EXTENSION)
 
 one-one-syslink-tar:
-	cd $(SYSLINK_INSTALL_DIR); tar czf $(PRODUCT_DIR)/syslink-$(SYSLINK_INSTALL_TYPE)-$(KNAME).$(ARCHe)$(ARCHfloat)$(BUILD_SUFFIX).tar.gz *
+	cd $(SYSLINK_INSTALL_DIR); tar czf $(PRODUCT_DIR)/syslink-$(SYSLINK_INSTALL_TYPE)-$(KNAME)$(ENDIAN_SUFFIX)$(ARCHfloat)$(BUILD_SUFFIX).tar.gz *
 
 ifeq ($(KNAME),evmc6678)
 SL_SC=8
@@ -247,25 +247,29 @@ ifeq ($(KNAME),evmc6674)
 SL_SC=4
 endif
 
-SL_SSRC=$(PRJ)/scripts/syslink/
+SL_SSRC=$(PRJ)/scripts/syslink
+ifneq ($(SL_SC),)
+
 one-one-syslink-script-demo-install:
-ifdef $(SL_SC)
 	cp $(SL_SSRC)/{messageq,notify}_*_test_$(SL_SC)_core.sh 	  $(SYSLINK_INSTALL)
 	cp $(SL_SSRC)/procmgr_load_{messageq,notify}app_$(SL_SC)_core.sh  $(SYSLINK_INSTALL)
 	cp $(SL_SSRC)/*.txt  						  $(SYSLINK_INSTALL)
-endif
-	true
 
-SL_SSRC=$(PRJ)/scripts/syslink/
 one-one-syslink-script-all-install:
-ifdef $(SL_SC)
 	cp $(SL_SSRC)/*_test_$(SL_SC)_core.sh 		  		  $(SYSLINK_INSTALL)
 	cp $(SL_SSRC)/procmgr_load_*app_$(SL_SC)_core.sh  		  $(SYSLINK_INSTALL)
-else
-	cp $(SL_SSRC)/syslink*c64x.{sh,js} 		  		  $(SYSLINK_INSTALL)
-endif
 	cp $(SL_SSRC)/*.txt  						  $(SYSLINK_INSTALL)
+
+else # SL_SC is blank
+
+one-one-syslink-script-demo-install:
 	true
+
+one-one-syslink-script-all-install:
+	cp $(SL_SSRC)/syslink*c64x.{sh,js} 		  		  $(SYSLINK_INSTALL)
+	cp $(SL_SSRC)/*.txt  						  $(SYSLINK_INSTALL)
+
+endif
 
 one-one-syslink-demo:
 	+$(QUIET)echo "********** $(subst one-one-,,$@) for $(KNAME) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
