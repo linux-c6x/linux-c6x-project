@@ -31,6 +31,8 @@ else
     source build.def
 fi
 
+: ${BUILD_USER:=$USER}
+
 case $BUILD_TYPE in
 branch)
 	DEF_BUILD_NAME=$SRC_RELEASE-$DATE
@@ -38,15 +40,16 @@ branch)
 tag)
 	DEF_BUILD_NAME=$SRC_RELEASE
 ;;
+checkout)
+	DEF_BUILD_NAME=dev-$(BUILD_USER)-$(DATE)
+;;
 *)
 	echo "bad BUILD_TYPE=$BUILD_TYPE"
 	exit 2
 ;;
 esac
 
-if [ -z "$BUILD_NAME" ]; then
-	BUILD_NAME=$DEF_BUILD_NAME
-fi
+: ${BUILD_NAME:=$DEF_BUILD_NAME}
 
 first-word() {
 	echo "$1"
@@ -95,7 +98,10 @@ make-source-tarball() {
 	wget -O bootstrap $BOOTSTRAP_URL
 	chmod +x bootstrap
 
-	./bootstrap $SRC_RELEASE
+	./bootstrap ${PRJ_URL:+--url=$PRJ_URL} $SRC_RELEASE
+	
+	# record manual dependencies
+	(cd $JOB_DIR; md5sum -b manual-dependencies/* >$WORK_DIR/$SRC_REF/manual-dependencies.md5sums)
 
 	# we need to config to get uclibc source
 	cd $WORK_DIR/linux-c6x-project
@@ -103,7 +109,7 @@ make-source-tarball() {
 
 	# record reference information
 	./prj git rev-parse HEAD >../$SRC_REF/src-release.src-record
-	(cd $JOB_DIR; md5sum -b manual-dependencies/* >$WORK_DIR/$SRC_REF/manual-dependencies.md5sums)
+	(cd $JOB_DIR; md5sum -b manual-dependencies/* >$WORK_DIR/$SRC_REF/all-dependencies.md5sums)
 
 	# clean up
 	rm ../bootstrap
