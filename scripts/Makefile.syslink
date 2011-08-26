@@ -199,7 +199,7 @@ one-one-syslink-rtos-all: one-one-syslink-prep
 SYSLINK_INSTALL_DIR 	= $(BLD)/rootfs-parts/syslink-$(SYSLINK_INSTALL_TYPE)-$(KNAME).$(ARCHe)$(ARCHfloat)
 
 # the path within the filesystem where the files will appear
-SYSLINK_INSTALL_PATH	= /opt/syslink-$(KNAME)$(ENDIAN_SUFFIX)
+SYSLINK_INSTALL_PATH	= /opt/syslink_$(KNAME)$(ENDIAN_SUFFIX)
 
 # the resulting full path
 SYSLINK_INSTALL		= $(SYSLINK_INSTALL_DIR)/$(SYSLINK_INSTALL_PATH)
