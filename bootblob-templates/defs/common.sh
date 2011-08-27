@@ -82,6 +82,16 @@ do_for_each() {
 	fi
 }
 
+is_one_of() {
+    word=$1; shift
+    for test in "$@"; do
+	if [ "$word"x == "$test"x ]; then
+	    return 0
+	fi
+    done
+    return 1
+}
+
 do_for_each_float() {
 	if [ "$FLOAT" == "both" ]; then
 		for float in $POSSIBLE_FLOAT; do
@@ -90,7 +100,12 @@ do_for_each_float() {
 	elif [ "$FLOAT" == "native" ]; then
 		FLOAT=$NATIVE_FLOAT  do_for_each_build "$@"
 	else
-		do_for_each_build "$@"
+		if is_one_of $FLOAT $POSSIBLE_FLOATS; then
+		    do_for_each_build "$@"
+		else
+		    echo "error: FLOAT=$FLOAT is not valid for CPU=$CPU"
+		    one_rc_check false
+		fi
 	fi
 }
 
@@ -100,15 +115,16 @@ do_for_each_build() {
 		for kernel in ${KERNEL_PATTERN_START}*${KERNEL_PATTERN_END}; do
 			tmp=${kernel##$KERNEL_PATTERN_START}
 			tmp=${tmp%%$KERNEL_PATTERN_END}
-			BUILD_SUFFIX="$tmp" one_rc_check "$@"
+			BUILD_SUFFIX="$tmp" "$@"
 		done
 	else
-		one_rc_check "$@"
+		"$@"
 	fi
 }
 
+do_one_template() {
+	shift
 
-do_one() {
 	do_late_defs
 	if [ ! -r $KERNEL_FILE ]; then
 		echo "***** skipping $(basename $TEMPLATE) for ENDIAN=$ENDIAN FLOAT=$FLOAT BUILD=$BUILD_SUFFIX, no kernel"
@@ -123,7 +139,13 @@ do_one() {
 	fi
 
 	echo "***** Bootblob $(basename $TEMPLATE) for ENDIAN=$ENDIAN FLOAT=$FLOAT BUILD=$BUILD_SUFFIX"
-	do_it
+	if do_it "$@"; then
+	    one_rc_check true
+	    echo "OK"
+	else
+	    one_rc_check false
+	    echo "FAILED"
+	fi	
 }
 
 calculate_depends() {

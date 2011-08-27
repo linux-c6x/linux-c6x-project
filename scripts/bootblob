@@ -158,6 +158,8 @@ final_rc_check() {
 		echo "all specified template combinations suceeded"
 	elif $ANY_WORKED; then
 		echo "some attempted template combinations were skipped or failed"
+	elif $ALL_WORKED; then 
+		echo "no template combinations were tried"
 	else
 		echo "all attempted template combinations failed"
 	fi
@@ -171,16 +173,62 @@ final_rc_check() {
 	fi
 }
 
+encode_rc() {
+	rc=0
+	if  $ANY_WORKED ; then 
+		rc=$(( $rc | 0x01 ))
+	fi
+
+	if  ! $ALL_WORKED ; then 
+		rc=$(( $rc | 0x02 ))
+	fi
+
+	if  $BEST_EFFORT ; then 
+		rc=$(( $rc | 0x04 ))
+	fi
+	return $rc
+}
+
+decode_rc() {
+	rc=$1
+	if  (( $rc & 0x01 )) ; then 
+		ANY_WORKED=true
+	fi
+
+	if  (( $rc & 0x02 )) ; then 
+		ALL_WORKED=false
+	fi
+
+	if  (( $rc & 0x04 )) ; then 
+		BEST_EFFORT=true
+	fi
+
+}
+
+# we want each template's var settings to be isolated so this runs in a sub-shell
+# howeever we want to update our rc_check vars so we use unconventional rc codes 
+# to pass the data
+do_template() {
+	init_rc_check
+	source $STD_TEMPLATE_DIR/defs/common.sh
+	source $THIS_TEMPLATE_DIR/$TEMPLATE
+	do_for_each do_one_template
+	encode_rc
+}
+
 do_templates() {
     init_rc_check
     for template in $@; do
 	if [ -f "$template" ] ; then 
 		TEMPLATE=$(basename $template)
 		THIS_TEMPLATE_DIR=$(dirname $template)
-		source $STD_TEMPLATE_DIR/defs/common.sh
-		source $template
-		do_for_each do_one
+		(do_template)
+		decode_rc $?
+	elif [ -d "$template" ]; then
+		# ignore directories
+		true
 	else
+		echo "Unknown template $template"
 		one_rc_check false
 	fi
     done
