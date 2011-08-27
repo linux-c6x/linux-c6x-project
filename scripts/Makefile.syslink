@@ -155,7 +155,7 @@ one-one-syslink-kernel: one-one-syslink-prep
 		SYSLINK_VARIANT=$(SYSLINK_VARIANT) KDIR=$(KDIR) IPC_DIR=$(IPC_PACKAGES_DIR))
 
 	# build all kernel sample modules
-	+$(QUIET)for module_name in $(SYSLINK_KERNEL_SAMPLES_TO_BUILD) ; do \
+	$(QUIET)for module_name in $(SYSLINK_KERNEL_SAMPLES_TO_BUILD) ; do \
 		echo building $$module_name; \
 		(cd $(SYSLINK_ROOT)/ti/syslink/samples/hlos/$$module_name/knl/Linux; ls -l; \
 			make ARCH=c6x CROSS_COMPILE=$(CC_SDK0) SYSLINK_PLATFORM=$(SYSLINK_PLATFORM) \
