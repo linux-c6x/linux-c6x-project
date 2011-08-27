@@ -95,15 +95,15 @@ SYSLINK_KERNEL_RESULTS=$(SYSLINK_ENDIAN_ROOT)/ti/syslink/bin/$(SYSLINK_PLATFORM)
 endif
 
 syslink-help:
-	@echo "First edit and source setenv for SysLink variables"
-	@echo
-	@echo "Following SysLink targets available:-"
-	@echo "syslink-kernel - for building syslink and sample kernel modules"
-	@echo "syslink-user - for building syslink library and user land samples"
-	@echo "syslink-all - build all targets"
-	@echo "syslink-kernel-clean - clean kernel and sample modules"
-	@echo "syslink-user-clean - clean user land and sample exe files"
-	@echo "syslink-clean - clean all targets"
+	@echo "Following SysLink targets available:"
+	@echo "syslink-demo      - build all targets needed for messageq and notify"
+	@echo "syslink-all       - build all syslink targets"
+	@echo "syslink-kernel    - for building syslink and sample kernel modules"
+	@echo "syslink-user      - for building syslink library and user land samples"
+	@echo "syslink-user      - for building syslink library and user land samples"
+	@echo "syslink-rtos-demo - for building syslink library and user land samples"
+	@echo "syslink-rtos-all  - for building syslink library and user land samples"
+	@echo "syslink-rtos-ipc ... build individual parts for rtos"
 	@echo
 	@echo "syslink files are installed under product/<platform>/"
 
