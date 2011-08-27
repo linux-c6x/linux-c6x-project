@@ -21,7 +21,9 @@ all: product syslink-all
 
 product: rootfs modules extra-kernels bootblobs
 
-DATE ?= $(shell date +'%Y%m%d')
+ifeq ($(DATE),)
+DATE  	:= $(shell date +'%Y%m%d')
+endif
 export DATE
 
 BUILD_USER 	?= $(USER)
@@ -47,6 +49,7 @@ BUILD_ORDER_TARGETS ?= "product"
 build-order:
 	@$(SUB_MAKE) -n $(BUILD_ORDER_TARGETS) 2>&1 | grep "^\*\*\*"
 
+ORIG_FLOAT=$(FLOAT)
 ifeq ($(FLOAT),native)
 FLOAT=${shell \
 	H=false; S=false; \
@@ -73,7 +76,6 @@ TOP_ENDIAN_FLOAT_TARGETS = mtd rio busybox package sdk clib sdk0 clean mtd-clean
 
 # These are internal sub-targets to support TOP_ENDIAN_FLOAT targets
 ENDIAN_FLOAT_TARGETS = $(add-prefix one-,$(TOP_ENDIAN_FLOAT_TARGETS))
-
 SYSLINK_RTOS_TARGETS= syslink-rtos-demo syslink-rtos-all \
 	syslink-rtos-ipc syslink-rtos-platform \
 	syslink-rtos-notify syslink-rtos-messageq
@@ -971,7 +973,7 @@ endif
 .PHONY: one-this-bootblobs
 one-this-bootblob: $(BOOTBLOB_DEPENDENCIES)
 	+$(QUIET)echo "********** bootblob $(BOOTBLOB_FILE) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
-	./bootblob $(BOOTBLOB_FILE)
+	FLOAT=$(ORIG_FLOAT) ./bootblob $(BOOTBLOB_FILE)
 
 ########  Directory targets
 productdir:
