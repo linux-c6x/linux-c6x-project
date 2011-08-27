@@ -49,9 +49,16 @@ BUILD_ORDER_TARGETS ?= "product"
 build-order:
 	@$(SUB_MAKE) -n $(BUILD_ORDER_TARGETS) 2>&1 | grep "^\*\*\*"
 
-ORIG_FLOAT=$(FLOAT)
+
+# save original passed in FLOAT
+ifeq ($(ORIG_FLOAT),)
+ORIG_FLOAT := $(FLOAT)
+endif
+export ORIG_FLOAT
+
+# modify float for internal purpose
 ifeq ($(FLOAT),native)
-FLOAT=${shell \
+override FLOAT=${shell \
 	H=false; S=false; \
 	for evm in $(KERNELS_TO_BUILD); do \
 	case $$evm in	\
@@ -69,13 +76,32 @@ FLOAT=${shell \
 }
 endif
 
+# remember modified FLOAT from top level
+ifeq ($(TOP_FLOAT),)
+TOP_FLOAT := $(FLOAT)
+endif
+export ORIG_FLOAT
+export TOP_FLOAT
+
+#$(info FLOAT=$(FLOAT))
+
+ifneq ($(KNAME),)
+CPU=${shell \
+	case $(KNAME) in	\
+		evmc66*|evm66*)        echo "C66";   ;; \
+		dsk64*|evmc64*|evm64*) echo "C64P";  ;; \
+	esac ; \
+}
+endif
+#$(info CPU=$(CPU))
+
 # These targets are valid user command line targets and depend on ENDIAN and FLOAT
 TOP_ENDIAN_FLOAT_TARGETS = mtd rio busybox package sdk clib sdk0 clean mtd-clean rio-clean \
-	busybox-clean packages-clean clib-clean bootblobs elf-loader mcsdk-demo ltp \
+	busybox-clean packages-clean clib-clean elf-loader mcsdk-demo ltp \
 	syslink-user syslink-demo syslink-all min-root mcsdk-demo-root full-root ltp-root devtools
 
 # These are internal sub-targets to support TOP_ENDIAN_FLOAT targets
-ENDIAN_FLOAT_TARGETS = $(add-prefix one-,$(TOP_ENDIAN_FLOAT_TARGETS))
+ENDIAN_FLOAT_TARGETS = $(addprefix one-,$(TOP_ENDIAN_FLOAT_TARGETS))
 SYSLINK_RTOS_TARGETS= syslink-rtos-demo syslink-rtos-all \
 	syslink-rtos-ipc syslink-rtos-platform \
 	syslink-rtos-notify syslink-rtos-messageq
@@ -84,16 +110,16 @@ SYSLINK_RTOS_TARGETS= syslink-rtos-demo syslink-rtos-all \
 TOP_ENDIAN_TARGETS = kernels modules extra-kernels syslink-kernel $(SYSLINK_RTOS_TARGETS)
 
 # These are internal sub-targets to support TOP_ENDIAN targets
-ENDIAN_TARGETS = $(add-prefix one-,$(TOP_ENDIAN_TARGETS)) $(add-prefix one-,$(SYSLINK_RTOS_TARGETS))
+ENDIAN_TARGETS = $(addprefix one-,$(TOP_ENDIAN_TARGETS)) $(addprefix one-,$(SYSLINK_RTOS_TARGETS))
 
 # These targets are only valid when ENDIAN and KNAME are specificly defined
-ENDIAN_KERNEL_TARGETS = one-kernel one-module one-one-syslink-kernel $(add-prefix one-one-,$(SYSLINK_RTOS_TARGETS))
+ENDIAN_KERNEL_TARGETS = one-kernel one-module one-one-syslink-kernel $(addprefix one-one-,$(SYSLINK_RTOS_TARGETS))
 
 # These targets are only valid when ENDIAN, FLOAT and KNAME are specificly defined
 ENDIAN_FLOAT_KERNEL_TARGETS = one-one-syslink-user one-one-syslink-demo one-one-syslink-all
 
 # These targets don't depend on ENDIAN, FLOAT, or KERNEL
-TOP_NONE_TARGETS = product rootfs packages all kernel-headers rpm
+TOP_NONE_TARGETS = product rootfs packages all kernel-headers rpm bootblobs
 
 # all TOP level targets, if the target is not here it is not meant to be one the user command line
 TOP_TARGETS = TOP_ENDIAN_FLOAT_TARGETS TOP_ENDIAN_TARGETS TOP_ENDIAN_KERNEL_TARGETS TOP_NONE_TARGETS
@@ -804,11 +830,19 @@ $(SYSLINK_DEMO_RTOS_SAMPLES): syslink-rtos-ipc syslink-rtos-platform
 
 $(MID_SYSLINK_TARGETS):
 	+$(QUIET)for kname in $(SYSLINKS_TO_BUILD) ; do \
-		if ! $(SUB_MAKE) IS_SYSLINK_BUILD=1 KNAME=$$kname one-$@ ; then \
-			echo "Build of $@ for $$kname Failed" ; \
-			exit 2; \
-		fi \
+		$(SUB_MAKE) IS_SYSLINK_BUILD=1 KNAME=$$kname check-one-$@; \
 	done
+
+# These are internal sub-targets to support TOP_ENDIAN targets
+#CHECK_MID_SYSLINK_TARGETS=x $(subst y,z,xyz) y
+CHECK_MID_SYSLINK_TARGETS=x $(addprefix check-one-,$(MID_SYSLINK_TARGETS))
+$(CHECK_MID_SYSLINK_TARGETS):
+	+$(QUIET)if [ "$(CPU)"x == "C64P"x ] && [ "$(FLOAT)"x == "hard"x ] ; then \
+		echo "********** skip $(subst check-,,$@) for $(KNAME) FLOAT=$(FLOAT)" ; \
+	elif ! $(SUB_MAKE) IS_SYSLINK_BUILD=1 KNAME=$(KNAME) $(subst check-,,$@) ; then \
+		echo "Build of $(subst check-,,$@) for $(KNAME) Failed" ; \
+		exit 2; \
+	fi
 
 one-one-syslink-rtos-demo:
 	$(QUIET)true
@@ -832,7 +866,7 @@ devtools-$(ARCHef): productdir
 	gzip -c $(BLD)/rootfs/$@.cpio > $(PRODUCT_DIR)/gplv3-$@.cpio.gz
 
 ########  Root filesystems
-rootfs: bootblob $(ROOTFS) bootblob
+rootfs: bootblob $(ROOTFS)
 
 min-root: $(call COND_DEP, busybox mtd devtools)
 one-min-root: min-root-$(ARCHef)
@@ -954,8 +988,7 @@ bootblob: productdir
 	cp -a $(PRJ)/bootblob-templates $(PRODUCT_DIR)/
 	cp -a $(PRJ)/scripts/make-filesystem $(PRODUCT_DIR)/
 
-bootblobs: bootblob
-one-bootblobs: productdir
+bootblobs: bootblob productdir
 	+$(QUIET)for this_blob in $(BOOTBLOBS) ; do \
 		if [ -r $(PRJ)/bootblob-templates/$${this_blob} ] || [ "$$this_blob" == "all" ]; then \
 			$(SUB_MAKE) -C $(PRODUCT_DIR) BOOTBLOB_FILE=$${this_blob} one-this-bootblob; \
@@ -972,7 +1005,7 @@ endif
 
 .PHONY: one-this-bootblobs
 one-this-bootblob: $(BOOTBLOB_DEPENDENCIES)
-	+$(QUIET)echo "********** bootblob $(BOOTBLOB_FILE) ENDIAN=$(ENDIAN) FLOAT=$(FLOAT)"
+	+$(QUIET)echo "********** bootblob $(BOOTBLOB_FILE) ENDIAN=$(ENDIAN) FLOAT=$(ORIG_FLOAT)"
 	FLOAT=$(ORIG_FLOAT) ./bootblob $(BOOTBLOB_FILE)
 
 ########  Directory targets
