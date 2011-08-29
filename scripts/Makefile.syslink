@@ -243,7 +243,7 @@ ifeq ($(KNAME),evmc6678)
 SL_SC=8
 endif
 
-ifeq ($(KNAME),evmc6674)
+ifeq ($(KNAME),evmc6670)
 SL_SC=4
 endif
 
