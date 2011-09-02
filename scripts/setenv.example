@@ -25,6 +25,12 @@ fi
 #
 export KERNELS_TO_BUILD="evmc6678"
 
+# Choose extra kernels to build
+# This is normally blank.  
+# A few extra features build special kernel versions and will instruct you
+#     to set this to specific values.
+export EXTRA_KERNELS_TO_BUILD=""
+
 # set the GCC tool chain version to use for the build.
 # This variable is used by ./prj config to find/setup the gcc resources
 export GCC_VERSION=4.5-124
@@ -48,16 +54,19 @@ export ROOTFS="min-root mcsdk-demo-root"
 
 # Choices for bootblobs to create
 # can list zero, one, or more
-# see bootblob-spec/*.mk for a list of choices
-# Note: for now you need to ensure that kernels and rootfs'es needed are specified above, 
-#       this does not yet do dependencies
-export BOOTBLOBS="evmc6678-nfs evmc6678-initramfs-min-root evmc6678-initramfs-mcsdk-demo-root"
+# see bootblob-templates/* for a list of choices
+# can also be "all" to build all combinations for the kernels in ../product/
+# you need to ensure that kernels and rootfs'es needed are specified above, 
+#     this does not do dependencies
+export BOOTBLOBS="all"
 
 # 'little', 'big', or 'both' for endianess versions to build
 export ENDIAN=little
 
-# 'soft', 'hard', or 'both' floating point ABI options 
-export FLOAT=both
+# 'soft', 'hard', 'both', or "native" floating point ABI options 
+# "native" looks at KERNELS_TO_BUILD and builds hard for C66 platforms, 
+#     soft for C64P platforms, and both if both are found
+export FLOAT=native
 
 # list of extra packages to build and install when using full-root
 export PKG_LIST="zlib net-snmp polarssl ttcp dhrystone nbench-byte tcpdump iperf openssl ethtool"
