@@ -71,6 +71,11 @@ export FLOAT=native
 # list of extra packages to build and install when using full-root
 export PKG_LIST="zlib net-snmp polarssl ttcp dhrystone nbench-byte tcpdump iperf openssl ethtool"
 
+# Build bootloader and support?
+# requires CGT toolchain to be installed
+# 'yes', 'no'
+export BUILD_BOOTLOADERS=no
+
 # Build syslink (Linux side & examples)?
 # 'yes', 'no' (default) 
 export BUILD_SYSLINK=no

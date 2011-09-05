@@ -17,9 +17,15 @@ def-target: build-order
 
 endif
 
-all: product syslink-all
+ifeq ($(BUILD_BOOTLOADERS),yes)
+BOOTLOADER_TARGETS=ibl eepromwriter
+else
+BOOTLOADER_TARGETS=""
+endif
 
-product: rootfs modules extra-kernels bootblobs
+all: product syslink-all ibl eepromwriter
+
+product: rootfs modules extra-kernels bootblobs $(BOOTLOADER_TARGETS)
 
 ifeq ($(DATE),)
 DATE  	:= $(shell date +'%Y%m%d')
@@ -107,13 +113,13 @@ SYSLINK_RTOS_TARGETS= syslink-rtos-demo syslink-rtos-all \
 	syslink-rtos-notify syslink-rtos-messageq
 
 # These targets are valid user command line targets and depend on ENDIAN and not on FLOAT
-TOP_ENDIAN_TARGETS = kernels modules extra-kernels syslink-kernel $(SYSLINK_RTOS_TARGETS)
+TOP_ENDIAN_TARGETS = kernels modules extra-kernels syslink-kernel $(SYSLINK_RTOS_TARGETS) ibl eepromwriter
 
 # These are internal sub-targets to support TOP_ENDIAN targets
 ENDIAN_TARGETS = $(addprefix one-,$(TOP_ENDIAN_TARGETS)) $(addprefix one-,$(SYSLINK_RTOS_TARGETS))
 
 # These targets are only valid when ENDIAN and KNAME are specificly defined
-ENDIAN_KERNEL_TARGETS = one-kernel one-module one-one-syslink-kernel $(addprefix one-one-,$(SYSLINK_RTOS_TARGETS))
+ENDIAN_KERNEL_TARGETS = one-kernel one-module one-one-syslink-kernel $(addprefix one-one-,$(SYSLINK_RTOS_TARGETS)) one-one-ibl one-one-eepromwriter
 
 # These targets are only valid when ENDIAN, FLOAT and KNAME are specificly defined
 ENDIAN_FLOAT_KERNEL_TARGETS = one-one-syslink-user one-one-syslink-demo one-one-syslink-all
@@ -198,10 +204,12 @@ $(TOP_ENDIAN_TARGETS):
 	fi
 
 ifeq ($(ENDIAN),little)
+ENDIAN_LETTERS = le
 ARCHendian     = 
 ENDIAN_SUFFIX  = .el
 else
 ifeq ($(ENDIAN),big)
+ENDIAN_LETTERS = be
 ARCHendian     = eb
 ENDIAN_SUFFIX  = .eb
 else
@@ -1007,6 +1015,75 @@ endif
 one-this-bootblob: $(BOOTBLOB_DEPENDENCIES)
 	+$(QUIET)echo "********** bootblob $(BOOTBLOB_FILE) ENDIAN=$(ENDIAN) FLOAT=$(ORIG_FLOAT)"
 	FLOAT=$(ORIG_FLOAT) ./bootblob $(BOOTBLOB_FILE)
+
+########  Bootloader and support
+EEPROMWRITER_SRC_DIR=$(TOP)/projects/c64-eepromwriter
+EEPROMWRITER_BLD_DIR=$(BLD)/c64-eepromwriter
+IBL_SRC_DIR=$(TOP)/projects/ibl
+IBL_BLD_DIR=$(BLD)/ibl-$(KNAME)$(ENDIAN_SUFFIX)
+
+# IBL and EEPROM writer like to use different names than we do
+ifneq ($(KNAME),)
+EEPROMWRITER_TARGET=$(subst evm,,$(subst -lite,l,$(subst dsk6,c6,$(KNAME))))
+endif
+
+# and they are different than each other
+ifneq ($(KNAME),)
+IBL_TARGET=$(patsubst evm_c667%,evm_c667%_i2c,$(subst evmc,evm_c,$(subst -lite,l,$(subst dsk6,evmc6,$(KNAME)))))
+endif
+
+# and yet another platform specific issue that is punted to the user to manage
+ifeq ($(CPU),C66)
+EEPROM_BUS_ADDR=0x51
+else
+EEPROM_BUS_ADDR=0x50
+endif
+
+eepromwriter: 
+one-eepromwriter:
+	+$(QUIET)for kname in $(KERNELS_TO_BUILD) ; do \
+		if ! $(SUB_MAKE) KNAME=$$kname one-one-eepromwriter ; then \
+			echo "Build of EEPROM writer for $$kname Failed" ; \
+			exit 2; \
+		fi \
+	done
+
+
+one-one-eepromwriter: productdir
+ifeq ($(CPU),C64P)
+	mkdir -p $(PRODUCT_DIR)/writers
+	+$(QUIET)echo "********** eepromwriter $(KNAME) ENDIAN=$(ENDIAN)"
+	( \
+		C6X_BASE_DIR=$(CGT_BIOS_DIR) ; \
+		. $(EEPROMWRITER_SRC_DIR)/build/setupenvLnx.sh; \
+		$(MAKE) -C $(EEPROMWRITER_SRC_DIR)/build BUILD_DIR=$(EEPROMWRITER_BLD_DIR) DEVICE=$(EEPROMWRITER_TARGET) ENDIAN=$(ENDIAN) \
+	)
+	cp $(EEPROMWRITER_BLD_DIR)/eepromwriter_$(EEPROMWRITER_TARGET)_$(ENDIAN_LETTERS).out $(PRODUCT_DIR)/writers/
+else
+	+$(QUIET)echo "********** skip eepromwriter $(KNAME) ENDIAN=$(ENDIAN), get from Linux binary release or build from BIOS MCSDK"
+endif
+
+ibl: 
+one-ibl:
+	+$(QUIET)for kname in $(KERNELS_TO_BUILD) ; do \
+		if ! $(SUB_MAKE) KNAME=$$kname one-one-ibl ; then \
+			echo "Build of IBL for $$kname Failed" ; \
+			exit 2; \
+		fi \
+	done
+
+
+# IBL builds very dirty and does not keep .obj variants separate so don't do it in-place
+one-one-ibl: productdir
+	+$(QUIET)echo "********** ibl $(KNAME) ENDIAN=$(ENDIAN)"
+	mkdir -p $(IBL_BLD_DIR)
+	cp -a $(IBL_SRC_DIR)/* $(IBL_BLD_DIR)/
+	( \
+		C6X_BASE_DIR=$(CGT_BIOS_DIR) ; \
+		. $(IBL_BLD_DIR)/src/make/setupenvLnx.sh; \
+		$(MAKE) -C $(IBL_BLD_DIR)/src/make ENDIAN=$(ENDIAN) I2C_BUS_ADDR=$(EEPROM_BUS_ADDR) $(IBL_TARGET) \
+	)
+	cp $(IBL_BLD_DIR)/src/make/bin/i2crom_0x??_$(EEPROMWRITER_TARGET)_$(ENDIAN_LETTERS).bin $(PRODUCT_DIR)/
 
 ########  Directory targets
 productdir:
