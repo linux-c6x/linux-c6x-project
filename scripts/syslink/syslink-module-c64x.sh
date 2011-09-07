@@ -68,7 +68,7 @@ then
 	fi
 fi
 
-echo Testing release version of notify application, num-cores=$num_cores reset_vector=$reset_vector
+echo Testing release version of $app_name application, num-cores=$num_cores reset_vector=$reset_vector
 if [ "${appsharedregion}X" != "X" ]
 then
 	echo "Using App SharedRegion address $appsharedregion"
@@ -77,15 +77,17 @@ fi
 if [ "$num_cores" == "5" ]
 then
 	echo "Testing on C6472"
+        proc_ids=12345
 else
         echo "Testing on C6474"
+	proc_ids=12
 fi
 
 if [ "$app_name" == "sharedregionapp" ]
 then
-	insmod "$app_name".ko SHAREDMEM=$appsharedregion NUMPROCS=$num_cores PROCID=01234
+	insmod "$app_name".ko SHAREDMEM=$appsharedregion NUMPROCS=$num_cores PROCID=$proc_ids
 else
-	insmod "$app_name".ko NUMPROCS=$num_cores PROCID=01234
+	insmod "$app_name".ko NUMPROCS=$num_cores PROCID=$proc_ids
 fi
 sleep 1
 rmmod "$app_name".ko

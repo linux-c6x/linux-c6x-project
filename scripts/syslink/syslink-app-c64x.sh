@@ -86,7 +86,7 @@ echo "Load BIOS application on slave cores and Type  <enter>"
 read none
 
 
-echo "Testing release version of notify application, num-cores=$num_cores reset_vector=$reset_vector"
+echo "Testing release version of $app_name application, num-cores=$num_cores reset_vector=$reset_vector"
 if [ "${appsharedregion}X" != "X" ]
 then
 	echo "Using App SharedRegion address $appsharedregion"
@@ -99,17 +99,17 @@ then
                 echo "Testing on C6472"
 		if [ "$app_name" == "sharedregionapp" ]
 		then
-			./"$app_name"_debug "$appsharedregion" 5 0 $reset_vector 1 $reset_vector 2 $reset_vector 3 $reset_vector 4 $reset_vector 3 
+			./"$app_name"_debug "$appsharedregion" 5 1 $reset_vector 2 $reset_vector 3 $reset_vector 4 $reset_vector 5 $reset_vector 3 
 		else
-			./"$app_name"_debug 5 0 $reset_vector 1 $reset_vector 2 $reset_vector 3 $reset_vector 4 $reset_vector 3 
+			./"$app_name"_debug 5 1 $reset_vector 2 $reset_vector 3 $reset_vector 4 $reset_vector 5 $reset_vector 3 
 		fi
 	else
                 echo "Testing on C6474"
 		if [ "$app_name" == "sharedregionapp" ]
 		then
-			./"$app_name"_debug "$appsharedregion" 2 0 $reset_vector 1 $reset_vector 3 
+			./"$app_name"_debug "$appsharedregion" 2 1 $reset_vector 2 $reset_vector 3 
 		else
-			./"$app_name"_debug 2 0 $reset_vector 1 $reset_vector 3 
+			./"$app_name"_debug 2 1 $reset_vector 2 $reset_vector 3 
 		fi
 	fi
 else
@@ -118,17 +118,17 @@ else
                 echo "Testing on C6472"
 		if [ "$app_name" == "sharedregionapp" ]
 		then
-			./"$app_name"_release "$appsharedregion" 5 0 $reset_vector 1 $reset_vector 2 $reset_vector 3 $reset_vector 4 $reset_vector 3 
+			./"$app_name"_release "$appsharedregion" 5 1 $reset_vector 2 $reset_vector 3 $reset_vector 4 $reset_vector 5 $reset_vector 3 
 		else
-			./"$app_name"_release 5 0 $reset_vector 1 $reset_vector 2 $reset_vector 3 $reset_vector 4 $reset_vector 3 
+			./"$app_name"_release 5 1 $reset_vector 2 $reset_vector 3 $reset_vector 4 $reset_vector 5 $reset_vector 3 
 		fi
 	else
                 echo "Testing on C6474"
 		if [ "$app_name" == "sharedregionapp" ]
 		then
-			./"$app_name"_release "$appsharedregion" 2 0 $reset_vector 1 $reset_vector 3 
+			./"$app_name"_release "$appsharedregion" 2 1 $reset_vector 2 $reset_vector 3 
 		else
-			./"$app_name"_release 2 0 $reset_vector 1 $reset_vector 3 
+			./"$app_name"_release 2 1 $reset_vector 2 $reset_vector 3 
 		fi
 	fi
 fi
