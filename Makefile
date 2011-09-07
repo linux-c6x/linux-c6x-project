@@ -474,17 +474,18 @@ kernel-sub:
 	make ARCH=$(ARCH) O=$(KOBJDIR)/ oldconfig
 	make ARCH=$(ARCH) O=$(KOBJDIR)/
 	make ARCH=$(ARCH) O=$(KOBJDIR)/ DEPMOD=$(DEPMOD) INSTALL_MOD_PATH=$(MOD_DIR) modules_install
-	mkdir -p $(KTESTOBJDIR) ; \
-	cp -r $(TESTMOD_SRC)/* $(KTESTOBJDIR) ; \
-	make ARCH=$(ARCH) O=$(KOBJDIR)/ M=$(KTESTOBJDIR) DEPMOD=$(DEPMOD) \
-		INSTALL_MOD_PATH=$(TEST_MOD_DIR) modules modules_install ; \
+	if [ "$(BUILD_TESTS)"x == "yes"x ]; then \
+		mkdir -p $(KTESTOBJDIR) ; \
+		cp -r $(TESTMOD_SRC)/* $(KTESTOBJDIR) ; \
+		make ARCH=$(ARCH) O=$(KOBJDIR)/ M=$(KTESTOBJDIR) DEPMOD=$(DEPMOD) \
+			INSTALL_MOD_PATH=$(MOD_DIR) modules modules_install ; \
+	fi
 	cp $(KOBJDIR)/vmlinux $(PRODUCT_DIR)/vmlinux-$(KERNEL_FNAME)
 	objcopy -I elf32-$(ENDIAN) -O binary $(PRODUCT_DIR)/vmlinux-$(KERNEL_FNAME) $(PRODUCT_DIR)/vmlinux-$(KERNEL_FNAME).bin
 
 one-module: productdir
 	+$(QUIET)echo "********** modules $(KNAME) ENDIAN=$(ENDIAN)"
 	if [ -d $(MOD_DIR)      ] ; then (cd $(MOD_DIR);      tar czf $(PRODUCT_DIR)/modules-$(KERNEL_FNAME).tar.gz      * ); fi
-	if [ -d $(TEST_MOD_DIR) ] ; then (cd $(TEST_MOD_DIR); tar czf $(PRODUCT_DIR)/test-modules-$(KERNEL_FNAME).tar.gz * ); fi
 
 kernel-headers: kernels
 	+$(QUIET)echo "********** $@"

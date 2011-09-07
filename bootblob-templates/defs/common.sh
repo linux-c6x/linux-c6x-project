@@ -198,7 +198,8 @@ do_it() {
 
 	if [ "$TEST_MODULES"x != "yes"x ]; then TEST_MODULES_FILE=""; fi
 	if [ -n "$TEST_MODULES_FILE" ] && [ ! -r "$TEST_MODULES_FILE" ]; then
-		echo "skipping non-existant file $TEST_MODULES_FILE"
+		# For now anyway we don't build a test-modules file
+		#echo "skipping non-existant file $TEST_MODULES_FILE"
 		TEST_MODULES_FILE=""
 	fi
 
