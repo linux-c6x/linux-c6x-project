@@ -266,7 +266,9 @@ one-one-syslink-script-demo-install:
 	true
 
 one-one-syslink-script-all-install:
-	cp $(SL_SSRC)/syslink*c64x.{sh,js} 		  		  $(SYSLINK_INSTALL)
+	cp $(SL_SSRC)/syslink*c64x.sh	 		  		  $(SYSLINK_INSTALL)
+	cp -a $(SL_SSRC)/configs $(SL_SSRC)/scripts $(SL_SSRC)/images	  $(SYSLINK_INSTALL)
+	mkdir -p $(SYSLINK_INSTALL)/logs
 	cp $(SL_SSRC)/*.txt  						  $(SYSLINK_INSTALL)
 
 endif

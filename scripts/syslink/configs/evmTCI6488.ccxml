@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<configurations XML_version="1.2" id="configurations_0">
+<configuration XML_version="1.2" id="Texas Instruments XDS100v2 USB Emulator_0">
+        <instance XML_version="1.2" desc="Texas Instruments XDS100v2 USB Emulator_0" href="connections/TIXDS100v2_Connection.xml" id="Texas Instruments XDS100v2 USB Emulator_0" xml="TIXDS100v2_Connection.xml" xmlpath="connections"/>
+        <connection XML_version="1.2" id="Texas Instruments XDS100v2 USB Emulator_0">
+            <instance XML_version="1.2" href="drivers/tixds100v2icepick_c.xml" id="drivers" xml="tixds100v2icepick_c.xml" xmlpath="drivers"/>
+            <instance XML_version="1.2" href="drivers/tixds100v2c64xp.xml" id="drivers" xml="tixds100v2c64xp.xml" xmlpath="drivers"/>
+            <platform XML_version="1.2" id="platform_0">
+                <instance XML_version="1.2" desc="EVMC6474_0" href="boards/evmc6474.xml" id="EVMC6474_0" xml="evmc6474.xml" xmlpath="boards"/>
+                <board XML_version="1.2" description="Spectrum Digital C6474 EVM Board" id="EVMC6474_0">
+                    <router HW_revision="1.0" XML_version="1.2" description="ICEPick_C Router" id="IcePick_C_0" isa="ICEPICK_C">
+                        <subpath id="Subpath_1">
+                            <property Type="numericfield" Value="0x12" desc="Port Number_0" id="Port Number"/>
+                        </subpath>
+                    </router>
+                    <router HW_revision="1.0" XML_version="1.2" description="ICEPick_C Router" id="IcePick_C_1" isa="ICEPICK_C">
+                        <subpath id="Subpath_3">
+                            <property Type="numericfield" Value="0x11" desc="Port Number_1" id="Port Number"/>
+                        </subpath>
+                        <subpath id="Subpath_4">
+                            <property Type="numericfield" Value="0x12" desc="Port Number_2" id="Port Number"/>
+                        </subpath>
+                    </router>
+                </board>
+            </platform>
+        </connection>
+    </configuration>
+</configurations>

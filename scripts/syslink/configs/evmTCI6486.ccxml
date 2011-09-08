@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<configurations XML_version="1.2" id="configurations_0">
+
+
+
+
+<configuration XML_version="1.2" id="Texas Instruments XDS100v1 USB Emulator_0">
+        <instance XML_version="1.2" desc="Texas Instruments XDS100v1 USB Emulator_0" href="connections/TIXDS100usb_Connection.xml" id="Texas Instruments XDS100v1 USB Emulator_0" xml="TIXDS100usb_Connection.xml" xmlpath="connections"/>
+        <connection XML_version="1.2" id="Texas Instruments XDS100v1 USB Emulator_0">
+            <instance XML_version="1.2" href="drivers/tixds100icepick_c.xml" id="drivers" xml="tixds100icepick_c.xml" xmlpath="drivers"/>
+            <instance XML_version="1.2" href="drivers/tixds100c64xp.xml" id="drivers" xml="tixds100c64xp.xml" xmlpath="drivers"/>
+            <platform XML_version="1.2" id="platform_0">
+                <instance XML_version="1.2" desc="EVMC6472_0" href="boards/evmc6472.xml" id="EVMC6472_0" xml="evmc6472.xml" xmlpath="boards"/>
+            </platform>
+        </connection>
+    </configuration>
+</configurations>
