@@ -31,25 +31,26 @@ TOP=$(dirname $PRJ)
 echo ${BASH_SOURCE[0]}
 echo ${BASH_SOURCE[1]}
 
-SETENV_FILE=$1
+SETENV_FILES="$@"
 
 if [ ! -e $PRJ/scripts/setenv.example ] ; then
 	echo "can't identify project directory"
 	exit 1
 fi
 
-if [ -n "$SETENV_FILE" ]; then
+if [ -n "$SETENV_FILES" ]; then
+	for file in $SETENV_FILES; do
+		if [ ! -r $file ] ; then
+		    echo "Can not read setenv file $file"
+		    exit 2
+		fi
+	done
 
-	if [ ! -r $SETENV_FILE ] ; then
-		echo "Can not read setenv file $SETENV_FILE"
-		exit 2
-	fi
-
-	if [ -e $PRJ/setenv ] ; then
+	if [ -e $PRJ/setenv ]; then
 		mv $PRJ/setenv $PRJ/setenv.old
 	fi
 
-	cp $SETENV_FILE $PRJ/setenv
+	cat $SETENV_FILES >$PRJ/setenv
 else
 	if [ ! -e $PRJ/setenv ] ; then
 		cp $PRJ/scripts/setenv.example $PRJ/setenv
