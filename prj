@@ -16,7 +16,7 @@ BASE_PRJ="linux-c6x busybox"
 WRAP_PRJ=""
 EXTRA1_PRJ="projects/mtd-utils projects/rio-utils projects/ltp projects/syslink"
 EXTRA2_PRJ="projects/c6x-linux-mcsdk-demo projects/packages projects/package-downloads"
-EXTRA3_PRJ="projects/ibl projects/c64-eepromwriter"
+EXTRA3_PRJ="projects/ibl projects/c64-eepromwriter projects/bootloader-support"
 EXTRA_PRJ="$EXTRA1_PRJ $EXTRA2_PRJ $EXTRA3_PRJ"
 
 CONFIG_CMD=scripts/setup
