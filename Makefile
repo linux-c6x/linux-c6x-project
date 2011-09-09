@@ -20,7 +20,7 @@ endif
 ifeq ($(BUILD_BOOTLOADERS),yes)
 BOOTLOADER_TARGETS=ibl eepromwriter
 else
-BOOTLOADER_TARGETS=""
+BOOTLOADER_TARGETS=no-bootloader
 endif
 
 all: product syslink-all ibl eepromwriter
@@ -773,17 +773,17 @@ one-ltp-clean:
 	rm -rf $(BLD)/ltp$(FULL_SUFFIX)
 
 ### Packages built with cross rpm
-rpm: $(BLD)/rpm-done.txt
-
-$(SDK_DIR)/rpm: $(BLD)/rpm-done.txt
-
-$(BLD)/rpm-done.txt:
+rpm:
 	+$(QUIET)echo "********** rpm"
+	$(SUB_MAKE) rpm-sub
+	
+rpm-sub: $(SDK_DIR)/rpm/cross-rpm/pkg_build $(SDK_DIR)/rpm/bin/rpm2cpio 
+
+$(SDK_DIR)/rpm/cross-rpm/pkg_build $(SDK_DIR)/rpm/bin/rpm2cpio:
 	$(PRJ)/cross-rpm/build-rpm.sh
 
 rpm-clean:
-	rm -rf $(BLD)/rpm-done.txt
-	rm -rf $(BLD)/rpm-4.0.4
+	rm -rf $(BLD)/rpm*
 	rm -rf $(SDK_DIR)/rpm
 
 
@@ -1085,6 +1085,9 @@ one-one-ibl: productdir
 		$(MAKE) -C $(IBL_BLD_DIR)/src/make ENDIAN=$(ENDIAN) I2C_BUS_ADDR=$(EEPROM_BUS_ADDR) $(IBL_TARGET) \
 	)
 	cp $(IBL_BLD_DIR)/src/make/bin/i2crom_0x??_$(EEPROMWRITER_TARGET)_$(ENDIAN_LETTERS).bin $(PRODUCT_DIR)/
+
+no-bootloader: 
+	+$(QUIET)echo "********** skip bootloaders (disabled from product build in setenv)"
 
 ########  Directory targets
 productdir:
