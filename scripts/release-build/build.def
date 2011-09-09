@@ -1,6 +1,7 @@
 # Build Definitions
 
 BOOTSTRAP_URL=http://linux-c6x.org/bootstrap
+BUILD_CONFIG_COMMON="common-1-setenv.build"
 BUILD_CONFIGS="setenv-c66le.build setenv-ltple.build setenv-c66be.build setenv-ltpbe.build setenv-c64le.build setenv-c64be.build"
 BUILD_TYPE="branch"
 BUILD_NAME=linux-c6x-2.0-n046

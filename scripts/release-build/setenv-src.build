@@ -1,5 +1,7 @@
 # This file is part of a build set referenced by a build*.def
 
+# this file is used to when doing a config for the source release
+
 # this is infrastructure boilerplate; don't edit
 SETENV_SOURCED=1
 SETENV_FILE=${BASH_SOURCE[0]}
@@ -10,26 +12,27 @@ if [ -z "$SETENV_LOCAL_SOURCED" ]; then
 	source $SETENV_LOCAL_FILE
 fi
 
-export KERNELS_TO_BUILD="evmc6472 evmc6474-lite evmc6457 dsk6455 evmc6474"
+export KERNELS_TO_BUILD=""
 
 # (in common file) export GCC_VERSION=xxx
 
 # (in common file) export CGT_LINUX_VERSION=xxx
 
 # set to yes to install extra kernel modules and scripts used for testing
-export BUILD_TESTS=yes
+export BUILD_TESTS=no
 
-export ROOTFS="min-root mcsdk-demo-root full-root"
+export ROOTFS=""
 
 export BOOTBLOBS=""
 
-export ENDIAN=big
+export ENDIAN=little
 
 export FLOAT=native
 
 # (in common file) export PKG_LIST=xxx
 
-export BUILD_SYSLINK=yes
+export BUILD_SYSLINK=no
+export BUILD_BOOTLOADERS=no
 
 # (in common file) export CCS_VERSION=xxx
 # (in common file) export CGT_BIOS_VERSION=xxx

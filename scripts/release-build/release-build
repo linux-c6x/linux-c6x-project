@@ -1,11 +1,180 @@
 #! /bin/bash
 
+export SCRIPT_DIR=$(cd $(dirname $0); pwd)
+export JOB_DIR=$(pwd)
+
 export DATE=$(date -u +%Y%m%d)
 
 set -x
 set -e
 
+first-word() {
+	echo "$1"
+}
+
+local-prep() {
+	echo "nothing to do in this release"
+}
+
+host-info() {
+    echo "*** lsb_release -a"
+    lsb_release -a || true
+    echo "*** uname -a"
+    uname -a || true
+    echo "*** dpkg -la"
+    dpkg -la || true
+    echo "*** rpm -qa"
+    rpm -qa || true
+}
+
+find-build-files() {
+    for file in "$@"; do
+	if [ -r $JOB_DIR/$file ]; then
+	    printf "$JOB_DIR/$file "
+	elif [ -r $SCRIPT_DIR/$file ]; then
+	    printf "$SCRIPT_DIR/$file "
+	elif [ -r $file ]; then
+	    printf "$file "
+	else
+	    printf "$file "
+	    echo "Can't find build/setenv file $file" >&2
+	    exit 2
+	fi
+    done
+}
+
+make-source-tarball() {
+	this_config=src
+	if $INPLACE; then this_dir=inplace; else this_dir=$this_config; fi
+
+	export WORK_DIR=$JOB_DIR/build-set/$this_dir/$BUILD_NAME
+	THIS_REF=release-reference-$this_config-bin
+
+	if ! $RETRY ; then 
+		echo "Removing any prior work area"
+		rm -rf $WORK_DIR >/dev/null 2>&1 ||  true
+	else
+		rm -rf $WORK_DIR/gcc-c6x-uclibc $WORK_DIR/release-reference-* $WORK_DIR/product $WORK_DIR/sdk $WORK_DIR/program_evm || true
+	fi
+
+	mkdir -p $WORK_DIR
+
+	# set up machine enough for bootstrap to work
+	# (this should be part of bootstrap )
+	if ! which git ; then
+		if ! which apt-get ; then
+			echo "don't have git and don't know how to install it"
+			exit 2
+		fi
+		echo "installing git"
+		sudo apt-get install -y git-core
+	fi
+
+	cd $WORK_DIR
+	mkdir -p $SRC_REF
+	THIS_REF=$SRC_REF
+
+	# fetch and setup the project
+	if [ ${BOOTSTRAP_URL##file://} != ${BOOTSTRAP_URL} ]; then
+	    cp ${BOOTSTRAP_URL##file://} bootstrap
+	else
+	    wget -O bootstrap $BOOTSTRAP_URL
+	fi
+	chmod +x bootstrap
+
+	./bootstrap ${PRJ_URL:+--url=$PRJ_URL} $SRC_RELEASE
+	
+	# record manual dependencies
+	(cd $JOB_DIR; md5sum -b manual-dependencies/* >$WORK_DIR/$SRC_REF/manual-dependencies.md5sums)
+
+	# record host info before we configure
+	host-info >$WORK_DIR/$THIS_REF/host-info.log 2>&1
+
+	# we need to config to get uclibc source
+	cd $WORK_DIR/linux-c6x-project
+	./prj config $(find-build-files $BUILD_CONFIG_COMMON setenv-src.build) 2>&1 | tee $WORK_DIR/$THIS_REF/config.log
+
+	# now put it in the top dir to indicate its part of the source release
+	cp -a ../opt/gcc-c6x-uclibc ../gcc-c6x-uclibc
+
+	# record reference information
+	./prj git rev-parse HEAD >../$SRC_REF/src-release.src-record
+	(cd $JOB_DIR; md5sum -b manual-dependencies/* >$WORK_DIR/$SRC_REF/all-dependencies.md5sums)
+
+	# clean up
+	rm ../bootstrap
+	./prj git clean -fdx
+	./prj git reset --hard
+
+	# tar it up
+	cd $WORK_DIR/..
+	tar czf $OUTPUT/$BUILD_NAME-src.tar.gz \
+	    --exclude=".git" --exclude="product" --exclude="sdk" --exclude="Build" \
+	    --exclude="opt" --exclude="downloads" --exclude="release-reference-*-bin" \
+	    $BUILD_NAME
+}
+
+fake-build() {
+	mkdir -p ../product; echo Hello >../product/vmlinux-$this_config
+	mkdir -p ../program_evm; echo Hello >../program_evm/fake_program_evm.js
+	echo "all done fake building"
+}
+
+one-bin-build() {
+	this_config_file=$1
+	this_config=${this_config_file##setenv-}
+	this_config=${this_config%%.build}
+	if $INPLACE; then this_dir=inplace; else this_dir=$this_config; fi
+
+	export WORK_DIR=$JOB_DIR/build-set/$this_dir/$BUILD_NAME
+	THIS_REF=release-reference-$this_config-bin
+
+	# For INPLACE, each bin-builds is in the same dir where the source was cloned
+	# For !INPLACE, each bin-build is done in its own dir using the source tar ball create
+	if ! $INPLACE; then
+		if ! $RETRY ; then 
+			echo "Removing any prior work area"
+			rm -rf $WORK_DIR >/dev/null 2>&1 ||  true
+		fi
+
+		mkdir -p $WORK_DIR
+		cd $WORK_DIR/..
+
+		# extract the source release
+		tar xzf $OUTPUT/$BUILD_NAME-src.tar.gz
+	fi
+
+	rm -rf $BUILD_NAME/$THIS_REF $BUILD_NAME/product $BUILD_NAME/sdk $BUILD_NAME/program_evm || true
+	if ! $RETRY ; then 
+	    rm -rf $BUILD_NAME/Build $BUILD_NAME/opt || true
+	fi
+	mkdir -p $WORK_DIR/$THIS_REF
+
+	# record host info before we configure
+	host-info >$WORK_DIR/$THIS_REF/host-info.log  2>&1
+
+	cd $WORK_DIR/linux-c6x-project
+	./prj config $(find-build-files $BUILD_CONFIG_COMMON $this_config_file) 2>&1 | tee $WORK_DIR/$THIS_REF/config.log
+
+	# build it
+#	if fake-build 2>&1 | tee $WORK_DIR/$THIS_REF/build.log; then
+	if ./prj build 2>&1 | tee $THIS_REF/build.log; then
+		echo "Build OK"
+	else
+		echo "Build FAILED"; exit 2
+	fi
+
+	# package up this binary release
+	cd $WORK_DIR
+	cp linux-c6x-project/setenv $THIS_REF/setenv-$this_config.build
+	cp linux-c6x-project/.setenv.local $THIS_REF/setenv-$this_config.local
+	cp $SRC_REF/* $THIS_REF/
+	cd $WORK_DIR/..
+	tar czf $OUTPUT/$BUILD_NAME-$this_config-bin.tar.gz $BUILD_NAME/$THIS_REF $BUILD_NAME/product $BUILD_NAME/program_evm
+}
+
 : ${RETRY:=false}
+: ${INPLACE:=false}
 
 # process options
 while true; do
@@ -13,6 +182,17 @@ case $1 in
 --retry)
  	export RETRY=true
 	shift
+;;
+--in-place)
+	# this can also come from the env or build.def
+ 	export INPLACE=true
+	shift
+;;
+--local-prep|--host-info)
+    CMD=${1##--}
+    shift
+    $CMD "$@"
+    exit $?
 ;;
 --*)
 	echo "unknown option $1"
@@ -51,15 +231,8 @@ esac
 
 : ${BUILD_NAME:=$DEF_BUILD_NAME}
 
-first-word() {
-	echo "$1"
-}
-
-export JOB_DIR=$(pwd)
 export DOWNLOAD_PATH=$JOB_DIR/manual-dependencies
-export WORK_DIR=$JOB_DIR/$BUILD_NAME
 export AUTO_INSTALL=yes
-export FIRST_CONFIG=$(first-word $BUILD_CONFIGS)
 export SRC_REF=release-reference-src
 
 export BUILD_NAME BUILD_TYPE BOOTSTRAP_URL SRC_TAR_URL BUILD_CONFIG SRC_RELEASE
@@ -67,103 +240,6 @@ export BUILD_NAME BUILD_TYPE BOOTSTRAP_URL SRC_TAR_URL BUILD_CONFIG SRC_RELEASE
 rm -rf $JOB_DIR/output >/dev/null 2>&1 || true
 export OUTPUT=$JOB_DIR/output
 mkdir -p $OUTPUT
-
-if ! $RETRY ; then 
-    echo "Removing any prior work area"
-    rm -rf $WORK_DIR >/dev/null 2>&1 ||  true
-fi
-
-mkdir -p $WORK_DIR
-
-local-prep() {
-	echo "nothing to do in this release"
-}
-
-make-source-tarball() {
-	# set up machine enough for bootstrap to work
-	# (this should be part of bootstrap )
-	if ! which git ; then
-		if ! which apt-get ; then
-			echo "don't have git and don't know how to install it"
-			exit 2
-		fi
-		echo "installing git"
-		sudo apt-get install -y git-core
-	fi
-
-	cd $WORK_DIR
-	mkdir -p $SRC_REF
-
-	# fetch and setup the project
-	wget -O bootstrap $BOOTSTRAP_URL
-	chmod +x bootstrap
-
-	./bootstrap ${PRJ_URL:+--url=$PRJ_URL} $SRC_RELEASE
-	
-	# record manual dependencies
-	(cd $JOB_DIR; md5sum -b manual-dependencies/* >$WORK_DIR/$SRC_REF/manual-dependencies.md5sums)
-
-	# we need to config to get uclibc source
-	cd $WORK_DIR/linux-c6x-project
-	./prj config $JOB_DIR/$FIRST_CONFIG
-
-	# record reference information
-	./prj git rev-parse HEAD >../$SRC_REF/src-release.src-record
-	(cd $JOB_DIR; md5sum -b manual-dependencies/* >$WORK_DIR/$SRC_REF/all-dependencies.md5sums)
-
-	# clean up
-	rm ../bootstrap
-	./prj git clean -fdx
-	./prj git reset --hard
-
-	# tar it up
-	cd $WORK_DIR/..
-	tar czf $OUTPUT/$BUILD_NAME-src.tar.gz --exclude=".git" --exclude="product" --exclude="sdk" --exclude="Build" --exclude="gcc-c6x" --exclude="downloads" $BUILD_NAME
-}
-
-fake-build() {
-	mkdir -p ../product; echo Hello >../product/vmlinux-$this_config
-}
-
-one-bin-build() {
-	this_config_file=$1
-	this_config=${this_config_file##setenv-}
-	this_config=${this_config%%.build}
-
-	THIS_REF=release-reference-$this_config-bin
-
-	rm -rf $BUILD_NAME/$THIS_REF $BUILD_NAME/product || true
-	if ! $RETRY ; then 
-	    rm -rf $BUILD_NAME/Build $BUILD_NAME/opt || true
-	fi
-	mkdir -p $WORK_DIR/$THIS_REF
-
-	cd $WORK_DIR/linux-c6x-project
-	./prj config $JOB_DIR/$this_config_file
-	source $(pwd)/setenv
-
-	# build it
-#	if fake-build ; then
-	if make product ; then
-		echo "Build OK"
-	else
-		echo "Build FAILED"; exit 2
-	fi
-
-	# package up this binary release
-	cd $WORK_DIR
-	cp $JOB_DIR/$this_config_file $THIS_REF
-	cp linux-c6x-project/.setenv.local $THIS_REF/setenv-$this_config.local
-	cp $SRC_REF/* $THIS_REF/
-	cd $WORK_DIR/..
-	tar czf $OUTPUT/$BUILD_NAME-$this_config-bin.tar.gz $BUILD_NAME/$THIS_REF $BUILD_NAME/product
-}
-
-# look for special commands
-if [ "$1" == "local-prep" ]; then
-    local-prep
-    exit $?
-fi
 
 (make-source-tarball)
 
