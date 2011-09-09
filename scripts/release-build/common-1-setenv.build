@@ -17,7 +17,7 @@ export CGT_LINUX_VERSION=none
 export PKG_LIST="zlib net-snmp polarssl ttcp dhrystone nbench-byte tcpdump iperf openssl ethtool"
 
 # by default build the bootloaders and support
-export BUILD_BOOTLOADERS=no
+export BUILD_BOOTLOADERS=yes
 
 # to build SYSLINK and BIOS examples, you need extra dependencies
 # each of these can be:
