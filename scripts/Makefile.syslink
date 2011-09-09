@@ -108,6 +108,7 @@ syslink-help:
 	@echo "syslink files are installed under product/<platform>/"
 
 one-one-syslink-sanity:
+ifeq ($(BUILD_SYSLINK),yes)
 ifeq ($(SYSLINK_PLATFORM),)
 	@echo "No SYSLINK_PLATFORM defined"
 	false
@@ -117,6 +118,9 @@ endif
 	@if [ -z "$(BIOS_DIR)" ]     || [ ! -d $(BIOS_DIR) ]     ; then echo "Setup BIOS package before build";   false ; fi
 	@if [ -z "$(XDC_DIR)" ]      || [ ! -d $(XDC_DIR) ]      ; then echo "Setup XDC package before build";    false ; fi
 	@if [ -z "$(CGT_BIOS_DIR)" ] || [ ! -d $(CGT_BIOS_DIR) ] ; then echo "Setup CGT before build";            false ; fi
+else
+	@true
+endif
 
 ifeq ($(DEBUG_SYSLINK_VC),)
 

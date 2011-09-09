@@ -818,7 +818,7 @@ SYSLINK_PLATFORMS = evmc6678 evmc6670 evmc6472 evmc6474 evmc6474-lite
 ifeq ($(BUILD_SYSLINK),yes)
 SYSLINKS_TO_BUILD = $(filter $(SYSLINK_PLATFORMS),$(KERNELS_TO_BUILD))
 else
-SYSLINKS_TO_BUILD = ""
+SYSLINKS_TO_BUILD =
 endif
 
 MID_SYSLINK_TARGETS = one-syslink-kernel one-syslink-user \
