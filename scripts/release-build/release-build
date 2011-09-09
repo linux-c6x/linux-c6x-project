@@ -167,7 +167,7 @@ one-bin-build() {
 
 	# package up this binary release
 	cd $WORK_DIR
-	mkdir -p $BUILD_NAME/program_evm
+	mkdir -p program_evm
 	cp linux-c6x-project/setenv $THIS_REF/setenv-$this_config.build
 	cp linux-c6x-project/.setenv.local $THIS_REF/setenv-$this_config.local
 	cp $SRC_REF/* $THIS_REF/
