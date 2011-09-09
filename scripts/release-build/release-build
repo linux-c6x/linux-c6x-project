@@ -7,6 +7,7 @@ export DATE=$(date -u +%Y%m%d)
 
 set -x
 set -e
+set -o pipefail
 
 first-word() {
 	echo "$1"
@@ -158,7 +159,7 @@ one-bin-build() {
 
 	# build it
 #	if fake-build 2>&1 | tee $WORK_DIR/$THIS_REF/build.log; then
-	if ./prj build 2>&1 | tee $THIS_REF/build.log; then
+	if ./prj build 2>&1 | tee $WORK_DIR/$THIS_REF/build.log; then
 		echo "Build OK"
 	else
 		echo "Build FAILED"; exit 2
@@ -166,6 +167,7 @@ one-bin-build() {
 
 	# package up this binary release
 	cd $WORK_DIR
+	mkdir -p $BUILD_DIR/program_evm
 	cp linux-c6x-project/setenv $THIS_REF/setenv-$this_config.build
 	cp linux-c6x-project/.setenv.local $THIS_REF/setenv-$this_config.local
 	cp $SRC_REF/* $THIS_REF/
