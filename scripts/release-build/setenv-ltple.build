@@ -19,6 +19,9 @@ export KERNELS_TO_BUILD="evmc6678"
 
 export BUILD_TESTS=yes
 
+# override common
+export BUILD_BOOTLOADERS=no
+
 export ROOTFS="ltp-root"
 
 export BOOTBLOBS=""
