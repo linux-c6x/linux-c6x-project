@@ -27,7 +27,7 @@ export ROOTFS="ltp-root"
 export BOOTBLOBS=""
 
 # 'little', 'big', or 'both' for endianess versions to build
-export ENDIAN=big
+export ENDIAN=little
 
 # 'soft', 'hard', or 'both' floating point ABI options 
 export FLOAT=both
