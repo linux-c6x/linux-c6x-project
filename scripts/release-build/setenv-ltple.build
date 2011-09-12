@@ -11,7 +11,7 @@ if [ -z "$SETENV_LOCAL_SOURCED" ]; then
 fi
 
 # we need to build a kernel to keep the makefile happy but it does not matter which
-export KERNELS_TO_BUILD="evmc6678"
+export KERNELS_TO_BUILD="evmc6678 evmc6670 evmc6472 evmc6474-lite evmc6474"
 
 # (in common file) export GCC_VERSION=xxx
 
@@ -35,7 +35,7 @@ export FLOAT=both
 # list of extra packages to build and install when using full-root
 # (in common file) export PKG_LIST=xxx
 
-export BUILD_SYSLINK=no
+export BUILD_SYSLINK=yes
 
 # (in common file) export CCS_VERSION=xxx
 # (in common file) export CGT_BIOS_VERSION=xxx

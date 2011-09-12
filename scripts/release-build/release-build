@@ -29,6 +29,13 @@ host-info() {
 }
 
 find-build-files() {
+    local non_fatal=false
+
+    if [ "$1"x == "--non-fatal"x ]; then
+	non_fatal=true
+	shift
+    fi
+
     for file in "$@"; do
 	if [ -r $JOB_DIR/$file ]; then
 	    printf "$JOB_DIR/$file "
@@ -37,11 +44,16 @@ find-build-files() {
 	elif [ -r $file ]; then
 	    printf "$file "
 	else
-	    printf "$file "
-	    echo "Can't find build/setenv file $file" >&2
-	    exit 2
+	    if $non_fatal; then
+		printf ""
+	    else
+		echo "Can't find build/setenv file $file" >&2
+		exit 2
+	    fi
 	fi
     done
+
+    return 0
 }
 
 make-source-tarball() {
@@ -155,6 +167,11 @@ one-bin-build() {
 	host-info >$WORK_DIR/$THIS_REF/host-info.log  2>&1
 
 	cd $WORK_DIR/linux-c6x-project
+	pre_script="$(find-build-files --non-fatal pre-${this_config}.sh)"
+	if [ -n "${pre_script}" ] && [ -x ${pre_script} ]; then
+	    ${pre_script}
+	fi
+
 	./prj config $(find-build-files $BUILD_CONFIG_COMMON $this_config_file) 2>&1 | tee $WORK_DIR/$THIS_REF/config.log
 
 	# build it
@@ -163,6 +180,11 @@ one-bin-build() {
 		echo "Build OK"
 	else
 		echo "Build FAILED"; exit 2
+	fi
+
+	post_script=$(find-build-files --non-fatal post-${this_config}.sh)
+	if [ -n "${post_script}" ] && [ -x ${post_script} ]; then
+	    ${post_script}
 	fi
 
 	# package up this binary release
