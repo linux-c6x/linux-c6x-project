@@ -84,8 +84,10 @@ TOOLCHAIN_BIN_TARFILE=${UCLINUX_PREFIX}-i686-pc-linux-gnu.tar.bz2
 UCLIBC_SRC=uclibc-${GCC_REL}
 UCLIBC_SRC_TARFILE=${UCLIBC_SRC}.tar.bz2
 
-OLD_CS_BASE=http://www.codesourcery.com/sgpp/lite/c6000/portal
-NEW_CS_BASE=https://support.codesourcery.com/GNUToolchain/
+# updated 2011/09/13 to match new URL's
+# old ones were correctly redirecting but some http proxies were not handling it correctly
+OLD_CS_BASE=https://sourcery.mentor.com/sgpp/lite/c6000/portal
+NEW_CS_BASE=https://sourcery.mentor.com/GNUToolchain/
 TI_INTERNAL_BASE=http://gtgit01.gt.design.ti.com/files/linux-c6x/received/codesourcery
 
 BIN_DIR_NAME=c6x-4.5
