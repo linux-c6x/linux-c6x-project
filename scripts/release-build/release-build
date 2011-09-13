@@ -128,8 +128,9 @@ make-source-tarball() {
 }
 
 fake-build() {
-	mkdir -p ../product; echo Hello >../product/vmlinux-$this_config
-	mkdir -p ../product; echo Hello >../product/syslink-all-$this_config
+	mkdir -p ../product; echo Hello >../product/vmlinux-$this_config.bin
+	mkdir -p ../product; echo Hello >../product/modules-$this_config.tar.gz
+	mkdir -p ../product; echo Hello >../product/syslink-all-$this_config.tar.gz
 	mkdir -p ../program_evm; echo Hello >../program_evm/fake_program_evm.js
 	echo "all done fake building"
 }
