@@ -129,6 +129,7 @@ make-source-tarball() {
 
 fake-build() {
 	mkdir -p ../product; echo Hello >../product/vmlinux-$this_config
+	mkdir -p ../product; echo Hello >../product/syslink-all-$this_config
 	mkdir -p ../program_evm; echo Hello >../program_evm/fake_program_evm.js
 	echo "all done fake building"
 }
@@ -174,9 +175,14 @@ one-bin-build() {
 
 	./prj config $(find-build-files $BUILD_CONFIG_COMMON $this_config_file) 2>&1 | tee $WORK_DIR/$THIS_REF/config.log
 
+	if $FAKE_BUILD; then
+	    BUILD_CMD=fake-build
+	else
+	    BUILD_CMD=./prj
+	fi
+
 	# build it
-#	if fake-build 2>&1 | tee $WORK_DIR/$THIS_REF/build.log; then
-	if ./prj build 2>&1 | tee $WORK_DIR/$THIS_REF/build.log; then
+	if $BUILD_CMD build 2>&1 | tee $WORK_DIR/$THIS_REF/build.log; then
 		echo "Build OK"
 	else
 		echo "Build FAILED"; exit 2
@@ -199,6 +205,7 @@ one-bin-build() {
 
 : ${RETRY:=false}
 : ${INPLACE:=false}
+: ${FAKE_BUILD:=false}
 
 # process options
 while true; do
@@ -210,6 +217,11 @@ case $1 in
 --in-place)
 	# this can also come from the env or build.def
  	export INPLACE=true
+	shift
+;;
+--fake-build)
+	# this can also come from the env or build.def
+ 	export FAKE_BUILD=true
 	shift
 ;;
 --local-prep|--host-info)
