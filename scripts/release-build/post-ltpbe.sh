@@ -4,5 +4,5 @@
 
 # for LTP release bundles, the kernel builds are needed to syslink-all but
 # should not be included in the release bundle
-rm ../product/vmlinux* ../product/modules*
+rm -f ../product/vmlinux* ../product/modules* || true
 
