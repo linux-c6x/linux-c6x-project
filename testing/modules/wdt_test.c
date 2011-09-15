@@ -47,8 +47,11 @@
 #elif defined(CONFIG_SOC_TMS320C6474)
 #define WDTIMER TIMER_BASE(TIMER_5 - get_coreid())
 #else
-#error "Unknown SoC"
+#warning "Unknown SoC"
+#define NULL_OUT
 #endif
+
+#ifndef NULL_OUT
 
 static int test_proc_dointvec(struct ctl_table *table, int write,
 			      void __user *buffer, size_t *lenp, loff_t *ppos);
@@ -119,6 +122,20 @@ static void __exit test_exit(void)
 {
 	unregister_sysctl_table(wdt_hdr);
 }
+
+#else 
+
+/* NULL_OUT is defined */
+static int __init test_init(void)
+{
+	return -ENOMEM;
+}
+
+static void __exit test_exit(void)
+{
+}
+
+#endif
 
 module_init(test_init);
 module_exit(test_exit);
