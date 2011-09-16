@@ -26,9 +26,11 @@ fi
 do_late_defs() {
 	if [ "$ENDIAN"x == "little"x ]; then
 		ENDIAN_TAG=el
+		ENDIAN_LETTERS=le
 		ARCHe=""
 	elif [ "$ENDIAN"x == "big"x ]; then
 		ENDIAN_TAG=eb
+		ENDIAN_LETTERS=be
 		ARCHe="eb"
 	fi
 
@@ -65,8 +67,14 @@ do_late_defs() {
 
 	BLOB_OUTFILE=${TEMPLATE}${FULL_SUFFIX}${BUILD_SUFFIX}.bin
 	FS_OUTFILE=${TEMPLATE}${FULL_SUFFIX}${BUILD_SUFFIX}
+	
+	# only do MACADDR processing for dsk6455
+	if [ "$EVM" == "dsk6455" ]; then
+		MACADDR=$DSK6455_MACADDR
+		IBL_FILE="i2crom_0x50_c6455_${ENDIAN_LETTERS}.bin"
+	fi
 
-	: ${IPADDR:=$(eval echo \$${EVM}_IPADDR)}
+	: ${IPADDR:=$(eval echo \$${EVM^^}_IPADDR)}
 	: ${IPADDR:=dhcp}
 	: ${IP:="ip=${IPADDR}"}
 	: ${NFS_PREFIX:="/srv/nfs/"}
@@ -94,7 +102,7 @@ is_one_of() {
 
 do_for_each_float() {
 	if [ "$FLOAT" == "both" ]; then
-		for float in $POSSIBLE_FLOAT; do
+		for float in $POSSIBLE_FLOATS; do
 			FLOAT=$float  do_for_each_build "$@"
 		done
 	elif [ "$FLOAT" == "native" ]; then
@@ -228,5 +236,24 @@ do_it() {
 		cp ${KERNEL_FILE} ${BLOB_OUTFILE}
 		echo ./bootblob set-cmdline ${BLOB_OUTFILE} \"${CMDLINE}\"
 		./bootblob set-cmdline ${BLOB_OUTFILE} "${CMDLINE}"
+	fi
+
+	#echo "MACADDR=$MACADDR IBL_FILE=$IBL_FILE"
+	if [ -n "$MACADDR" ]; then
+		if [ -r $IBL_FILE ]; then 
+			if [ ! -r $IBL_FILE.orig ]; then
+				cp -f $IBL_FILE $IBL_FILE.orig
+			fi
+			cp -f $IBL_FILE.orig $IBL_FILE
+			OLDMAC=$(./bootblob ibl-macaddr $IBL_FILE)
+			if [ "$OLDMAC"x != "0a:e0:a6:66:57:19"x ]; then
+				echo "did not find expect old mac addr, skipping update"
+			else
+				./bootblob ibl-macaddr $IBL_FILE $MACADDR
+				echo "$IBL_FILE: New MAC addr=$(./bootblob ibl-macaddr $IBL_FILE)"
+			fi
+		else
+			echo "skipping macaddr update, no $IBL_FILE found"
+		fi
 	fi
 }

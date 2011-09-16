@@ -140,6 +140,61 @@ make-image() {
     set-cmdline $IMAGE "$CMDLINE"
 }
 
+# if the IBL conifg strcuture changes this will need updating
+IBL_MACADDR_OFFSET=0x66C
+
+decode_mac() {
+	local MAC_FILE=$1
+
+	x=$(od $MAC_FILE -t x1| head -n 1)
+	x=${x##0000000 }
+	x=${x// /:}
+	echo $x	
+}
+
+encode_mac() {
+	local STRING=$1
+	local MAC_FILE_OUT=$2
+
+	echo -n "" > $MAC_FILE_OUT
+	for byte in ${STRING//[:-]/ }; do 
+		echo -ne "\x$byte" >> $MAC_FILE_OUT 
+	done
+}
+
+extract_mac() {
+	local INFILE=$1
+	local OUTFILE=$2
+		
+	dd if=$INFILE of=$OUTFILE bs=1 skip=$((IBL_MACADDR_OFFSET)) count=6 >/dev/null 2>&1
+}
+
+insert_mac() {
+	local INFILE=$1
+	local OUTFILE=$2
+		
+	dd if=$INFILE of=$OUTFILE bs=1 seek=$((IBL_MACADDR_OFFSET)) conv=notrunc >/dev/null 2>&1
+}
+
+ibl-macaddr() {
+    if [ $# -lt 1 ]; then need-args $# "IBL eepromxx.bin to examine / modify"  "[new mac addr ex: 00:0E:99:02:79:18]"; fi
+    FILE=$1
+    NEW_MAC=$2
+    local tmp_file
+
+    if [ -z "$NEW_MAC" ] ; then
+	tmp_file=$(mktemp)
+	extract_mac $FILE $tmp_file
+	decode_mac $tmp_file
+	rm $tmp_file
+    else
+	tmp_file=$(mktemp)
+	encode_mac $NEW_MAC $tmp_file
+	insert_mac $tmp_file $FILE
+	rm $tmp_file
+    fi
+}
+
 init_rc_check() {
 	ANY_WORKED=false
 	ALL_WORKED=true
@@ -242,6 +297,7 @@ do_help() {
     echo "    set-cmdline             set command line of a blob image or kernel binary image"
     echo "    get-cmdline             print the current command line of a blob image or kernel binary image"
     echo "    save-cmdline            save the raw cmdline data to a file"
+    echo "    ibl-macaddr	      display or set the MAC address in IBL (dsk6455)"
     echo ""
     echo "or where template is one of:"
     for template in $(echo $STD_TEMPLATE_DIR/*); do
@@ -339,7 +395,7 @@ case $CMD in
         do_help
         exit 0
         ;;
-    make-image|set-cmdline|get-cmdline|save-cmdline)
+    make-image|set-cmdline|get-cmdline|save-cmdline|ibl-macaddr)
         $CMD "$@"
         ;;
     all)
