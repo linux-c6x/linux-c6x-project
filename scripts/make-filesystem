@@ -350,7 +350,7 @@ handle-one-option() {
 		return 2
 		;;
 	-*)
-		fatal-error "unknow option use '$0 help' for info"
+		fatal-error "unknown option use '$0 help' for info"
 		;;
 	*)
 		return 1
