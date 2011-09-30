@@ -180,7 +180,7 @@ do_it() {
 	JFFS2)
 		ROOT="root=${JFFS2_DEV} rootfstype=jffs2 rw"
 		FS_EXT=".jffs2"
-		FS_OPTS=$JFFS2_OPT
+		FS_OPTS=$JFFS2_OPTIONS
 		;;
 	*)
 		echo "Unknown FSTYPE=$FSTYPE"
