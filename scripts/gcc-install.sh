@@ -5,8 +5,8 @@
 # install uclibc source to $(pwd)/gcc-c6x-uclibc 
 # if you are behind a proxy, export http_proxy=<proxy> and https_proxy=<proxy>
 
-PUBLIC_VERSIONS="4.5-124 4.5-109 4.5-97"
-DEFAULT_VERSION="4.5-124"
+PUBLIC_VERSIONS="4.5-126 4.5-124 4.5-109 4.5-97"
+DEFAULT_VERSION="4.5-126"
 
 gcc_tools_install_help() {
     echo "Usage gcc-install [options] <release> <ti/[cs]>"
@@ -105,6 +105,10 @@ case $GCC_REL in
 4.5-124)
 	BIN_URL=$NEW_CS_BASE/package9095/c6x-uclinux/${TOOLCHAIN_BIN_TARFILE}
 	SRC_URL=$NEW_CS_BASE/package9094/c6x-uclinux/${TOOLCHAIN_SRC_TARFILE}
+;;
+4.5-126)
+	BIN_URL=$NEW_CS_BASE/package9370/c6x-uclinux/${TOOLCHAIN_BIN_TARFILE}
+	SRC_URL=$NEW_CS_BASE/package9369/c6x-uclinux/${TOOLCHAIN_SRC_TARFILE}
 ;;
 4.5-*)
 ;;
