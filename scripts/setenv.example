@@ -91,7 +91,7 @@ export BUILD_SYSLINK=no
 # Since a found version of CCS is checked early in the search order
 # "any" below for the other settings probibly means "use the one from CCS"
 export CCS_VERSION=none
-export CGT_BIOS_VERSION=7.3.0
+export CGT_BIOS_VERSION=7.2.2
 export IPC_VERSION=1.23.01.26
 export XDC_VERSION=3.22.01.21
 export BIOS_VERSION=6.32.01.38
