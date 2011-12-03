@@ -3,7 +3,7 @@
 
 # set the GCC tool chain version to use for the build.
 # This variable is used by ./prj config to find/setup the gcc resources
-export GCC_VERSION=4.5-127
+export GCC_VERSION=4.5-124
 
 # set the CGT version to be used for the builds of Linux programs.
 # can be:
