@@ -1144,8 +1144,10 @@ one-one-program_evm:
 	+$(QUIET)echo "********** program_evm $(KNAME) ENDIAN=$(ENDIAN)"
 	mkdir -p $(PROGRAM_EVM_DEST_DIR)/logs
 	mkdir -p $(PROGRAM_EVM_DEST_DIR)/binaries
-	cp -a $(PROGRAM_EVM_SRC_DIR)/factory_images/{program_evm.js,configs} 			$(PROGRAM_EVM_DEST_DIR)
-	cp -a $(PROGRAM_EVM_SRC_DIR)/factory_images/binaries/$(PE_TARGET)$(PE_ENDIAN)		$(PROGRAM_EVM_DEST_DIR)/binaries
+	mkdir -p $(PROGRAM_EVM_DEST_DIR)/gel
+	cp -a $(PROGRAM_EVM_SRC_DIR)/program_evm/{program_evm.js,configs} 			$(PROGRAM_EVM_DEST_DIR)
+	cp -a $(PROGRAM_EVM_SRC_DIR)/program_evm/binaries/$(PE_TARGET)$(PE_ENDIAN)		$(PROGRAM_EVM_DEST_DIR)/binaries
+	cp -a $(PROGRAM_EVM_SRC_DIR)/program_evm/gel/* 						$(PROGRAM_EVM_DEST_DIR)/gel
 	ln -fs ../../../product/i2crom_0x$(EEPROM_BUS_ADDR)_$(IBL_OUT)_$(ENDIAN_LETTERS).bin \
 		$(PROGRAM_EVM_DEST_DIR)/binaries/$(PE_TARGET)$(PE_ENDIAN)/eeprom$(EEPROM_BUS_ADDR).bin
 ifeq ($(CPU),C66)
