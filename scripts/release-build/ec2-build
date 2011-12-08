@@ -38,7 +38,7 @@ fi
 ./release-build local-prep
 
 virtual-server run $SERVER_NAME
-scp release-build build*.def setenv*.build $SSH_NAME:.
+scp release-build build*.def *.build $SSH_NAME:.
 
 if [ -d manual-dependencies ] ; then
     rsync -av manual-dependencies $SSH_NAME:.
