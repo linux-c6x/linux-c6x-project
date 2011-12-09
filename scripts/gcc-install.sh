@@ -5,8 +5,8 @@
 # install uclibc source to $(pwd)/gcc-c6x-uclibc 
 # if you are behind a proxy, export http_proxy=<proxy> and https_proxy=<proxy>
 
-PUBLIC_VERSIONS="4.5-126 4.5-124 4.5-109 4.5-97"
-DEFAULT_VERSION="4.5-126"
+PUBLIC_VERSIONS="4.5-124"
+DEFAULT_VERSION="4.5-124"
 
 gcc_tools_install_help() {
     echo "Usage gcc-install [options] <release> <ti/[cs]>"
@@ -84,31 +84,19 @@ TOOLCHAIN_BIN_TARFILE=${UCLINUX_PREFIX}-i686-pc-linux-gnu.tar.bz2
 UCLIBC_SRC=uclibc-${GCC_REL}
 UCLIBC_SRC_TARFILE=${UCLIBC_SRC}.tar.bz2
 
+# updated 2011/12/09 Mentor has made -97 and -109 non-public and changed the URLs 
 # updated 2011/09/13 to match new URL's
 # old ones were correctly redirecting but some http proxies were not handling it correctly
-OLD_CS_BASE=https://sourcery.mentor.com/sgpp/lite/c6000/portal
-NEW_CS_BASE=https://sourcery.mentor.com/GNUToolchain/
+NEW_CS_BASE=https://sourcery.mentor.com/GNUToolchain
 TI_INTERNAL_BASE=http://gtgit01.gt.design.ti.com/files/linux-c6x/received/codesourcery
 
 BIN_DIR_NAME=c6x-4.5
 UCLIBC_DIR_NAME=uclibc-ti-c6x
 
 case $GCC_REL in 
-4.5-97)
-	BIN_URL=$OLD_CS_BASE/package8272/c6x-uclinux/${TOOL_DIR}/${TOOLCHAIN_BIN_TARFILE}
-	SRC_URL=$OLD_CS_BASE/package8271/c6x-uclinux/${TOOL_DIR}/${TOOLCHAIN_SRC_TARFILE}
-;;
-4.5-109)
-	BIN_URL=$NEW_CS_BASE/package8639/c6x-uclinux/${TOOLCHAIN_BIN_TARFILE}
-	SRC_URL=$NEW_CS_BASE/package8638/c6x-uclinux/${TOOLCHAIN_SRC_TARFILE}
-;;
 4.5-124)
-	BIN_URL=$NEW_CS_BASE/package9095/c6x-uclinux/${TOOLCHAIN_BIN_TARFILE}
-	SRC_URL=$NEW_CS_BASE/package9094/c6x-uclinux/${TOOLCHAIN_SRC_TARFILE}
-;;
-4.5-126)
-	BIN_URL=$NEW_CS_BASE/package9370/c6x-uclinux/${TOOLCHAIN_BIN_TARFILE}
-	SRC_URL=$NEW_CS_BASE/package9369/c6x-uclinux/${TOOLCHAIN_SRC_TARFILE}
+	BIN_URL=$NEW_CS_BASE/package9095/public/c6x-uclinux/${TOOLCHAIN_BIN_TARFILE}
+	SRC_URL=$NEW_CS_BASE/package9094/public/c6x-uclinux/${TOOLCHAIN_SRC_TARFILE}
 ;;
 4.5-*)
 ;;
