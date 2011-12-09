@@ -35,7 +35,7 @@ if [ -r ec2-server.def ] ; then
     source ec2-server.def
 fi
 
-./release-build local-prep
+./release-build --local-prep
 
 virtual-server run $SERVER_NAME
 scp release-build build*.def *.build $SSH_NAME:.
