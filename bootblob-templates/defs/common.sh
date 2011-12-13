@@ -74,7 +74,8 @@ do_late_defs() {
 		IBL_FILE="i2crom_0x50_c6455_${ENDIAN_LETTERS}.bin"
 	fi
 
-	: ${IPADDR:=$(eval echo \$${EVM^^}_IPADDR)}
+	FIXED_EVM_NAME=${EVM/-/_}
+	: ${IPADDR:=$(eval echo \$${FIXED_EVM_NAME^^}_IPADDR)}
 	: ${IPADDR:=dhcp}
 	: ${IP:="ip=${IPADDR}"}
 	: ${NFS_PREFIX:="/srv/nfs/"}
